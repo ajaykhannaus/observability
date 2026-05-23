@@ -1,0 +1,38 @@
+# Secrets — never commit real credentials
+.env
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Prometheus local data
+/tmp/prom-data/
+
+# Azure Functions local settings (may contain secrets)
+function_app/local.settings.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
