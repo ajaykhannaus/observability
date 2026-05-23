@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Build deps for confluent-kafka C extension (librdkafka)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        libssl-dev \
+        libsasl2-dev \
+        libsasl2-modules \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (layer-cached until requirements change)
+COPY generator/requirements.txt /app/generator/requirements.txt
+RUN pip install --no-cache-dir -r /app/generator/requirements.txt && \
+    # Install OTel Prometheus exporter separately so pip resolves the version
+    # that's compatible with the already-installed opentelemetry-sdk
+    pip install --no-cache-dir opentelemetry-exporter-prometheus
+
+# Copy the generator package
+COPY generator/ /app/generator/
+
+# PYTHONUNBUFFERED=1 ensures stdout is flushed immediately →
+# Container Apps captures every log line in real-time to Log Analytics.
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# Long-running continuous loop (not a Functions timer trigger).
+# Set BATCH_INTERVAL_S, BASE_BATCH_SIZE, EVENTHUB_* via Container App env vars.
+ENTRYPOINT ["python3", "-m", "generator.runner"]

@@ -16,3 +16,17 @@ groups:
         annotations:
           summary: "High API Error Rate Alert"
           description: "Gateway availability dropped below 99.5% for 5 minutes."
+
+      # ── Pod health ───────────────────────────────────────────────────────
+      - record: ai_gateway:pods_running:current
+        expr: sum(kube_pod_status_phase{namespace="ai-gateway-ns", phase="Running"})
+
+      - alert: PodRestartingFrequently
+        expr: rate(kube_pod_container_status_restarts_total{namespace="ai-gateway-ns"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          tier: P2
+        annotations:
+          summary: "Pod restarting frequently"
+          description: "Pod {{ $labels.pod }} is restarting more than 6 times per hour."

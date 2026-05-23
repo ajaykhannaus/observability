@@ -7,6 +7,14 @@
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
+    },
+    {
+      "name": "DS_AZURE_MONITOR",
+      "label": "Azure Monitor",
+      "description": "Azure Monitor / Log Analytics datasource",
+      "type": "datasource",
+      "pluginId": "grafana-azure-monitor-datasource",
+      "pluginName": "Azure Monitor"
     }
   ],
   "__requires": [
@@ -82,6 +90,18 @@
         "query": "prometheus",
         "refresh": 1,
         "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Azure Monitor",
+        "multi": false,
+        "name": "azuremonitor",
+        "options": [],
+        "query": "grafana-azure-monitor-datasource",
+        "refresh": 1,
+        "type": "datasource"
       }
     ]
   },
@@ -90,7 +110,7 @@
   "timezone": "utc",
   "title": "AI Gateway Telemetry",
   "uid": "ai-telemetry-poc-001",
-  "version": 1,
+  "version": 2,
   "weekStart": "",
   "panels": [
     {
@@ -196,7 +216,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(increase(ai_gateway_request_cost_total[24h]))",
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total[24h]))",
           "legendFormat": "Cost",
           "refId": "A"
         }
@@ -306,7 +326,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(rate(ai_gateway_request_cost_total[5m])) / sum(rate(ai_gateway_request_count_total[5m]))",
+          "expr": "sum(rate(ai_gateway_request_cost_USD_total[5m])) / sum(rate(ai_gateway_request_count_total[5m]))",
           "legendFormat": "$/req",
           "refId": "A"
         }
@@ -431,7 +451,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sort_desc(sum(rate(ai_gateway_request_cost_total[5m])) by (client_name))",
+          "expr": "sort_desc(sum(rate(ai_gateway_request_cost_USD_total[5m])) by (client_name))",
           "legendFormat": "{{client_name}}",
           "refId": "A",
           "instant": true
@@ -591,6 +611,478 @@
           "expr": "sum(rate(ai_gateway_request_count_total{status=\"error\"}[1m])) * 60",
           "legendFormat": "Errors",
           "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 20,
+      "type": "row",
+      "title": "☁️ Infrastructure / Pod Health",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 28},
+      "collapsed": false,
+      "panels": []
+    },
+
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Running Pods",
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 29},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 2},
+              {"color": "green", "value": 3}
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(kube_pod_status_phase{namespace=\"ai-gateway-ns\", phase=\"Running\"})",
+          "legendFormat": "Running",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "HPA Current / Desired Replicas",
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 29},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Current",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Desired",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "HPA Min / Max Replicas",
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 29},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Min",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Max",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Total Pod Restarts",
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 29},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 3},
+              {"color": "red", "value": 10}
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"ai-gateway-ns\"})",
+          "legendFormat": "Restarts",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "HPA Scaling — Replicas Over Time",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 34},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Min"},
+            "properties": [
+              {"id": "custom.lineStyle", "value": {"dash": [8, 4], "fill": "dash"}},
+              {"id": "color", "value": {"fixedColor": "gray", "mode": "fixed"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Max"},
+            "properties": [
+              {"id": "custom.lineStyle", "value": {"dash": [8, 4], "fill": "dash"}},
+              {"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Current",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Desired",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Min",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"ai-gateway-ns\"}",
+          "legendFormat": "Max",
+          "refId": "D"
+        }
+      ]
+    },
+
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Container Memory RSS (MB)",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 34},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "decmbytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "container_memory_rss{namespace=\"ai-gateway-ns\"} / 1e6",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Container CPU Usage Rate",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 34},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"ai-gateway-ns\"}[2m])",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Node Memory Available (GB)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 42},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"fixedColor": "blue", "mode": "fixed"},
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "decgbytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "node_memory_MemAvailable_bytes / 1e9",
+          "legendFormat": "Available",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "node_memory_MemTotal_bytes / 1e9",
+          "legendFormat": "Total",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 29,
+      "type": "row",
+      "title": "📋 Structured Logs (Log Analytics)",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 50},
+      "collapsed": false,
+      "panels": []
+    },
+
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Log Events per Minute",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 51},
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "${azuremonitor}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "never"},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'ai-telemetry-runner'\n| where TimeGenerated > ago(3h)\n| extend e = parse_json(Log_s)\n| where e.event_type == 'telemetry_event'\n| summarize EventCount=count() by bin(TimeGenerated, 1m)\n| order by TimeGenerated asc",
+            "resultFormat": "time_series"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Recent ERROR Logs",
+      "gridPos": {"h": 8, "w": 10, "x": 8, "y": 51},
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "${azuremonitor}"},
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "auto"}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "TimeGenerated"},
+            "properties": [{"id": "custom.width", "value": 180}]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [{"displayName": "TimeGenerated", "desc": true}]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'ai-telemetry-runner'\n| where TimeGenerated > ago(1h)\n| extend e = parse_json(Log_s)\n| where e.level == 'ERROR'\n| project TimeGenerated, Message=tostring(e.message), Module=tostring(e.module), Exception=tostring(e.exception)\n| order by TimeGenerated desc\n| take 50",
+            "resultFormat": "table"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Events by Model (from Logs)",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 51},
+      "datasource": {"type": "grafana-azure-monitor-datasource", "uid": "${azuremonitor}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "never"},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'ai-telemetry-runner'\n| where TimeGenerated > ago(1h)\n| extend e = parse_json(Log_s)\n| where e.event_type == 'telemetry_event'\n| extend model = tostring(e.model_name)\n| summarize count() by bin(TimeGenerated, 5m), model\n| order by TimeGenerated asc",
+            "resultFormat": "time_series"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Pod Restart Events (5 min window)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 42},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"fixedColor": "red", "mode": "fixed"},
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 5
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"ai-gateway-ns\"}[5m])",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
         }
       ]
     }

@@ -38,6 +38,105 @@ ERROR_WINDOW_PROB=1.0 python3 generator/runner.py
 
 Error rate climbs to ~8 %. Grafana alert fires within 2 minutes.
 
+## Deploy as Azure Container App (always-on runner) 🚀
+
+The runner deploys as a long-lived container on Azure Container Apps, generating
+synthetic telemetry continuously. GitHub Actions builds and deploys on every push
+to `main`/`master`.
+
+### One-time Azure setup (run manually once)
+
+```bash
+RG="rg-ai-telemetry-poc"
+SP_ID="62599542-f963-470f-8676-78da96a86231"
+SP_SECRET="<AZURE_CLIENT_SECRET from .env>"
+EVENTHUB_CONN="<EVENTHUB_CONNECTION_STRING from .env>"
+
+# Install Container Apps CLI extension
+az extension add --name containerapp --upgrade --yes
+
+# Create the Container Apps Environment (auto-creates a Log Analytics workspace)
+az containerapp env create \
+  --name cae-telemetry-poc \
+  --resource-group "$RG" \
+  --location eastus
+
+# Create the Container App (min-replicas=1 keeps it always-on)
+az containerapp create \
+  --name ai-telemetry-runner \
+  --resource-group "$RG" \
+  --environment cae-telemetry-poc \
+  --image acrtelemetrypoc.azurecr.io/ai-telemetry-runner:latest \
+  --registry-server acrtelemetrypoc.azurecr.io \
+  --registry-username "$SP_ID" \
+  --registry-password "$SP_SECRET" \
+  --ingress external --target-port 8000 \
+  --min-replicas 1 --max-replicas 1 \
+  --cpu 0.5 --memory 1Gi \
+  --env-vars \
+      OTEL_SERVICE_NAME=ai-telemetry-poc \
+      ENVIRONMENT=poc \
+      EVENTHUB_NAMESPACE=evhns-telemetry-poc.servicebus.windows.net \
+      EVENTHUB_NAME=ai-telemetry-events \
+      PROMETHEUS_PORT=8000 \
+      BATCH_INTERVAL_S=5 \
+      BASE_BATCH_SIZE=8 \
+      EVENTHUB_CONNECTION_STRING=secretref:eventhub-conn-str \
+  --secrets eventhub-conn-str="$EVENTHUB_CONN"
+
+# Get the FQDN — update prometheus.yml scrape target with this value
+az containerapp show \
+  --name ai-telemetry-runner --resource-group "$RG" \
+  --query properties.configuration.ingress.fqdn -o tsv
+```
+
+After updating `prometheus.yml`, the data flow is:
+```
+Container App :8000/metrics  →  local Prometheus  →  remote_write  →  Azure Managed Prometheus  →  Grafana
+Container App stdout (JSON)  →  Log Analytics  →  Grafana (Azure Monitor datasource)
+Container App events         →  Event Hubs (Kafka)
+```
+
+### GitHub Actions secrets required
+
+| Secret | Value |
+|---|---|
+| `AZURE_CREDENTIALS` | SP credentials JSON (existing) |
+| `AZURE_CONTAINER_APP_NAME` | `ai-telemetry-runner` |
+
+Add them at **GitHub repo → Settings → Secrets and variables → Actions**.
+
+Subsequent deploys happen automatically on push to `main` or `master`.
+
+---
+
+## Grafana — Azure Monitor datasource (logs)
+
+```bash
+curl -s -X POST http://localhost:3000/api/datasources \
+  -u admin:admin -H "Content-Type: application/json" -d '{
+    "name": "Azure Monitor",
+    "type": "grafana-azure-monitor-datasource",
+    "access": "proxy",
+    "jsonData": {
+      "cloudName": "azuremonitor",
+      "tenantId": "8fc3515f-414b-4737-b9af-4be4339a2f2b",
+      "clientId": "62599542-f963-470f-8676-78da96a86231",
+      "subscriptionId": "40d762c9-7c01-4602-9166-5117453d0747",
+      "azureAuthType": "clientsecret"
+    },
+    "secureJsonData": {
+      "clientSecret": "<AZURE_CLIENT_SECRET>"
+    }
+  }'
+```
+
+Then open the datasource in Grafana UI and set the **Default Log Analytics workspace**
+to the workspace auto-created with `cae-telemetry-poc`. Container App logs appear in
+`ContainerAppConsoleLogs_CL` within ~3 minutes of the container starting.
+
+---
+
 ## Deploy as Azure Function (timer fires every 30 s)
 
 ```bash

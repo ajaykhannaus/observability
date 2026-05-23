@@ -33,12 +33,9 @@ except ImportError:
 from generator.synthetic_generator import generate_event, traffic_multiplier  # noqa: E402
 from generator.kafka_publisher import KafkaPublisher  # noqa: E402
 import generator.otel_metrics as otel  # noqa: E402
+import generator.pod_metrics_simulator as pod_sim  # noqa: E402
+import generator.azure_logger as azure_logger  # noqa: E402
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-8s %(name)s  %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -58,6 +55,7 @@ SIMULATE_LATENCY: bool = os.getenv("SIMULATE_LATENCY", "false").lower() == "true
 
 _publisher: KafkaPublisher | None = None
 _otel_ready: bool = False
+_pod_sim_ready: bool = False
 _running: bool = True
 
 # Error window state (epoch seconds when the current window closes; 0 = no window)
@@ -76,6 +74,13 @@ def _ensure_otel() -> None:
     if not _otel_ready:
         otel.setup_otel()
         _otel_ready = True
+
+
+def _ensure_pod_sim() -> None:
+    global _pod_sim_ready
+    if not _pod_sim_ready:
+        pod_sim.start_simulation()
+        _pod_sim_ready = True
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +121,7 @@ def run_one_batch() -> dict[str, Any]:
     Returns a summary dict suitable for logging by the Azure Function.
     """
     _ensure_otel()
+    _ensure_pod_sim()
     publisher = _get_publisher()
 
     batch_size = _batch_size()
@@ -137,6 +143,7 @@ def run_one_batch() -> dict[str, Any]:
 
             publisher.publish_end_event(event_id, event)
             otel.record_metrics(event)
+            azure_logger.log_event(event)
 
             if event["status"] == "success":
                 successes += 1
@@ -154,6 +161,9 @@ def run_one_batch() -> dict[str, Any]:
         publisher.flush()
     except Exception as exc:
         logger.error("Producer flush error: %s", exc)
+
+    # Drive HPA scaling in the pod simulator based on current throughput
+    pod_sim.update_load_signal(batch_size / BATCH_INTERVAL_S)
 
     summary: dict[str, Any] = {
         "batch_size": batch_size,
@@ -187,8 +197,24 @@ def _signal_handler(signum: int, _frame: Any) -> None:
 
 
 def main() -> None:
+    # Must be first — installs JSON handler before any other logging call.
+    # In Container Apps, stdout JSON lines are collected to Log Analytics.
+    azure_logger.setup_structured_logging()
+
     signal.signal(signal.SIGTERM, _signal_handler)
     signal.signal(signal.SIGINT, _signal_handler)
+
+    azure_logger.log_startup_config({
+        "batch_interval_s":  BATCH_INTERVAL_S,
+        "base_batch_size":   BASE_BATCH_SIZE,
+        "error_window_prob": ERROR_WINDOW_PROB,
+        "simulate_latency":  SIMULATE_LATENCY,
+        "prometheus_port":   int(os.getenv("PROMETHEUS_PORT", "0")),
+        "otel_service_name": os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc"),
+        "environment":       os.getenv("ENVIRONMENT", "poc"),
+        "eventhub_namespace": os.getenv("EVENTHUB_NAMESPACE", ""),
+        "eventhub_name":     os.getenv("EVENTHUB_NAME", "ai-telemetry-events"),
+    })
 
     logger.info(
         "Runner starting | interval=%.1fs | base_batch=%d | error_prob=%.2f%%",

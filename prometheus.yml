@@ -2,15 +2,26 @@ global:
   scrape_interval: 10s
   evaluation_interval: 10s
 
-rule_files:
-  - "rules.yml"
-
 scrape_configs:
   - job_name: ai-telemetry-poc
     static_configs:
-      - targets: ["localhost:8000"]
+      - targets: ["ai-telemetry-runner.salmonpond-33c4abff.eastus.azurecontainerapps.io"]
+    scheme: https
     metrics_path: /metrics
 
-  - job_name: 'kube-state-metrics-simulator'
-    static_configs:
-      - targets: ['localhost:8080']
+# ── Push to Azure Managed Prometheus ────────────────────────────────────────
+# Token is written to /tmp/azure_prom_write_token.txt by scripts/refresh_azure_auth.py
+# Prometheus re-reads the file on every push — no restart needed on token refresh.
+remote_write:
+  - url: "https://telemetry-prometheus-workspace-bxgo.eastus-1.metrics.ingest.monitor.azure.com/dataCollectionRules/dcr-136fef8477124621b09f7485a3cee23c/streams/Microsoft-PrometheusMetrics/api/v1/write?api-version=2023-04-24"
+    name: azure-managed-prometheus
+    authorization:
+      type: Bearer
+      credentials_file: /tmp/azure_prom_write_token.txt
+    queue_config:
+      max_shards: 4
+      max_samples_per_send: 1000
+      batch_send_deadline: 10s
+    metadata_config:
+      send: true
+      send_interval: 1m

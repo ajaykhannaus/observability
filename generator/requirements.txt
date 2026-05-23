@@ -7,3 +7,4 @@ azure-identity==1.15.0
 motor==3.3.1
 redis==5.0.1
 python-dotenv==1.0.0
+prometheus-client==0.20.0

@@ -1,4 +1,4 @@
-name: Build and Deploy to Azure ACR
+name: Build and Deploy to Azure
 
 on:
   push:
@@ -7,11 +7,16 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  ACR: acrtelemetrypoc.azurecr.io
+  RESOURCE_GROUP: rg-ai-telemetry-poc
+
 jobs:
-  build-and-deploy:
+  # ── Job 1: Build and push Azure Functions image (existing path, untouched) ──
+  build-fn:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Login to Azure
@@ -19,21 +24,48 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login to Azure Container Registry
+      - name: Login to ACR
         run: az acr login --name acrtelemetrypoc
 
-      - name: Build Docker Container
+      - name: Build and push Functions image
         run: |
           docker build \
-            -t acrtelemetrypoc.azurecr.io/ai-telemetry-fn:${{ github.sha }} \
-            -t acrtelemetrypoc.azurecr.io/ai-telemetry-fn:latest \
+            -t ${{ env.ACR }}/ai-telemetry-fn:${{ github.sha }} \
+            -t ${{ env.ACR }}/ai-telemetry-fn:latest \
             .
+          docker push ${{ env.ACR }}/ai-telemetry-fn:${{ github.sha }}
+          docker push ${{ env.ACR }}/ai-telemetry-fn:latest
 
-      - name: Push Docker Container
+  # ── Job 2: Build, push, and deploy the Container Apps runner image ────────
+  build-and-deploy-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name acrtelemetrypoc
+
+      - name: Build and push runner image
         run: |
-          docker push acrtelemetrypoc.azurecr.io/ai-telemetry-fn:${{ github.sha }}
-          docker push acrtelemetrypoc.azurecr.io/ai-telemetry-fn:latest
+          docker build -f Dockerfile.runner \
+            -t ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }} \
+            -t ${{ env.ACR }}/ai-telemetry-runner:latest \
+            .
+          docker push ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}
+          docker push ${{ env.ACR }}/ai-telemetry-runner:latest
 
-      # Optional: Add step here to restart the Azure Function App to pull the new container
-      # - name: Restart Function App
-      #   run: az functionapp restart --name <your-function-app-name> --resource-group rg-ai-telemetry-poc
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --yes
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}
