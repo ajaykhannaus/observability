@@ -3,6 +3,7 @@
     {
       "name": "DS_PROMETHEUS",
       "label": "Prometheus",
+      "description": "Azure Monitor Prometheus endpoint",
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
@@ -23,20 +24,14 @@
     },
     {
       "type": "panel",
-      "id": "piechart",
-      "name": "Pie chart",
-      "version": ""
-    },
-    {
-      "type": "panel",
-      "id": "gauge",
-      "name": "Gauge",
-      "version": ""
-    },
-    {
-      "type": "panel",
       "id": "stat",
       "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
       "version": ""
     },
     {
@@ -47,28 +42,33 @@
     },
     {
       "type": "panel",
-      "id": "timeseries",
-      "name": "Time series",
+      "id": "piechart",
+      "name": "Pie chart",
       "version": ""
     }
   ],
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
-  "description": "AI Gateway observability \u2014 requests, latency, cost, tokens, errors by model/provider/operation",
+  "description": "AI Gateway telemetry — request volume, latency, cost, tokens, errors",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
-  "refresh": "10s",
+  "refresh": "30s",
   "schemaVersion": 39,
-  "tags": [
-    "ai",
-    "telemetry",
-    "llm",
-    "observability"
-  ],
+  "tags": ["ai", "telemetry", "llm"],
   "templating": {
     "list": [
       {
@@ -82,2066 +82,515 @@
         "query": "prometheus",
         "refresh": 1,
         "type": "datasource"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, service)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Service",
-        "multi": false,
-        "name": "service",
-        "query": "label_values(ai_gateway_request_count_total, service)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, environment)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Environment",
-        "multi": false,
-        "name": "environment",
-        "query": "label_values(ai_gateway_request_count_total, environment)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, region)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Region",
-        "multi": false,
-        "name": "region",
-        "query": "label_values(ai_gateway_request_count_total, region)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, model_provider)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Model Provider",
-        "multi": false,
-        "name": "model_provider",
-        "query": "label_values(ai_gateway_request_count_total, model_provider)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, model_name)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Model",
-        "multi": false,
-        "name": "model",
-        "query": "label_values(ai_gateway_request_count_total, model_name)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, operation_name)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Operation",
-        "multi": false,
-        "name": "operation",
-        "query": "label_values(ai_gateway_request_count_total, operation_name)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(ai_gateway_request_count_total, status)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Status",
-        "multi": false,
-        "name": "status",
-        "query": "label_values(ai_gateway_request_count_total, status)",
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
       }
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
+  "time": {"from": "now-3h", "to": "now"},
   "timepicker": {},
-  "timezone": "browser",
-  "title": "Nexus AI Observability - STAGING",
+  "timezone": "utc",
+  "title": "AI Gateway Telemetry",
   "uid": "ai-telemetry-poc-001",
-  "version": 3,
+  "version": 1,
   "weekStart": "",
   "panels": [
     {
       "id": 1,
-      "type": "piechart",
-      "title": "Total Requests by Model Provider",
-      "gridPos": {
-        "h": 9,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
+      "type": "stat",
+      "title": "Total Requests (24 h)",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "openai"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#74C0FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cohere"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FFD43B",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "mistral"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#B197FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "anthropic"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FF6B35",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "huggingface"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F03E3E",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "pieType": "pie",
-        "tooltip": {
-          "mode": "single"
-        }
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1h])) by (model_provider)",
-          "legendFormat": "{{model_provider}}",
-          "refId": "A",
-          "instant": true
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(increase(ai_gateway_request_count_total[24h]))",
+          "legendFormat": "Requests",
+          "refId": "A"
         }
       ]
     },
     {
       "id": 2,
-      "type": "gauge",
-      "title": "gpt-4o-mini",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 6,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 5000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1500
-              },
-              {
-                "color": "red",
-                "value": 3000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"gpt-4o-mini\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"gpt-4o-mini\"}[5m]))",
-          "legendFormat": "gpt-4o-mini",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "type": "gauge",
-      "title": "gpt-4o",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 9,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 5000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 2000
-              },
-              {
-                "color": "red",
-                "value": 4000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"gpt-4o\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"gpt-4o\"}[5m]))",
-          "legendFormat": "gpt-4o",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "type": "gauge",
-      "title": "claude-3-haiku",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 12,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 5000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1500
-              },
-              {
-                "color": "red",
-                "value": 3000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"claude-3-haiku\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"claude-3-haiku\"}[5m]))",
-          "legendFormat": "claude-3-haiku",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "type": "gauge",
-      "title": "claude-3-opus",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 15,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 8000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 2500
-              },
-              {
-                "color": "red",
-                "value": 5000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"claude-3-opus\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"claude-3-opus\"}[5m]))",
-          "legendFormat": "claude-3-opus",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "type": "gauge",
-      "title": "mistral-large",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 18,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 5000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1500
-              },
-              {
-                "color": "red",
-                "value": 3000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"mistral-large\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"mistral-large\"}[5m]))",
-          "legendFormat": "mistral-large",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "type": "gauge",
-      "title": "mixtral-8x7b",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 21,
-        "y": 0
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "max": 3000,
-          "unit": "ms",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1000
-              },
-              {
-                "color": "red",
-                "value": 2000
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{model_name=\"mixtral-8x7b\"}[5m])) / sum(rate(ai_gateway_request_duration_milliseconds_count{model_name=\"mixtral-8x7b\"}[5m]))",
-          "legendFormat": "mixtral-8x7b",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 8,
       "type": "stat",
-      "title": "OpenAI",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 6,
-        "y": 5
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
+      "title": "Avg Latency p50",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#74C0FC",
-            "mode": "fixed"
-          },
-          "unit": "reqps",
-          "decimals": 1,
+          "color": {"mode": "thresholds"},
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1500},
+              {"color": "red", "value": 3000}
             ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{model_provider=\"openai\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1m]))",
-          "legendFormat": "OpenAI req/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "type": "stat",
-      "title": "Cohere",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 10,
-        "y": 5
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FFD43B",
-            "mode": "fixed"
-          },
-          "unit": "reqps",
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{model_provider=\"cohere\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1m]))",
-          "legendFormat": "Cohere req/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "type": "stat",
-      "title": "Mistral",
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 14,
-        "y": 5
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#B197FC",
-            "mode": "fixed"
-          },
-          "unit": "reqps",
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{model_provider=\"mistral\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1m]))",
-          "legendFormat": "Mistral req/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 11,
-      "type": "stat",
-      "title": "Anthropic",
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 17,
-        "y": 5
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FF6B35",
-            "mode": "fixed"
-          },
-          "unit": "reqps",
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{model_provider=\"anthropic\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1m]))",
-          "legendFormat": "Anthropic req/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "Hugging Face",
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 21,
-        "y": 5
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#F03E3E",
-            "mode": "fixed"
-          },
-          "unit": "reqps",
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{model_provider=\"huggingface\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1m]))",
-          "legendFormat": "HuggingFace req/s",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 13,
-      "type": "barchart",
-      "title": "Top Operations by Request Count",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 9
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#69DB7C",
-            "mode": "fixed"
-          },
-          "custom": {
-            "fillOpacity": 85,
-            "gradientMode": "none",
-            "lineWidth": 1
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "barRadius": 0.02,
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "orientation": "horizontal",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "xTickLabelRotation": 0
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sort_desc(sum(increase(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",operation_name=~\"$operation\"}[1h])) by (operation_name))",
-          "legendFormat": "{{operation_name}}",
-          "refId": "A",
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 14,
-      "type": "barchart",
-      "title": "Average Latency (ms) by Operation",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 9
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FFD43B",
-            "mode": "fixed"
-          },
-          "custom": {
-            "fillOpacity": 85,
-            "gradientMode": "none",
-            "lineWidth": 1
           },
           "unit": "ms"
         },
         "overrides": []
       },
       "options": {
-        "barRadius": 0.02,
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "orientation": "horizontal",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "xTickLabelRotation": 0
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sort_desc(sum(rate(ai_gateway_request_duration_milliseconds_sum{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",operation_name=~\"$operation\"}[5m])) by (operation_name) / sum(rate(ai_gateway_request_duration_milliseconds_count{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",operation_name=~\"$operation\"}[5m])) by (operation_name))",
-          "legendFormat": "{{operation_name}}",
-          "refId": "A",
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "type": "stat",
-      "title": "Total Requests",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 0,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#74C0FC",
-            "mode": "fixed"
-          },
-          "unit": "short",
-          "decimals": 2,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
-        "justifyMode": "center",
+        "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
         "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\"}[1h]))",
-          "legendFormat": "Total Requests",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "histogram_quantile(0.50, sum(rate(ai_gateway_request_duration_bucket[5m])) by (le))",
+          "legendFormat": "p50",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 16,
+      "id": 3,
       "type": "stat",
-      "title": "Total Tokens",
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 3,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
+      "title": "Total Cost (24 h)",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "fixedColor": "#B197FC",
-            "mode": "fixed"
-          },
-          "unit": "short",
-          "decimals": 2,
+          "color": {"mode": "thresholds"},
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+            "steps": [{"color": "green", "value": null}]
+          },
+          "unit": "currencyUSD"
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
-        "justifyMode": "center",
+        "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
         "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(ai_gateway_request_token_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\"}[1h]))",
-          "legendFormat": "Total Tokens",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(increase(ai_gateway_request_cost_total[24h]))",
+          "legendFormat": "Cost",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 17,
+      "id": 4,
       "type": "stat",
       "title": "Error Rate",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 7,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "percentunit",
-          "decimals": 2,
+          "color": {"mode": "thresholds"},
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.01
-              },
-              {
-                "color": "red",
-                "value": 0.05
-              }
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.01},
+              {"color": "red", "value": 0.05}
             ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_exception_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\"}[5m])) / sum(rate(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\"}[5m]))",
-          "legendFormat": "Error Rate",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 18,
-      "type": "stat",
-      "title": "P95 Latency",
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 10,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FFD43B",
-            "mode": "fixed"
-          },
-          "unit": "ms",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.95, sum(rate(ai_gateway_request_duration_milliseconds_bucket{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\"}[5m])) by (le))",
-          "legendFormat": "P95",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 19,
-      "type": "stat",
-      "title": "P99 Latency",
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 14,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FF8C42",
-            "mode": "fixed"
-          },
-          "unit": "ms",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.99, sum(rate(ai_gateway_request_duration_milliseconds_bucket{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\"}[5m])) by (le))",
-          "legendFormat": "P99",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 20,
-      "type": "stat",
-      "title": "Timeout Rate",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 18,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "percentunit",
-          "decimals": 2,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.005
-              },
-              {
-                "color": "red",
-                "value": 0.02
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_exception_count_total{error_category=\"timeout\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[5m])) / sum(rate(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[5m]))",
-          "legendFormat": "Timeout Rate",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 21,
-      "type": "stat",
-      "title": "Throttled (429s)",
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 21,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "#FFD43B",
-            "mode": "fixed"
-          },
-          "unit": "short",
-          "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(ai_gateway_exception_count_total{error_category=\"rate_limit\",service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[1h]))",
-          "legendFormat": "Throttled",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 22,
-      "type": "timeseries",
-      "title": "Request Rate & Error Rate Over Time",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 22
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 15,
-            "lineWidth": 2,
-            "showPoints": "never",
-            "spanNulls": false
-          },
-          "unit": "reqps"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Error Rate (%)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "custom.axisLabel",
-                "value": "Error %"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F03E3E",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 10
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Request Rate (req/s)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#69DB7C",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 15
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\"}[1m]))",
-          "legendFormat": "Request Rate (req/s)",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_exception_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[1m])) / sum(rate(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[1m])) * 100",
-          "legendFormat": "Error Rate (%)",
-          "refId": "B"
-        }
-      ]
-    },
-    {
-      "id": 23,
-      "type": "barchart",
-      "title": "Errors by Category (1 h)",
-      "description": "Breakdown across: timeout \u00b7 rate_limit \u00b7 provider_error \u00b7 invalid_request \u00b7 auth_error \u00b7 network_error",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 30
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 85,
-            "lineWidth": 1
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "timeout"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FFD43B",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "rate_limit"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FF8C42",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "provider_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F03E3E",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "invalid_request"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#B197FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "auth_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#74C0FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "network_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#69DB7C",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "barRadius": 0.03,
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "horizontal",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "xTickLabelRotation": 0
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sort_desc(sum(increase(ai_gateway_exception_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[1h])) by (error_category))",
-          "legendFormat": "{{error_category}}",
-          "refId": "A",
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 24,
-      "type": "barchart",
-      "title": "Errors by Specific Type (1 h)",
-      "description": "Granular view: request_timeout \u00b7 rate_limit_tokens \u00b7 model_overloaded \u00b7 context_length_exceeded \u2026",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 30
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 80,
-            "lineWidth": 1
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "options": {
-        "barRadius": 0.03,
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "horizontal",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "xTickLabelRotation": 0
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sort_desc(sum(increase(ai_gateway_exception_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[1h])) by (error_type))",
-          "legendFormat": "{{error_type}}",
-          "refId": "A",
-          "instant": true
-        }
-      ]
-    },
-    {
-      "id": 25,
-      "type": "timeseries",
-      "title": "Error Rate by Category Over Time",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 30
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "fillOpacity": 12,
-            "lineWidth": 2,
-            "showPoints": "never",
-            "spanNulls": false
           },
           "unit": "percentunit"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "timeout"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FFD43B",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "rate_limit"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#FF8C42",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "provider_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#F03E3E",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "invalid_request"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#B197FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "auth_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#74C0FC",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "network_error"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#69DB7C",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(rate(ai_gateway_exception_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[5m])) by (error_category) / sum(rate(ai_gateway_request_count_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\",model_provider=~\"$model_provider\",model_name=~\"$model\"}[5m]))",
-          "legendFormat": "{{error_category}}",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_exception_count_total[5m])) / sum(rate(ai_gateway_request_count_total[5m]))",
+          "legendFormat": "Error rate",
           "refId": "A"
         }
       ]
     },
     {
-      "id": 26,
-      "title": "Total Cost (USD)",
+      "id": 5,
       "type": "stat",
-      "gridPos": {
-        "h": 5,
-        "w": 6,
-        "x": 18,
-        "y": 17
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto"
-      },
+      "title": "Total Tokens (24 h)",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 4,
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": {"fixedColor": "blue", "mode": "fixed"},
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 10
-              }
-            ]
-          }
+            "steps": [{"color": "green", "value": null}]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(increase(ai_gateway_request_cost_USD_total{service=~\"$service\",environment=~\"$environment\",region=~\"$region\"}[1h]))",
-          "legendFormat": "Cost/hr",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(increase(ai_gateway_request_token_total[24h]))",
+          "legendFormat": "Tokens",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Cost per Request",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          },
+          "unit": "currencyUSD",
+          "decimals": 5
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_cost_total[5m])) / sum(rate(ai_gateway_request_count_total[5m]))",
+          "legendFormat": "$/req",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Request Volume by Model",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{model_name=\"claude-haiku-3-5\"}[5m]))",
+          "legendFormat": "claude-haiku-3-5",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{model_name=\"claude-sonnet-4-5\"}[5m]))",
+          "legendFormat": "claude-sonnet-4-5",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{model_name=\"gpt-4o\"}[5m]))",
+          "legendFormat": "gpt-4o",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{model_name=\"claude-opus-4-6\"}[5m]))",
+          "legendFormat": "claude-opus-4-6",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Latency Percentiles (p50 / p95 / p99)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "histogram_quantile(0.50, sum(rate(ai_gateway_request_duration_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "histogram_quantile(0.95, sum(rate(ai_gateway_request_duration_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "histogram_quantile(0.99, sum(rate(ai_gateway_request_duration_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Cost by Client (5 min rate)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"fillOpacity": 80},
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "orientation": "horizontal",
+        "stacking": "none",
+        "tooltip": {"mode": "single"},
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sort_desc(sum(rate(ai_gateway_request_cost_total[5m])) by (client_name))",
+          "legendFormat": "{{client_name}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "Model Routing Mix (24 h)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {"displayMode": "list", "placement": "right"},
+        "pieType": "donut",
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(increase(ai_gateway_request_count_total[24h])) by (model_name)",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Token Consumption by Type",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"fillOpacity": 80},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "orientation": "auto",
+        "stacking": "normal",
+        "tooltip": {"mode": "multi"},
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_token_total{token_type=\"prompt\"}[5m])) by (model_name)",
+          "legendFormat": "prompt — {{model_name}}",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_token_total{token_type=\"completion\"}[5m])) by (model_name)",
+          "legendFormat": "completion — {{model_name}}",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_token_total{token_type=\"cache_read\"}[5m])) by (model_name)",
+          "legendFormat": "cache_read — {{model_name}}",
+          "refId": "C",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "barchart",
+      "title": "Exception Count by Model & Type",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"fixedColor": "red", "mode": "fixed"},
+          "custom": {"fillOpacity": 80},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "orientation": "auto",
+        "stacking": "none",
+        "tooltip": {"mode": "multi"},
+        "xTickLabelRotation": -30
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(increase(ai_gateway_exception_count_total[1h])) by (model_name, error_type)",
+          "legendFormat": "{{model_name}} / {{error_type}}",
+          "refId": "A",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Request Rate — Success vs Error",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 20},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "reqpm"
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Errors"},
+            "properties": [
+              {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{status=\"success\"}[1m])) * 60",
+          "legendFormat": "Success",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(rate(ai_gateway_request_count_total{status=\"error\"}[1m])) * 60",
+          "legendFormat": "Errors",
+          "refId": "B"
         }
       ]
     }

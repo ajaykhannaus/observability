@@ -1,0 +1,18 @@
+groups:
+  - name: slo_recording_rules
+    interval: 1m
+    rules:
+      # Availability SLI (Request success rate)
+      - record: ai_gateway:availability:current
+        expr: sum(rate(ai_gateway_request_count_total{status="success"}[5m])) / sum(rate(ai_gateway_request_count_total[5m]))
+      
+      # Burn rate alerts
+      - alert: ErrorRateHigh
+        expr: ai_gateway:availability:current < 0.995
+        for: 5m
+        labels:
+          severity: page
+          tier: P1
+        annotations:
+          summary: "High API Error Rate Alert"
+          description: "Gateway availability dropped below 99.5% for 5 minutes."

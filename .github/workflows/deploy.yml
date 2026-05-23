@@ -1,0 +1,38 @@
+name: Build and Deploy to Azure ACR
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name acrtelemetrypoc
+
+      - name: Build Docker Container
+        run: |
+          docker build \
+            -t acrtelemetrypoc.azurecr.io/ai-telemetry-fn:${{ github.sha }} \
+            -t acrtelemetrypoc.azurecr.io/ai-telemetry-fn:latest \
+            .
+
+      - name: Push Docker Container
+        run: |
+          docker push acrtelemetrypoc.azurecr.io/ai-telemetry-fn:${{ github.sha }}
+          docker push acrtelemetrypoc.azurecr.io/ai-telemetry-fn:latest
+
+      # Optional: Add step here to restart the Azure Function App to pull the new container
+      # - name: Restart Function App
+      #   run: az functionapp restart --name <your-function-app-name> --resource-group rg-ai-telemetry-poc

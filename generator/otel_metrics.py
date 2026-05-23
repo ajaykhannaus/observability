@@ -2,11 +2,8 @@
 
 Five instruments are registered at module-load time against no-op stubs so
 they are always importable.  Calling setup_otel() replaces them with real
-SDK instruments.
-
-When PROMETHEUS_PORT is set, metrics are exposed on http://localhost:{port}/metrics
-so Grafana can scrape them directly — no extra collector needed.
-When the opentelemetry packages are absent the module degrades to debug logging.
+SDK instruments backed by an OTLP exporter.  When the opentelemetry packages
+are absent the module degrades gracefully to debug logging.
 """
 from __future__ import annotations
 
@@ -17,7 +14,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Optional OTel SDK
+# Optional OTel import block — module stays importable without the packages
 # ---------------------------------------------------------------------------
 
 try:
@@ -29,7 +26,7 @@ try:
     _OTEL_AVAILABLE = True
 except ImportError:
     _OTEL_AVAILABLE = False
-    logger.warning("opentelemetry-sdk not found — metrics will be debug-logged only")
+    logger.warning("opentelemetry packages not found — metrics will be debug-logged only")
 
 try:
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -37,14 +34,6 @@ try:
     _OTLP_AVAILABLE = True
 except ImportError:
     _OTLP_AVAILABLE = False
-
-try:
-    from opentelemetry.exporter.prometheus import PrometheusMetricReader as _PrometheusReader
-    from prometheus_client import start_http_server as _start_http_server
-
-    _PROMETHEUS_AVAILABLE = True
-except ImportError:
-    _PROMETHEUS_AVAILABLE = False
 
 
 # ---------------------------------------------------------------------------
@@ -70,11 +59,6 @@ exception_count: Any = _NoOpCounter()
 
 _initialized = False
 
-# Fixed process-level labels (set once from env, not random per event)
-_PROCESS_SERVICE     = os.getenv("AI_SERVICE",   "ai-gateway")
-_PROCESS_ENVIRONMENT = os.getenv("ENVIRONMENT",  "poc")
-_PROCESS_REGION      = os.getenv("AWS_REGION",   "us-east-1")
-
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -82,13 +66,7 @@ _PROCESS_REGION      = os.getenv("AWS_REGION",   "us-east-1")
 
 
 def setup_otel() -> None:
-    """Configure the real OTel MeterProvider and replace module-level instruments.
-
-    Readers activated based on environment:
-      PROMETHEUS_PORT  → Prometheus /metrics HTTP endpoint (for local Grafana)
-      OTEL_EXPORTER_OTLP_ENDPOINT → OTLP gRPC (for Azure Monitor)
-    Both can be active simultaneously.
-    """
+    """Configure the real OTel MeterProvider and replace module-level instruments."""
     global request_count, request_duration, request_token, request_cost, exception_count, _initialized
 
     if _initialized:
@@ -102,8 +80,7 @@ def setup_otel() -> None:
     service_name = os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc")
     environment = os.getenv("ENVIRONMENT", "poc")
     export_interval_ms = int(os.getenv("OTEL_EXPORT_INTERVAL_MS", "30000"))
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
-    prometheus_port = int(os.getenv("PROMETHEUS_PORT", "0"))
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 
     resource = Resource.create(
         {
@@ -112,37 +89,18 @@ def setup_otel() -> None:
         }
     )
 
-    readers: list[Any] = []
-
-    # ── Prometheus reader (local Grafana scrape) ──────────────────────────
-    if prometheus_port:
-        if _PROMETHEUS_AVAILABLE:
-            try:
-                readers.append(_PrometheusReader())
-                _start_http_server(prometheus_port)
-                logger.info(
-                    "Prometheus metrics exposed on http://localhost:%d/metrics", prometheus_port
-                )
-            except Exception as exc:
-                logger.warning("Prometheus exporter init failed: %s", exc)
-        else:
-            logger.warning(
-                "PROMETHEUS_PORT=%d set but opentelemetry-exporter-prometheus not installed",
-                prometheus_port,
-            )
-
-    # ── OTLP reader (Azure Monitor / remote) ─────────────────────────────
-    if otlp_endpoint and _OTLP_AVAILABLE:
+    readers = []
+    if _OTLP_AVAILABLE and otlp_endpoint:
         try:
             exporter = OTLPMetricExporter(endpoint=otlp_endpoint)
-            readers.append(
-                PeriodicExportingMetricReader(
-                    exporter, export_interval_millis=export_interval_ms
-                )
+            reader = PeriodicExportingMetricReader(
+                exporter,
+                export_interval_millis=export_interval_ms,
             )
+            readers.append(reader)
             logger.info("OTLP metric exporter → %s (interval %dms)", otlp_endpoint, export_interval_ms)
         except Exception as exc:
-            logger.warning("OTLP exporter init failed: %s", exc)
+            logger.warning("OTLP exporter init failed (%s) — no-op mode", exc)
 
     provider = MeterProvider(resource=resource, metric_readers=readers)
     _otel_metrics.set_meter_provider(provider)
@@ -156,7 +114,7 @@ def setup_otel() -> None:
     request_duration = meter.create_histogram(
         name="ai_gateway_request_duration",
         unit="ms",
-        description="AI gateway request latency in milliseconds",
+        description="AI gateway request latency",
     )
     request_token = meter.create_counter(
         name="ai_gateway_request_token",
@@ -166,7 +124,7 @@ def setup_otel() -> None:
     request_cost = meter.create_counter(
         name="ai_gateway_request_cost",
         unit="USD",
-        description="Accumulated request cost in USD",
+        description="Accumulated request cost",
     )
     exception_count = meter.create_counter(
         name="ai_gateway_exception_count",
@@ -175,9 +133,7 @@ def setup_otel() -> None:
     )
 
     _initialized = True
-    logger.info(
-        "OTel metrics ready | service=%s | readers=%d", service_name, len(readers)
-    )
+    logger.info("OTel metrics initialised for service '%s'", service_name)
 
 
 # ---------------------------------------------------------------------------
@@ -186,21 +142,14 @@ def setup_otel() -> None:
 
 
 def record_metrics(event: dict[str, Any]) -> None:
-    """Record all five OTel instruments for one event dict.
-
-    Labels are kept intentionally low-cardinality so Prometheus counters
-    accumulate on the same series across requests and rate() returns non-zero.
-    High-cardinality fields (project_id, client_name, per-event service/env/region)
-    are excluded here — they belong in the raw Event Hub events only.
-    """
+    """Record all five OTel instruments for one event dict."""
     base: dict[str, Any] = {
-        "model_name":     event["model_name"],
+        "model_name": event["model_name"],
         "model_provider": event["model_provider"],
+        "client_name": event["client_name"],
         "operation_name": event["operation_name"],
-        "status":         event["status"],
-        "service":        _PROCESS_SERVICE,
-        "environment":    _PROCESS_ENVIRONMENT,
-        "region":         _PROCESS_REGION,
+        "status": event["status"],
+        "project_id": event["project_id"],
     }
 
     try:
@@ -219,12 +168,7 @@ def record_metrics(event: dict[str, Any]) -> None:
         if event["status"] == "error":
             exception_count.add(
                 1,
-                {
-                    **base,
-                    "error_type":     event.get("error_type")     or "unknown",
-                    "error_category": event.get("error_category") or "unknown",
-                    "http_status":    str(event.get("http_status_code", 0)),
-                },
+                {**base, "error_type": event.get("error_type") or "unknown"},
             )
     except Exception as exc:
         logger.error("OTel record_metrics failed: %s", exc)

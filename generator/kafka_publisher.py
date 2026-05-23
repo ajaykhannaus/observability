@@ -119,21 +119,18 @@ class KafkaPublisher:
     def publish_start_event(self, event_id: str, event: dict[str, Any]) -> bool:
         """Emit the START event before the simulated LLM call."""
         payload: dict[str, Any] = {
-            "event_id":        event_id,
-            "usage_event_type":"start",
-            "service_name":    os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc"),
-            "service":         event.get("service", "ai-gateway"),
-            "environment":     event.get("environment", "poc"),
-            "region":          event.get("region", "us-east-1"),
-            "timestamp":       event["timestamp_start"],
-            "user_email":      event["user_email"],
-            "client_name":     event["client_name"],
-            "project_id":      event["project_id"],
-            "auth_method":     event["auth_method"],
-            "operation_name":  event["operation_name"],
-            "model_name":      event["model_name"],
-            "model_provider":  event["model_provider"],
-            "streaming":       event["streaming"],
+            "event_id": event_id,
+            "usage_event_type": "start",
+            "service_name": os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc"),
+            "timestamp": event["timestamp_start"],
+            "user_email": event["user_email"],
+            "client_name": event["client_name"],
+            "project_id": event["project_id"],
+            "auth_method": event["auth_method"],
+            "operation_name": event["operation_name"],
+            "model_name": event["model_name"],
+            "model_provider": event["model_provider"],
+            "streaming": event["streaming"],
         }
         return self._publish_with_retry(payload)
 
