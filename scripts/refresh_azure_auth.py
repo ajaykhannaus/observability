@@ -35,14 +35,14 @@ WRITE_TOKEN_FILE   = Path(os.getenv("AZURE_WRITE_TOKEN_FILE", "/tmp/azure_prom_w
 REFRESH_INTERVAL_S = int(os.getenv("REFRESH_INTERVAL_S", str(50 * 60)))  # 50 minutes
 
 # Azure AD
-TENANT_ID     = os.getenv("AZURE_TENANT_ID",     "8fc3515f-414b-4737-b9af-4be4339a2f2b")
+TENANT_ID     = os.getenv("AZURE_TENANT_ID",     "")
 CLIENT_ID     = os.getenv("AZURE_CLIENT_ID",     "")
 CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET", "")
 
 # Azure Managed Prometheus
 PROM_QUERY_URL = os.getenv(
     "AZURE_PROM_QUERY_URL",
-    "https://telemetry-prometheus-workspace-b7g2dtfrb7g0fkgz.eastus.prometheus.monitor.azure.com",
+    "",   # set AZURE_PROM_QUERY_URL in .env (see .env.example)
 )
 PROM_READ_AUDIENCE  = "https://prometheus.monitor.azure.com"   # Grafana query
 PROM_WRITE_AUDIENCE = "https://monitor.azure.com/"              # Prometheus remote_write ingestion

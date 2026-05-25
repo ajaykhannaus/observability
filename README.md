@@ -1,151 +1,110 @@
-# AI Gateway Telemetry POC
+# AI Gateway Telemetry
 
-End-to-end observability pipeline: synthetic LLM traffic → Azure Event Hubs → OpenTelemetry → local Grafana.
+End-to-end observability pipeline: synthetic LLM traffic → Azure Event Hubs → OpenTelemetry → Grafana.
 
-## Run locally (3 commands)
+```
+GitHub push → GitHub Actions
+  ├── Build ai-telemetry-fn image  (Azure Functions)
+  └── Build ai-telemetry-runner image → Azure Container Apps (always-on)
+                    │
+                    ├── Event Hubs (Kafka)  — START/END events every 5 s
+                    ├── :8000/metrics       — Prometheus scrape endpoint
+                    └── stdout JSON logs    → Log Analytics → Grafana
+```
+
+---
+
+## Quick start — run locally (no Azure needed)
 
 ```bash
+cp .env.example .env          # fill in values, or leave blank for mock mode
 pip install -r generator/requirements.txt
-export EVENTHUB_CONNECTION_STRING="Endpoint=sb://evhns-telemetry-poc.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY"
-python3 generator/runner.py
+python3 -m generator.runner
 ```
 
-Without `EVENTHUB_CONNECTION_STRING` the runner operates in **mock mode** — events are logged locally and no Azure connectivity is required.
+Without `EVENTHUB_CONNECTION_STRING` the runner runs in **mock mode** — events are logged locally and no Azure connectivity is required.
 
-## Get the Event Hubs connection string
+---
+
+## Deploy to Azure
+
+### Prerequisites
+
+- Azure CLI logged in: `az login`
+- Docker Desktop running
+- GitHub repo with Actions enabled
+
+### Step 1 — Provision Azure infrastructure (run once)
 
 ```bash
-az eventhubs namespace authorization-rule keys list \
-  --resource-group rg-ai-telemetry-poc \
-  --namespace-name evhns-telemetry-poc \
-  --name RootManageSharedAccessKey \
-  --query primaryConnectionString -o tsv
+chmod +x infra/bootstrap.sh
+
+./infra/bootstrap.sh \
+  --resource-group  rg-ai-telemetry-prod \
+  --location        eastus \
+  --acr-name        acrtelemetryprod \
+  --cae-name        cae-telemetry-prod \
+  --app-name        ai-telemetry-runner \
+  --eventhub-ns     your-namespace.servicebus.windows.net \
+  --eventhub-conn   "Endpoint=sb://your-namespace..."
 ```
 
-## Validate synthetic data
+The script creates the resource group, ACR, Container Apps Environment, and a Service Principal, then **prints the exact GitHub secrets to copy-paste**.
 
-```bash
-python3 validation/check_data.py
-```
+### Step 2 — Set GitHub secrets
 
-Generates 1 000 events and checks model distribution, field completeness, error rate, and cost accuracy.
+Go to **GitHub repo → Settings → Secrets and variables → Actions** and add:
 
-## Force an error-window spike (for alert testing)
+| Secret | Description | Example |
+|---|---|---|
+| `AZURE_CREDENTIALS` | Service Principal JSON (`az ad sp create-for-rbac --sdk-auth`) | `{"clientId":"...","clientSecret":"..."}` |
+| `AZURE_RESOURCE_GROUP` | Resource group name | `rg-ai-telemetry-prod` |
+| `ACR_LOGIN_SERVER` | Full ACR login server | `acrtelemetryprod.azurecr.io` |
+| `ACR_PASSWORD` | ACR admin password | `az acr credential show --name <acr>` |
+| `AZURE_CONTAINER_APP_NAME` | Container App name | `ai-telemetry-runner` |
+| `AZURE_CAE_NAME` | Container Apps Environment name | `cae-telemetry-prod` |
 
-```bash
-ERROR_WINDOW_PROB=1.0 python3 generator/runner.py
-```
+Optional (jobs 3 & 4 skip gracefully if not set):
 
-Error rate climbs to ~8 %. Grafana alert fires within 2 minutes.
-
-## Deploy as Azure Container App (always-on runner) 🚀
-
-The runner deploys as a long-lived container on Azure Container Apps, generating
-synthetic telemetry continuously. GitHub Actions builds and deploys on every push
-to `main`/`master`.
-
-### One-time Azure setup (run manually once)
-
-```bash
-RG="rg-ai-telemetry-poc"
-SP_ID="62599542-f963-470f-8676-78da96a86231"
-SP_SECRET="<AZURE_CLIENT_SECRET from .env>"
-EVENTHUB_CONN="<EVENTHUB_CONNECTION_STRING from .env>"
-
-# Install Container Apps CLI extension
-az extension add --name containerapp --upgrade --yes
-
-# Create the Container Apps Environment (auto-creates a Log Analytics workspace)
-az containerapp env create \
-  --name cae-telemetry-poc \
-  --resource-group "$RG" \
-  --location eastus
-
-# Create the Container App (min-replicas=1 keeps it always-on)
-az containerapp create \
-  --name ai-telemetry-runner \
-  --resource-group "$RG" \
-  --environment cae-telemetry-poc \
-  --image acrtelemetrypoc.azurecr.io/ai-telemetry-runner:latest \
-  --registry-server acrtelemetrypoc.azurecr.io \
-  --registry-username "$SP_ID" \
-  --registry-password "$SP_SECRET" \
-  --ingress external --target-port 8000 \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 0.5 --memory 1Gi \
-  --env-vars \
-      OTEL_SERVICE_NAME=ai-telemetry-poc \
-      ENVIRONMENT=poc \
-      EVENTHUB_NAMESPACE=evhns-telemetry-poc.servicebus.windows.net \
-      EVENTHUB_NAME=ai-telemetry-events \
-      PROMETHEUS_PORT=8000 \
-      BATCH_INTERVAL_S=5 \
-      BASE_BATCH_SIZE=8 \
-      EVENTHUB_CONNECTION_STRING=secretref:eventhub-conn-str \
-  --secrets eventhub-conn-str="$EVENTHUB_CONN"
-
-# Get the FQDN — update prometheus.yml scrape target with this value
-az containerapp show \
-  --name ai-telemetry-runner --resource-group "$RG" \
-  --query properties.configuration.ingress.fqdn -o tsv
-```
-
-After updating `prometheus.yml`, the data flow is:
-```
-Container App :8000/metrics  →  local Prometheus  →  remote_write  →  Azure Managed Prometheus  →  Grafana
-Container App stdout (JSON)  →  Log Analytics  →  Grafana (Azure Monitor datasource)
-Container App events         →  Event Hubs (Kafka)
-```
-
-### GitHub Actions secrets required
-
-| Secret | Value |
+| Secret | Description |
 |---|---|
-| `AZURE_CREDENTIALS` | SP credentials JSON (existing) |
-| `AZURE_CONTAINER_APP_NAME` | `ai-telemetry-runner` |
+| `PROM_REMOTE_WRITE_URL` | Azure Managed Prometheus ingestion URL |
+| `AZURE_GRAFANA_NAME` | Azure Managed Grafana resource name |
 
-Add them at **GitHub repo → Settings → Secrets and variables → Actions**.
+### Step 3 — Push to deploy
 
-Subsequent deploys happen automatically on push to `main` or `master`.
+```bash
+git push origin main
+```
+
+GitHub Actions builds both images, pushes to ACR, and deploys the Container App. Subsequent pushes are rolling updates — zero downtime.
 
 ---
 
-## Grafana — Azure Monitor datasource (logs)
+## Verify the deployment
 
 ```bash
-curl -s -X POST http://localhost:3000/api/datasources \
-  -u admin:admin -H "Content-Type: application/json" -d '{
-    "name": "Azure Monitor",
-    "type": "grafana-azure-monitor-datasource",
-    "access": "proxy",
-    "jsonData": {
-      "cloudName": "azuremonitor",
-      "tenantId": "8fc3515f-414b-4737-b9af-4be4339a2f2b",
-      "clientId": "62599542-f963-470f-8676-78da96a86231",
-      "subscriptionId": "40d762c9-7c01-4602-9166-5117453d0747",
-      "azureAuthType": "clientsecret"
-    },
-    "secureJsonData": {
-      "clientSecret": "<AZURE_CLIENT_SECRET>"
-    }
-  }'
-```
+# 1. Container App is running
+az containerapp show \
+  --name ai-telemetry-runner \
+  --resource-group <your-rg> \
+  --query "{status:properties.runningStatus, fqdn:properties.configuration.ingress.fqdn}"
 
-Then open the datasource in Grafana UI and set the **Default Log Analytics workspace**
-to the workspace auto-created with `cae-telemetry-poc`. Container App logs appear in
-`ContainerAppConsoleLogs_CL` within ~3 minutes of the container starting.
+# 2. Metrics endpoint is live
+curl -s https://<fqdn>/metrics | grep ai_gateway
+
+# 3. Logs in Log Analytics (after ~3 min)
+# Azure Portal → Log Analytics workspace → Logs:
+# ContainerAppConsoleLogs_CL
+# | where ContainerAppName_s == "ai-telemetry-runner"
+# | take 10
+```
 
 ---
 
-## Deploy as Azure Function (timer fires every 30 s)
+## Grafana setup
 
-```bash
-az acr login --name acrtelemetrypoc
-docker build -t acrtelemetrypoc.azurecr.io/ai-telemetry-fn:v1 .
-docker push acrtelemetrypoc.azurecr.io/ai-telemetry-fn:v1
-```
-
-## Grafana dashboard
+### Local Grafana (dev)
 
 ```bash
 brew install grafana && brew services start grafana
@@ -155,23 +114,70 @@ open http://localhost:3000          # admin / admin
 1. **Add data source** → Prometheus → paste your Azure Monitor Prometheus query endpoint URL.
 2. **Dashboards → Import** → upload `dashboards/grafana_dashboard.json`.
 
+### Azure Monitor datasource (for Log Analytics logs)
+
+```bash
+curl -s -X POST http://localhost:3000/api/datasources \
+  -u admin:admin -H "Content-Type: application/json" -d '{
+    "name": "Azure Monitor",
+    "type": "grafana-azure-monitor-datasource",
+    "access": "proxy",
+    "jsonData": {
+      "cloudName": "azuremonitor",
+      "tenantId": "<AZURE_TENANT_ID>",
+      "clientId": "<AZURE_CLIENT_ID>",
+      "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
+      "azureAuthType": "clientsecret"
+    },
+    "secureJsonData": { "clientSecret": "<AZURE_CLIENT_SECRET>" }
+  }'
+```
+
+Set the **Default Log Analytics workspace** to the workspace auto-created with the Container Apps Environment.
+
+---
+
+## Validate synthetic data
+
+```bash
+python3 validation/check_data.py
+```
+
+Generates 1 000 events and checks model distribution, field completeness, error rate, and cost accuracy.
+
+## Trigger an error-window spike (alert testing)
+
+```bash
+ERROR_WINDOW_PROB=1.0 python3 -m generator.runner
+```
+
+Error rate climbs to ~8 %. Grafana alert fires within 2 minutes.
+
+---
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EVENTHUB_NAMESPACE` | Yes* | — | `evhns-telemetry-poc.servicebus.windows.net` |
+| `EVENTHUB_NAMESPACE` | Yes* | — | Event Hubs namespace FQDN |
 | `EVENTHUB_CONNECTION_STRING` | Yes* | — | Full `Endpoint=sb://…` string |
 | `EVENTHUB_NAME` | No | `ai-telemetry-events` | Event Hub name |
+| `AZURE_CLIENT_ID` | No | — | SP client ID (local Prometheus auth) |
+| `AZURE_CLIENT_SECRET` | No | — | SP client secret (local Prometheus auth) |
+| `AZURE_TENANT_ID` | No | — | Azure tenant ID |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | No | `http://localhost:4317` | OTLP gRPC endpoint |
-| `OTEL_SERVICE_NAME` | No | `ai-telemetry-poc` | Service label |
+| `OTEL_SERVICE_NAME` | No | `ai-telemetry-poc` | Service label in metrics/logs |
 | `OTEL_EXPORT_INTERVAL_MS` | No | `30000` | OTel export interval |
 | `ENVIRONMENT` | No | `poc` | Deployment label |
-| `BATCH_INTERVAL_S` | No | `5` | Seconds between batches (local runner) |
+| `PROMETHEUS_PORT` | No | `8000` | Port to expose `/metrics` (0 = disabled) |
+| `BATCH_INTERVAL_S` | No | `5` | Seconds between batches |
 | `BASE_BATCH_SIZE` | No | `8` | Mean events per batch |
 | `ERROR_WINDOW_PROB` | No | `0.03` | Per-minute probability of error spike |
 | `SIMULATE_LATENCY` | No | `false` | Sleep `latency_ms/1000` s per event |
 
-\* Without these the publisher runs in mock mode.
+\* Without these the publisher runs in mock mode — events are logged locally only.
+
+---
 
 ## Project structure
 
@@ -180,39 +186,53 @@ Telemetry/
 ├── generator/
 │   ├── synthetic_generator.py   # event generation & cost calculation
 │   ├── kafka_publisher.py       # Event Hubs publisher (START + END pairs)
-│   ├── otel_metrics.py          # 5 OTel instruments + setup_otel()
-│   ├── runner.py                # batch loop & run_one_batch() export
+│   ├── otel_metrics.py          # OTel instruments + Prometheus exporter
+│   ├── azure_logger.py          # structured JSON logging → Log Analytics
+│   ├── pod_metrics_simulator.py # simulated kube-state-metrics
+│   ├── runner.py                # main batch loop
 │   └── requirements.txt
 ├── function_app/
-│   ├── function_app.py          # Azure Functions v2 timer trigger
-│   ├── host.json
-│   └── local.settings.json
+│   ├── function_app.py          # Azure Functions v2 timer trigger (30 s)
+│   └── host.json
 ├── dashboards/
-│   └── grafana_dashboard.json   # 13-panel Grafana dashboard (schema v39)
+│   └── grafana_dashboard.json   # Grafana dashboard (schema v39)
+├── infra/
+│   └── bootstrap.sh             # one-command Azure resource provisioning
+├── azure/
+│   ├── windows-quickstart.ps1   # Windows developer setup
+│   └── prometheus-entrypoint.sh # Prometheus Container App entrypoint
 ├── validation/
 │   └── check_data.py            # data-quality validation suite
-├── Dockerfile                   # Azure Functions container
-├── .env.example
+├── .github/workflows/
+│   └── deploy.yml               # CI/CD: build → push ACR → deploy Container App
+├── Dockerfile                   # Azure Functions container image
+├── Dockerfile.runner            # telemetry runner container image
+├── prometheus.yml               # Prometheus scrape + remote_write config
+├── .env.example                 # environment variable template (copy to .env)
 └── README.md
 ```
 
 ## Architecture
 
 ```
-[Timer / runner.py]
+[runner.py — Azure Container App, min-replicas=1]
        │
        ▼ generate_event()
-[synthetic_generator.py]  ──► each event is structurally identical to
-                               real gateway traffic
+[synthetic_generator.py]  ── realistic LLM gateway traffic shape
        │
-       ▼ publish_start_event() + publish_end_event()
-[kafka_publisher.py]  ──► Azure Event Hubs (Kafka protocol, port 9093)
+       ├─▶ kafka_publisher.py  ──▶  Azure Event Hubs (Kafka, port 9093)
        │
-       ▼ record_metrics()
-[otel_metrics.py]  ──► OTLP gRPC ──► Azure Monitor Prometheus
-                                              │
-                                              ▼
-                                      [Grafana localhost:3000]
+       ├─▶ otel_metrics.py     ──▶  :8000/metrics  ──▶  Prometheus
+       │                                                      │
+       │                                               remote_write
+       │                                                      ▼
+       │                                         Azure Managed Prometheus
+       │                                                      │
+       │                                                      ▼
+       └─▶ azure_logger.py     ──▶  stdout JSON ──▶  Log Analytics
+                                                              │
+                                                              ▼
+                                                     Grafana (dashboards)
 ```
 
-Swapping synthetic traffic for real LLM traffic: replace the `generate_event()` call in `runner.py` with your gateway interceptor. All downstream components (Kafka publisher, OTel metrics, Grafana) remain unchanged.
+To use real LLM traffic: replace the `generate_event()` call in `runner.py` with your gateway interceptor. All downstream components stay unchanged.

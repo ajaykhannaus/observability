@@ -1,18 +1,36 @@
 name: Build and Deploy to Azure
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Required GitHub Secrets (repo → Settings → Secrets → Actions):
+#
+#   AZURE_CREDENTIALS        SP credentials JSON  (az ad sp create-for-rbac --sdk-auth)
+#   AZURE_RESOURCE_GROUP     e.g. rg-ai-telemetry-prod
+#   ACR_LOGIN_SERVER         e.g. acrtelemetrycorp.azurecr.io
+#   ACR_PASSWORD             ACR admin password  (az acr credential show --name <acr>)
+#   AZURE_CONTAINER_APP_NAME e.g. ai-telemetry-runner
+#   AZURE_CAE_NAME           Container Apps Environment  e.g. cae-telemetry-prod
+#
+# Optional (jobs 3 & 4 skip gracefully if not set):
+#   PROM_REMOTE_WRITE_URL    Azure Managed Prometheus ingestion URL
+#   AZURE_GRAFANA_NAME       Azure Managed Grafana resource name
+#
+# Run infra/bootstrap.sh ONCE before the first push to provision all resources.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   push:
     branches: [master, main]
   workflow_dispatch:
 
 env:
-  ACR:            acrtelemetrypoc.azurecr.io
-  RESOURCE_GROUP: rg-ai-telemetry-poc
-  RUNNER_APP:     ${{ secrets.AZURE_CONTAINER_APP_NAME }}   # ai-telemetry-runner
+  ACR:            ${{ secrets.ACR_LOGIN_SERVER }}
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  RUNNER_APP:     ${{ secrets.AZURE_CONTAINER_APP_NAME }}
+  CAE_NAME:       ${{ secrets.AZURE_CAE_NAME }}
   PROM_APP:       prometheus-scraper
 
 jobs:
-  # ── Job 1: Build + push Azure Functions image (existing path) ─────────────
+  # ── Job 1: Build + push Azure Functions image ─────────────────────────────
   build-fn:
     runs-on: ubuntu-latest
     steps:
@@ -23,7 +41,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to ACR
-        run: az acr login --name acrtelemetrypoc
+        run: az acr login --name "$(echo '${{ env.ACR }}' | cut -d. -f1)"
 
       - name: Build and push Functions image
         run: |
@@ -45,7 +63,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to ACR
-        run: az acr login --name acrtelemetrypoc
+        run: az acr login --name "$(echo '${{ env.ACR }}' | cut -d. -f1)"
 
       - name: Build and push runner image (linux/amd64)
         run: |
@@ -60,20 +78,19 @@ jobs:
 
       - name: Deploy runner to Azure Container Apps (create-or-update)
         run: |
-          # Use 'update' if app exists, otherwise it was pre-created manually.
-          # This handles both fresh deploys and rolling updates.
+          # 'update' on an existing app; 'create' on first deploy
           az containerapp update \
-            --name ${{ env.RUNNER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }} \
+            --name      "${{ env.RUNNER_APP }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --image     "${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}" \
           || az containerapp create \
-            --name ${{ env.RUNNER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --environment cae-telemetry-poc \
-            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }} \
-            --registry-server ${{ env.ACR }} \
-            --registry-username acrtelemetrypoc \
-            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --name      "${{ env.RUNNER_APP }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --environment    "${{ env.CAE_NAME }}" \
+            --image     "${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}" \
+            --registry-server   "${{ env.ACR }}" \
+            --registry-username "$(echo '${{ env.ACR }}' | cut -d. -f1)" \
+            --registry-password "${{ secrets.ACR_PASSWORD }}" \
             --ingress external --target-port 8000 \
             --min-replicas 1 --max-replicas 1 \
             --cpu 0.5 --memory 1Gi
@@ -81,8 +98,8 @@ jobs:
   # ── Job 3: Build + push + deploy the Prometheus scraper ──────────────────
   build-and-deploy-prometheus:
     runs-on: ubuntu-latest
-    needs: build-and-deploy-runner      # get runner FQDN after it's updated
-    continue-on-error: true            # skip gracefully if PROM secrets not yet set
+    needs: build-and-deploy-runner
+    continue-on-error: true   # skips gracefully if PROM_REMOTE_WRITE_URL not set
     steps:
       - uses: actions/checkout@v4
 
@@ -97,13 +114,13 @@ jobs:
         id: runner_fqdn
         run: |
           FQDN=$(az containerapp show \
-            --name ${{ env.RUNNER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "${{ env.RUNNER_APP }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
             --query "properties.configuration.ingress.fqdn" -o tsv)
           echo "fqdn=$FQDN" >> $GITHUB_OUTPUT
 
       - name: Login to ACR
-        run: az acr login --name acrtelemetrypoc
+        run: az acr login --name "$(echo '${{ env.ACR }}' | cut -d. -f1)"
 
       - name: Build and push Prometheus scraper image
         run: |
@@ -116,9 +133,9 @@ jobs:
       - name: Deploy Prometheus scraper to Azure Container Apps
         run: |
           az containerapp update \
-            --name ${{ env.PROM_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR }}/prometheus-scraper:${{ github.sha }} \
+            --name "${{ env.PROM_APP }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --image "${{ env.ACR }}/prometheus-scraper:${{ github.sha }}" \
             --set-env-vars \
               SCRAPE_TARGET="${{ steps.runner_fqdn.outputs.fqdn }}" \
               PROM_REMOTE_WRITE_URL="${{ secrets.PROM_REMOTE_WRITE_URL }}"
@@ -127,7 +144,7 @@ jobs:
   deploy-grafana-dashboard:
     runs-on: ubuntu-latest
     needs: build-and-deploy-prometheus
-    continue-on-error: true            # skip gracefully if AZURE_GRAFANA_NAME not yet set
+    continue-on-error: true   # skips gracefully if AZURE_GRAFANA_NAME not set
     steps:
       - uses: actions/checkout@v4
 
@@ -141,7 +158,7 @@ jobs:
       - name: Import dashboard to Azure Managed Grafana
         run: |
           az grafana dashboard import \
-            --name ${{ secrets.AZURE_GRAFANA_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name "${{ secrets.AZURE_GRAFANA_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
             --definition @dashboards/grafana_dashboard.json \
             --overwrite true
