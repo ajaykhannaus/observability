@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
 
 env:
-  ACR:            ${{ secrets.ACR_LOGIN_SERVER }}      # e.g. acrtelemetrycorp.azurecr.io
-  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}  # e.g. rg-ai-telemetry
-  RUNNER_APP:     ${{ secrets.AZURE_CONTAINER_APP_NAME }}      # ai-telemetry-runner
-  PROM_APP:       ${{ secrets.AZURE_PROM_APP_NAME }}           # prometheus-scraper
+  ACR:            acrtelemetrypoc.azurecr.io
+  RESOURCE_GROUP: rg-ai-telemetry-poc
+  RUNNER_APP:     ${{ secrets.AZURE_CONTAINER_APP_NAME }}   # ai-telemetry-runner
+  PROM_APP:       prometheus-scraper
 
 jobs:
   # ── Job 1: Build + push Azure Functions image (existing path) ─────────────
@@ -23,7 +23,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to ACR
-        run: az acr login --name ${{ env.ACR }}
+        run: az acr login --name acrtelemetrypoc
 
       - name: Build and push Functions image
         run: |
@@ -45,7 +45,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to ACR
-        run: az acr login --name ${{ env.ACR }}
+        run: az acr login --name acrtelemetrypoc
 
       - name: Build and push runner image (linux/amd64)
         run: |
@@ -69,6 +69,7 @@ jobs:
   build-and-deploy-prometheus:
     runs-on: ubuntu-latest
     needs: build-and-deploy-runner      # get runner FQDN after it's updated
+    continue-on-error: true            # skip gracefully if PROM secrets not yet set
     steps:
       - uses: actions/checkout@v4
 
@@ -89,7 +90,7 @@ jobs:
           echo "fqdn=$FQDN" >> $GITHUB_OUTPUT
 
       - name: Login to ACR
-        run: az acr login --name ${{ env.ACR }}
+        run: az acr login --name acrtelemetrypoc
 
       - name: Build and push Prometheus scraper image
         run: |
@@ -113,6 +114,7 @@ jobs:
   deploy-grafana-dashboard:
     runs-on: ubuntu-latest
     needs: build-and-deploy-prometheus
+    continue-on-error: true            # skip gracefully if AZURE_GRAFANA_NAME not yet set
     steps:
       - uses: actions/checkout@v4
 
