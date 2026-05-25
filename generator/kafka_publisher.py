@@ -159,7 +159,7 @@ class KafkaPublisher:
             "error_type": event["error_type"],
             "stop_reason": event["stop_reason"],
             "http_status_code": event["http_status_code"],
-            "data_quality": event["data_quality"],
+            "data_quality": event.get("data_quality"),
         }
         return self._publish_with_retry(payload)
 
