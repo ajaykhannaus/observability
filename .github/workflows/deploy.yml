@@ -58,12 +58,25 @@ jobs:
       - name: Install Container Apps CLI extension
         run: az extension add --name containerapp --upgrade --yes
 
-      - name: Deploy runner to Azure Container Apps
+      - name: Deploy runner to Azure Container Apps (create-or-update)
         run: |
+          # Use 'update' if app exists, otherwise it was pre-created manually.
+          # This handles both fresh deploys and rolling updates.
           az containerapp update \
             --name ${{ env.RUNNER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}
+            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }} \
+          || az containerapp create \
+            --name ${{ env.RUNNER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --environment cae-telemetry-poc \
+            --image ${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }} \
+            --registry-server ${{ env.ACR }} \
+            --registry-username acrtelemetrypoc \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --ingress external --target-port 8000 \
+            --min-replicas 1 --max-replicas 1 \
+            --cpu 0.5 --memory 1Gi
 
   # ── Job 3: Build + push + deploy the Prometheus scraper ──────────────────
   build-and-deploy-prometheus:
