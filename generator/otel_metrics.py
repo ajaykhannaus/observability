@@ -100,8 +100,8 @@ def setup_otel() -> None:
         _initialized = True
         return
 
-    service_name      = os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc")
-    environment       = os.getenv("ENVIRONMENT", "poc")
+    service_name      = os.getenv("OTEL_SERVICE_NAME", "ai-telemetry")
+    environment       = os.getenv("ENVIRONMENT", "prod")
     export_interval_ms = int(os.getenv("OTEL_EXPORT_INTERVAL_MS", "30000"))
     otlp_endpoint     = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
     prometheus_port   = int(os.getenv("PROMETHEUS_PORT", "0"))

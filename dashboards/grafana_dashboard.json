@@ -109,7 +109,7 @@
   "timepicker": {},
   "timezone": "utc",
   "title": "AI Gateway Telemetry",
-  "uid": "ai-telemetry-poc-001",
+  "uid": "ai-telemetry-001",
   "version": 2,
   "weekStart": "",
   "panels": [

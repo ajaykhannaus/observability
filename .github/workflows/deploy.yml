@@ -89,28 +89,64 @@ jobs:
       - name: Install Container Apps CLI extension
         run: az extension add --name containerapp --upgrade --yes
 
-      - name: Deploy runner to Azure Container Apps (create-or-update)
+      - name: Render container app YAML
+        shell: pwsh
+        run: |
+          $envId = az containerapp env show `
+            --name "${{ env.CAE_NAME }}" `
+            --resource-group "${{ env.RESOURCE_GROUP }}" `
+            --query id -o tsv
+          $image = "${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}"
+          $location = "${{ secrets.AZURE_LOCATION }}"
+          (Get-Content infra/containerapp.template.yaml -Raw) `
+            -replace '__LOCATION__', $location `
+            -replace '__MANAGED_ENV_ID__', $envId `
+            -replace '__ACR_LOGIN_SERVER__', "${{ env.ACR }}" `
+            -replace '__IMAGE__', $image `
+            | Set-Content infra/containerapp.rendered.yaml
+          Get-Content infra/containerapp.rendered.yaml
+
+      - name: Sync EventHub secrets onto the Container App
+        shell: pwsh
+        run: |
+          az containerapp secret set `
+            --name "${{ env.RUNNER_APP }}" `
+            --resource-group "${{ env.RESOURCE_GROUP }}" `
+            --secrets `
+              "eventhub-namespace=${{ secrets.EVENTHUB_NAMESPACE }}" `
+              "eventhub-connection-string=${{ secrets.EVENTHUB_CONNECTION_STRING }}" 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Host "Secrets will be created with the app." }
+
+      - name: Deploy runner to Azure Container Apps (create-or-update via YAML)
+        shell: pwsh
         run: |
           $ErrorActionPreference = 'Continue'
           az containerapp update `
-            --name      "${{ env.RUNNER_APP }}" `
+            --name "${{ env.RUNNER_APP }}" `
             --resource-group "${{ env.RESOURCE_GROUP }}" `
-            --image     "${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}"
+            --yaml infra/containerapp.rendered.yaml
           if ($LASTEXITCODE -ne 0) {
             Write-Host "App not found — creating..."
             az containerapp create `
-              --name      "${{ env.RUNNER_APP }}" `
+              --name "${{ env.RUNNER_APP }}" `
               --resource-group "${{ env.RESOURCE_GROUP }}" `
-              --environment    "${{ env.CAE_NAME }}" `
-              --image     "${{ env.ACR }}/ai-telemetry-runner:${{ github.sha }}" `
-              --registry-server   "${{ env.ACR }}" `
-              --registry-username "${{ env.ACR_NAME }}" `
-              --registry-password "${{ secrets.ACR_PASSWORD }}" `
-              --ingress external --target-port 8000 `
-              --min-replicas 1 --max-replicas 1 `
-              --cpu 0.5 --memory 1Gi
+              --yaml infra/containerapp.rendered.yaml
+            # Grant the system-assigned managed identity AcrPull on the registry
+            $appPrincipalId = az containerapp show `
+              --name "${{ env.RUNNER_APP }}" `
+              --resource-group "${{ env.RESOURCE_GROUP }}" `
+              --query identity.principalId -o tsv
+            $acrId = az acr show --name "${{ env.ACR_NAME }}" --query id -o tsv
+            az role assignment create `
+              --assignee "$appPrincipalId" `
+              --role AcrPull `
+              --scope "$acrId" 2>$null
+            # Re-apply YAML now that managed-identity-based pull is allowed
+            az containerapp update `
+              --name "${{ env.RUNNER_APP }}" `
+              --resource-group "${{ env.RESOURCE_GROUP }}" `
+              --yaml infra/containerapp.rendered.yaml
           }
-        shell: pwsh
 
   # ── Job 3: Build + push + deploy the Prometheus scraper ──────────────────
   # Runs on GitHub-hosted runner (optional — skips if PROM_REMOTE_WRITE_URL not set)

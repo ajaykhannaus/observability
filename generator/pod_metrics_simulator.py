@@ -24,7 +24,7 @@ import random
 import threading
 import time
 
-from prometheus_client import Counter, Gauge, Info, start_http_server
+from prometheus_client import Counter, Gauge, start_http_server
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,6 @@ def _pod_name(rs: str, suffix: str) -> str:
 # Prometheus metric definitions
 # ---------------------------------------------------------------------------
 
-# ── kube-state-metrics ────────────────────────────────────────────────────
 kube_pod_info = Gauge(
     "kube_pod_info",
     "Information about a pod.",
@@ -154,13 +153,13 @@ container_cpu_usage_seconds_total = Counter(
 )
 
 # ---------------------------------------------------------------------------
-# Shared state (thread-safe via simple float volatile — good enough here)
+# Shared state
 # ---------------------------------------------------------------------------
 
-_current_rps: float = 2.0          # updated by update_load_signal()
-_current_replicas: int = 3          # actual pods running right now
-_desired_replicas: int = 3          # what HPA wants
-_active_pods: list[str] = []        # names of currently running pods
+_current_rps: float = 2.0
+_current_replicas: int = 3
+_desired_replicas: int = 3
+_active_pods: list[str] = []
 
 _lock = threading.Lock()
 
@@ -172,9 +171,8 @@ def _init_static_metrics() -> None:
     """Set metrics that don't change at runtime."""
     kube_hpa_spec_min_replicas.labels(namespace=NAMESPACE, hpa=HPA_NAME).set(HPA_MIN)
     kube_hpa_spec_max_replicas.labels(namespace=NAMESPACE, hpa=HPA_NAME).set(HPA_MAX)
-    node_memory_MemTotal_bytes.set(8 * 1024 ** 3)   # 8 GB node
+    node_memory_MemTotal_bytes.set(8 * 1024 ** 3)
 
-    # Node conditions — start healthy
     for condition in ("Ready", "DiskPressure", "MemoryPressure", "PIDPressure"):
         healthy = 1.0 if condition == "Ready" else 0.0
         kube_node_status_condition.labels(
@@ -189,7 +187,6 @@ def _rebuild_pods(n: int) -> list[str]:
     """Return list of n pod names and set their phase/info metrics."""
     pods = [_pod_name(rs, sfx) for rs, sfx in _POD_SUFFIXES[:n]]
 
-    # Clear all phase labels first (set to 0 for pods that no longer exist)
     for rs, sfx in _POD_SUFFIXES:
         pname = _pod_name(rs, sfx)
         for phase in ("Running", "Pending", "Failed"):
@@ -218,133 +215,159 @@ def _rebuild_pods(n: int) -> list[str]:
     return pods
 
 
+def _schedule_pod_recovery(pod: str, cur: int, delay_s: float = 2.0) -> None:
+    """Schedule the 'pod returns to Running' transition on a background timer.
+
+    Done this way so the simulation loop never blocks waiting for the
+    transition — blocking the simulation thread would stall every other
+    metric update and starve the next HPA decision.
+    """
+    def _restore() -> None:
+        try:
+            kube_pod_status_phase.labels(
+                namespace=NAMESPACE, pod=pod, phase="Running"
+            ).set(1)
+            kube_pod_status_phase.labels(
+                namespace=NAMESPACE, pod=pod, phase="Pending"
+            ).set(0)
+            kube_deployment_status_replicas_available.labels(
+                namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
+            ).set(cur)
+        except Exception as exc:
+            logger.warning("Pod %s recovery callback failed: %s", pod, exc)
+
+    t = threading.Timer(delay_s, _restore)
+    t.daemon = True
+    t.start()
+
+
 # ---------------------------------------------------------------------------
 # Background simulation loop
 # ---------------------------------------------------------------------------
 
 def _simulate_loop() -> None:
-    """Run forever in a daemon thread, updating all metrics every TICK_S seconds."""
+    """Run forever in a daemon thread, updating all metrics every TICK_S seconds.
+
+    Wraps the per-tick body in a broad ``except Exception`` so that a
+    transient registry/labelling error in one tick cannot kill the thread
+    and silently freeze every k8s metric series.
+    """
     global _current_replicas, _desired_replicas, _active_pods
 
-    _init_static_metrics()
-    _current_replicas = 3
-    _desired_replicas = 3
-    _active_pods = _rebuild_pods(_current_replicas)
-
-    kube_deployment_spec_replicas.labels(
-        namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-    ).set(_current_replicas)
-    kube_deployment_status_replicas_available.labels(
-        namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-    ).set(_current_replicas)
-    kube_hpa_status_current_replicas.labels(
-        namespace=NAMESPACE, hpa=HPA_NAME
-    ).set(_current_replicas)
-    kube_hpa_status_desired_replicas.labels(
-        namespace=NAMESPACE, hpa=HPA_NAME
-    ).set(_desired_replicas)
-
-    tick = 0
-    while True:
-        time.sleep(TICK_S)
-        tick += 1
-
-        with _lock:
-            rps = _current_rps
-
-        # ── HPA: compute desired replicas from load ───────────────────────
-        raw_desired = max(HPA_MIN, min(HPA_MAX, round(rps / RPS_PER_REPLICA)))
-        # Add small noise so the chart isn't a flat line
-        raw_desired = max(HPA_MIN, min(HPA_MAX, raw_desired + random.randint(-1, 1)))
-
-        with _lock:
-            _desired_replicas = raw_desired
-            # Ramp actual replicas toward desired by at most 1 per tick (K8s cooldown)
-            if _current_replicas < _desired_replicas:
-                _current_replicas = min(_current_replicas + 1, _desired_replicas)
-            elif _current_replicas > _desired_replicas:
-                _current_replicas = max(_current_replicas - 1, _desired_replicas)
-            cur = _current_replicas
-            des = _desired_replicas
-
-        _active_pods = _rebuild_pods(cur)
+    try:
+        _init_static_metrics()
+        _current_replicas = 3
+        _desired_replicas = 3
+        _active_pods = _rebuild_pods(_current_replicas)
 
         kube_deployment_spec_replicas.labels(
             namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-        ).set(cur)
+        ).set(_current_replicas)
         kube_deployment_status_replicas_available.labels(
             namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-        ).set(cur)
+        ).set(_current_replicas)
         kube_hpa_status_current_replicas.labels(
             namespace=NAMESPACE, hpa=HPA_NAME
-        ).set(cur)
+        ).set(_current_replicas)
         kube_hpa_status_desired_replicas.labels(
             namespace=NAMESPACE, hpa=HPA_NAME
-        ).set(des)
+        ).set(_desired_replicas)
+    except Exception as exc:
+        logger.error("Pod sim init failed: %s", exc)
+        return
 
-        # ── Container metrics per active pod ────────────────────────────────
-        for pod in _active_pods:
-            mem_bytes = random.uniform(150_000_000, 280_000_000)
-            container_memory_rss.labels(
+    tick = 0
+    while True:
+        try:
+            _tick_body(tick)
+        except Exception:
+            logger.exception("Pod sim tick %d failed", tick)
+        tick += 1
+        time.sleep(TICK_S)
+
+
+def _tick_body(tick: int) -> None:
+    global _current_replicas, _desired_replicas, _active_pods
+
+    with _lock:
+        rps = _current_rps
+
+    raw_desired = max(HPA_MIN, min(HPA_MAX, round(rps / RPS_PER_REPLICA)))
+    raw_desired = max(HPA_MIN, min(HPA_MAX, raw_desired + random.randint(-1, 1)))
+
+    with _lock:
+        _desired_replicas = raw_desired
+        if _current_replicas < _desired_replicas:
+            _current_replicas = min(_current_replicas + 1, _desired_replicas)
+        elif _current_replicas > _desired_replicas:
+            _current_replicas = max(_current_replicas - 1, _desired_replicas)
+        cur = _current_replicas
+        des = _desired_replicas
+
+    _active_pods = _rebuild_pods(cur)
+
+    kube_deployment_spec_replicas.labels(
+        namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
+    ).set(cur)
+    kube_deployment_status_replicas_available.labels(
+        namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
+    ).set(cur)
+    kube_hpa_status_current_replicas.labels(
+        namespace=NAMESPACE, hpa=HPA_NAME
+    ).set(cur)
+    kube_hpa_status_desired_replicas.labels(
+        namespace=NAMESPACE, hpa=HPA_NAME
+    ).set(des)
+
+    for pod in _active_pods:
+        mem_bytes = random.uniform(150_000_000, 280_000_000)
+        container_memory_rss.labels(
+            namespace=NAMESPACE, pod=pod, container="ai-gateway"
+        ).set(mem_bytes)
+        cpu_inc = random.uniform(0.01, 0.06)
+        container_cpu_usage_seconds_total.labels(
+            namespace=NAMESPACE, pod=pod, container="ai-gateway"
+        ).inc(cpu_inc)
+
+        if random.random() < 0.005:
+            kube_pod_container_status_restarts_total.labels(
                 namespace=NAMESPACE, pod=pod, container="ai-gateway"
-            ).set(mem_bytes)
-            cpu_inc = random.uniform(0.01, 0.06)
-            container_cpu_usage_seconds_total.labels(
-                namespace=NAMESPACE, pod=pod, container="ai-gateway"
-            ).inc(cpu_inc)
+            ).inc()
+            kube_pod_status_phase.labels(
+                namespace=NAMESPACE, pod=pod, phase="Running"
+            ).set(0)
+            kube_pod_status_phase.labels(
+                namespace=NAMESPACE, pod=pod, phase="Pending"
+            ).set(1)
+            kube_deployment_status_replicas_available.labels(
+                namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
+            ).set(max(1, cur - 1))
+            _schedule_pod_recovery(pod, cur)
+            logger.info("Pod %s restart triggered (simulated)", pod)
 
-            # 0.5% chance of a restart per pod per tick
-            if random.random() < 0.005:
-                kube_pod_container_status_restarts_total.labels(
-                    namespace=NAMESPACE, pod=pod, container="ai-gateway"
-                ).inc()
-                # Briefly mark as Pending, then back to Running
-                kube_pod_status_phase.labels(
-                    namespace=NAMESPACE, pod=pod, phase="Running"
-                ).set(0)
-                kube_pod_status_phase.labels(
-                    namespace=NAMESPACE, pod=pod, phase="Pending"
-                ).set(1)
-                kube_deployment_status_replicas_available.labels(
-                    namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-                ).set(max(1, cur - 1))
-                time.sleep(2)
-                kube_pod_status_phase.labels(
-                    namespace=NAMESPACE, pod=pod, phase="Running"
-                ).set(1)
-                kube_pod_status_phase.labels(
-                    namespace=NAMESPACE, pod=pod, phase="Pending"
-                ).set(0)
-                kube_deployment_status_replicas_available.labels(
-                    namespace=NAMESPACE, deployment=DEPLOYMENT_NAME
-                ).set(cur)
-                logger.info("Pod %s restarted (simulated)", pod)
+    mem_available = random.uniform(1_800_000_000, 4_200_000_000)
+    node_memory_MemAvailable_bytes.set(mem_available)
 
-        # ── Node metrics ─────────────────────────────────────────────────
-        mem_available = random.uniform(1_800_000_000, 4_200_000_000)
-        node_memory_MemAvailable_bytes.set(mem_available)
+    node_cpu_seconds_total.labels(cpu="0", mode="user").inc(
+        random.uniform(0.05, 0.15)
+    )
+    node_cpu_seconds_total.labels(cpu="0", mode="idle").inc(
+        random.uniform(0.5, 0.8)
+    )
 
-        node_cpu_seconds_total.labels(cpu="0", mode="user").inc(
-            random.uniform(0.05, 0.15)
+    mem_pressure = 1.0 if mem_available < 1_500_000_000 else 0.0
+    kube_node_status_condition.labels(
+        node=NODE_NAME, condition="MemoryPressure", status="True"
+    ).set(mem_pressure)
+    kube_node_status_condition.labels(
+        node=NODE_NAME, condition="MemoryPressure", status="False"
+    ).set(1.0 - mem_pressure)
+
+    if tick % 6 == 0:
+        logger.info(
+            "Pod sim | rps=%.2f pods=%d/%d (cur/desired)",
+            rps, cur, des,
         )
-        node_cpu_seconds_total.labels(cpu="0", mode="idle").inc(
-            random.uniform(0.5, 0.8)
-        )
-
-        # Node pressure — MemoryPressure True when < 1.5 GB available
-        mem_pressure = 1.0 if mem_available < 1_500_000_000 else 0.0
-        kube_node_status_condition.labels(
-            node=NODE_NAME, condition="MemoryPressure", status="True"
-        ).set(mem_pressure)
-        kube_node_status_condition.labels(
-            node=NODE_NAME, condition="MemoryPressure", status="False"
-        ).set(1.0 - mem_pressure)
-
-        if tick % 6 == 0:   # log every ~60s
-            logger.info(
-                "Pod sim | rps=%.2f pods=%d/%d (cur/desired)",
-                rps, cur, des,
-            )
 
 
 # ---------------------------------------------------------------------------

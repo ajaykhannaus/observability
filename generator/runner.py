@@ -1,8 +1,7 @@
-"""
-Continuous runner / batch executor for the AI telemetry POC.
+"""Continuous runner / batch executor for the AI telemetry pipeline.
 
 Two usage modes:
-  - Standalone:  python3 generator/runner.py
+  - Standalone:  python3 -m generator.runner
   - Library:     from generator.runner import run_one_batch  (used by Azure Function)
 """
 from __future__ import annotations
@@ -30,17 +29,18 @@ try:
 except ImportError:
     pass
 
-from generator.synthetic_generator import (  # noqa: E402
-    generate_event,
-    traffic_multiplier,
-    maybe_inject_anomaly,
-    get_anomaly_summary,
-    get_client_budget_status,
-)
-from generator.kafka_publisher import KafkaPublisher  # noqa: E402
+import generator.azure_logger as azure_logger  # noqa: E402
+import generator.health_server as health_server  # noqa: E402
 import generator.otel_metrics as otel  # noqa: E402
 import generator.pod_metrics_simulator as pod_sim  # noqa: E402
-import generator.azure_logger as azure_logger  # noqa: E402
+from generator.kafka_publisher import KafkaPublisher, PublisherConfigError  # noqa: E402
+from generator.synthetic_generator import (  # noqa: E402
+    generate_event,
+    get_anomaly_summary,
+    get_client_budget_status,
+    maybe_inject_anomaly,
+    traffic_multiplier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +49,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 BATCH_INTERVAL_S: float = float(os.getenv("BATCH_INTERVAL_S", "5"))
-BASE_BATCH_SIZE: int = int(os.getenv("BASE_BATCH_SIZE", "8"))
+BASE_BATCH_SIZE: int    = int(os.getenv("BASE_BATCH_SIZE", "8"))
 ERROR_WINDOW_PROB: float = float(os.getenv("ERROR_WINDOW_PROB", "0.03"))
 ERROR_WINDOW_MIN_S: float = float(os.getenv("ERROR_WINDOW_MIN_S", "90"))
 ERROR_WINDOW_MAX_S: float = float(os.getenv("ERROR_WINDOW_MAX_S", "180"))
 SIMULATE_LATENCY: bool = os.getenv("SIMULATE_LATENCY", "false").lower() == "true"
+HEALTH_PORT: int       = int(os.getenv("HEALTH_PORT", "8080"))
 
 # ---------------------------------------------------------------------------
 # Module-level singletons
@@ -64,7 +65,6 @@ _otel_ready: bool = False
 _pod_sim_ready: bool = False
 _running: bool = True
 
-# Error window state (epoch seconds when the current window closes; 0 = no window)
 _error_window_end: float = 0.0
 
 
@@ -106,12 +106,13 @@ def _current_error_rate() -> float:
     now = time.monotonic()
 
     if now > _error_window_end:
-        # Per-batch probability derived from per-minute probability
         per_batch_prob = ERROR_WINDOW_PROB / 60.0 * BATCH_INTERVAL_S
         if random.random() < per_batch_prob:
             duration = random.uniform(ERROR_WINDOW_MIN_S, ERROR_WINDOW_MAX_S)
             _error_window_end = now + duration
-            logger.warning("Error window opened — duration %.0fs, elevated rate 8%%", duration)
+            logger.warning(
+                "Error window opened — duration %.0fs, elevated rate 8%%", duration,
+            )
 
     return 0.08 if now <= _error_window_end else 0.008
 
@@ -122,10 +123,7 @@ def _current_error_rate() -> float:
 
 
 def run_one_batch() -> dict[str, Any]:
-    """Generate, publish, and record metrics for one batch of events.
-
-    Returns a summary dict suitable for logging by the Azure Function.
-    """
+    """Generate, publish, and record metrics for one batch of events."""
     _ensure_otel()
     _ensure_pod_sim()
     publisher = _get_publisher()
@@ -133,7 +131,6 @@ def run_one_batch() -> dict[str, Any]:
     batch_size = _batch_size()
     error_rate = _current_error_rate()
 
-    # Advance the anomaly state machine once per batch
     maybe_inject_anomaly()
 
     successes = errors = 0
@@ -172,10 +169,13 @@ def run_one_batch() -> dict[str, Any]:
 
     try:
         publisher.flush()
+        publisher_ok = True
     except Exception as exc:
         logger.error("Producer flush error: %s", exc)
+        publisher_ok = False
 
-    # Drive HPA scaling in the pod simulator based on current throughput
+    health_server.heartbeat(publisher_healthy=publisher_ok and publisher.is_healthy)
+
     pod_sim.update_load_signal(batch_size / BATCH_INTERVAL_S)
 
     anomaly = get_anomaly_summary()
@@ -201,11 +201,11 @@ def run_one_batch() -> dict[str, Any]:
         f"sla_breach={sla_breaches} cost=${total_cost:.5f} tokens={total_tokens}"
     )
     if anomaly["degraded_model"]:
-        log_parts += f" ⚠️ degraded={anomaly['degraded_model']}"
+        log_parts += f" degraded={anomaly['degraded_model']}"
     if anomaly["cascade_active"]:
-        log_parts += " 🔴 CASCADE_ACTIVE"
+        log_parts += " CASCADE_ACTIVE"
     if exhausted_clients:
-        log_parts += f" 💰 budget_exhausted={exhausted_clients}"
+        log_parts += f" budget_exhausted={exhausted_clients}"
 
     logger.info(log_parts)
     return summary
@@ -222,9 +222,11 @@ def _signal_handler(signum: int, _frame: Any) -> None:
     _running = False
 
 
-def main() -> None:
-    # Must be first — installs JSON handler before any other logging call.
-    # In Container Apps, stdout JSON lines are collected to Log Analytics.
+def main() -> int:
+    """Run the continuous batch loop.
+
+    Returns a process exit code (0 = clean shutdown, 2 = startup misconfiguration).
+    """
     azure_logger.setup_structured_logging()
 
     signal.signal(signal.SIGTERM, _signal_handler)
@@ -236,8 +238,9 @@ def main() -> None:
         "error_window_prob": ERROR_WINDOW_PROB,
         "simulate_latency":  SIMULATE_LATENCY,
         "prometheus_port":   int(os.getenv("PROMETHEUS_PORT", "0")),
-        "otel_service_name": os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc"),
-        "environment":       os.getenv("ENVIRONMENT", "poc"),
+        "health_port":       HEALTH_PORT,
+        "otel_service_name": os.getenv("OTEL_SERVICE_NAME", "ai-telemetry"),
+        "environment":       os.getenv("ENVIRONMENT", "prod"),
         "eventhub_namespace": os.getenv("EVENTHUB_NAMESPACE", ""),
         "eventhub_name":     os.getenv("EVENTHUB_NAME", "ai-telemetry-events"),
     })
@@ -248,6 +251,17 @@ def main() -> None:
         BASE_BATCH_SIZE,
         ERROR_WINDOW_PROB * 100,
     )
+
+    # Fail-fast: instantiate the publisher at startup so missing Event Hubs
+    # credentials surface immediately. In prod (ENVIRONMENT=prod) this raises
+    # PublisherConfigError instead of silently entering mock mode.
+    try:
+        _get_publisher()
+    except PublisherConfigError as exc:
+        logger.error("Startup aborted — publisher misconfigured: %s", exc)
+        return 2
+
+    health_server.start(HEALTH_PORT)
 
     while _running:
         tick = time.monotonic()
@@ -262,7 +276,8 @@ def main() -> None:
             time.sleep(sleep_for)
 
     logger.info("Runner stopped cleanly")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

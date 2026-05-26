@@ -185,11 +185,12 @@ Error rate climbs to ~8 %. Grafana alert fires within 2 minutes.
 Telemetry/
 ├── generator/
 │   ├── synthetic_generator.py   # event generation & cost calculation
-│   ├── kafka_publisher.py       # Event Hubs publisher (START + END pairs)
+│   ├── kafka_publisher.py       # Event Hubs publisher (idempotent, fail-fast)
 │   ├── otel_metrics.py          # OTel instruments + Prometheus exporter
 │   ├── azure_logger.py          # structured JSON logging → Log Analytics
 │   ├── pod_metrics_simulator.py # simulated kube-state-metrics
-│   ├── runner.py                # main batch loop
+│   ├── health_server.py         # /healthz, /readyz probe endpoints
+│   ├── runner.py                # main batch loop (fail-fast at startup)
 │   └── requirements.txt
 ├── function_app/
 │   ├── function_app.py          # Azure Functions v2 timer trigger (30 s)
@@ -197,17 +198,22 @@ Telemetry/
 ├── dashboards/
 │   └── grafana_dashboard.json   # Grafana dashboard (schema v39)
 ├── infra/
-│   └── bootstrap.sh             # one-command Azure resource provisioning
+│   ├── bootstrap.sh             # one-command Azure resource provisioning
+│   └── containerapp.template.yaml  # Container App spec with probes + HA
 ├── azure/
 │   ├── windows-quickstart.ps1   # Windows developer setup
 │   └── prometheus-entrypoint.sh # Prometheus Container App entrypoint
+├── tests/                       # pytest unit suite (run by CI)
 ├── validation/
 │   └── check_data.py            # data-quality validation suite
 ├── .github/workflows/
-│   └── deploy.yml               # CI/CD: build → push ACR → deploy Container App
+│   └── deploy.yml               # CI/CD: lint → test → build → push → deploy
 ├── Dockerfile                   # Azure Functions container image
-├── Dockerfile.runner            # telemetry runner container image
+├── Dockerfile.runner            # telemetry runner (non-root, healthchecked)
+├── Dockerfile.prometheus        # pinned Prometheus scraper image
 ├── prometheus.yml               # Prometheus scrape + remote_write config
+├── rules.yml                    # SLO recording rules + alerts
+├── pyproject.toml               # ruff + pytest configuration
 ├── .env.example                 # environment variable template (copy to .env)
 └── README.md
 ```

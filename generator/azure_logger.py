@@ -18,8 +18,8 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-_SERVICE = os.getenv("OTEL_SERVICE_NAME", "ai-telemetry-poc")
-_ENV     = os.getenv("ENVIRONMENT", "poc")
+_SERVICE = os.getenv("OTEL_SERVICE_NAME", "ai-telemetry")
+_ENV     = os.getenv("ENVIRONMENT", "prod")
 
 
 class JSONFormatter(logging.Formatter):

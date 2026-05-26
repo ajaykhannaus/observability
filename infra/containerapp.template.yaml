@@ -1,0 +1,72 @@
+# Container Apps deployment template for the telemetry runner.
+# Applied by GitHub Actions via `az containerapp create --yaml`.
+#
+# Placeholders surrounded by __DOUBLE_UNDERSCORES__ are substituted by the
+# CI workflow at deploy time (see .github/workflows/deploy.yml).
+location: __LOCATION__
+properties:
+  managedEnvironmentId: __MANAGED_ENV_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8000
+      transport: auto
+      allowInsecure: false
+      additionalPortMappings:
+        - targetPort: 8080
+          exposedPort: 8080
+          external: false
+    registries:
+      - server: __ACR_LOGIN_SERVER__
+        identity: system
+  template:
+    containers:
+      - name: ai-telemetry-runner
+        image: __IMAGE__
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: ENVIRONMENT
+            value: prod
+          - name: OTEL_SERVICE_NAME
+            value: ai-telemetry
+          - name: PROMETHEUS_PORT
+            value: "8000"
+          - name: HEALTH_PORT
+            value: "8080"
+          - name: EVENTHUB_NAMESPACE
+            secretRef: eventhub-namespace
+          - name: EVENTHUB_CONNECTION_STRING
+            secretRef: eventhub-connection-string
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          - type: Readiness
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          - type: Startup
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+    scale:
+      minReplicas: 2
+      maxReplicas: 4
+identity:
+  type: SystemAssigned
