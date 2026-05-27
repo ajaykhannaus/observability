@@ -1,0 +1,47 @@
+# Tempo Container App — Bucket 1.
+# Uses local-storage backend by default for the foundation deploy. Promote
+# to Azure Blob in Bucket 3 when we wire multi-cloud.
+location: __LOCATION__
+properties:
+  managedEnvironmentId: __MANAGED_ENV_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false
+      targetPort: 4317
+      exposedPort: 4317
+      transport: http2
+      additionalPortMappings:
+        - targetPort: 3200
+          exposedPort: 3200
+          external: false
+    registries: []
+  template:
+    containers:
+      - name: tempo
+        image: grafana/tempo:2.6.1
+        args:
+          - "-config.file=/etc/tempo/tempo.yaml"
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: TEMPO_HTTP_LISTEN_PORT
+            value: "3200"
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /ready
+              port: 3200
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+        # The Tempo config file is baked into a custom image at deploy time
+        # (see infra/Dockerfile.tempo in a follow-up). For now this template
+        # documents the container app shape; the config bake is tracked as
+        # a follow-up task in docs/improvement-plan.md.
+    scale:
+      minReplicas: 1
+      maxReplicas: 2
+identity:
+  type: SystemAssigned

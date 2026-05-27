@@ -1,23 +1,103 @@
 groups:
-  - name: slo_recording_rules
-    interval: 1m
+  # ─────────────────────────────────────────────────────────────────────
+  # Recording rules — SLIs at multiple windows for multi-burn-rate alerts
+  # ─────────────────────────────────────────────────────────────────────
+  - name: ai_gateway_sli_recording
+    interval: 30s
     rules:
-      # Availability SLI (Request success rate)
-      - record: ai_gateway:availability:current
-        expr: sum(rate(ai_gateway_request_count_total{status="success"}[5m])) / sum(rate(ai_gateway_request_count_total[5m]))
-      
-      # Burn rate alerts
-      - alert: ErrorRateHigh
-        expr: ai_gateway:availability:current < 0.995
+      # Availability SLI per window.
+      - record: ai_gateway:sli:availability:5m
+        expr: |
+          sum(rate(ai_gateway_request_count_total{status="success"}[5m]))
+          / clamp_min(sum(rate(ai_gateway_request_count_total[5m])), 1e-9)
+      - record: ai_gateway:sli:availability:30m
+        expr: |
+          sum(rate(ai_gateway_request_count_total{status="success"}[30m]))
+          / clamp_min(sum(rate(ai_gateway_request_count_total[30m])), 1e-9)
+      - record: ai_gateway:sli:availability:1h
+        expr: |
+          sum(rate(ai_gateway_request_count_total{status="success"}[1h]))
+          / clamp_min(sum(rate(ai_gateway_request_count_total[1h])), 1e-9)
+      - record: ai_gateway:sli:availability:6h
+        expr: |
+          sum(rate(ai_gateway_request_count_total{status="success"}[6h]))
+          / clamp_min(sum(rate(ai_gateway_request_count_total[6h])), 1e-9)
+
+      # Latency SLI — p99 in ms.
+      - record: ai_gateway:sli:latency_p99_ms:5m
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(ai_gateway_request_duration_bucket[5m]))
+          )
+
+      # Convenience: error budget remaining over a 30-day window assuming
+      # 99.5% SLO. Used by the Grafana SLO panel.
+      - record: ai_gateway:slo:error_budget_remaining
+        expr: |
+          1 - (
+            (1 - ai_gateway:sli:availability:6h)
+            / (1 - 0.995)
+          )
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Multi-window, multi-burn-rate alerts (SRE Workbook §5)
+  # SLO target: 99.5% availability over rolling 30 days.
+  # Error budget = 1 - 0.995 = 0.5% of total requests.
+  # ─────────────────────────────────────────────────────────────────────
+  - name: ai_gateway_slo_burn_rate
+    interval: 30s
+    rules:
+      # Fast burn: 14.4x burn rate over 1h would consume 2% of the monthly
+      # error budget in 1 hour. Require BOTH the 5m AND the 1h window to
+      # exceed the threshold so a single 1-minute blip can't page on call.
+      - alert: AIGatewayErrorBudgetFastBurn
+        expr: |
+          (1 - ai_gateway:sli:availability:5m) > (14.4 * 0.005)
+          and
+          (1 - ai_gateway:sli:availability:1h) > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: critical
+          tier: P1
+          slo: ai_gateway_availability_99_5
+        annotations:
+          summary: "AI Gateway error budget burning FAST (>14.4x normal)"
+          description: "Availability SLI at 5m + 1h windows exceeds 14.4x the burn rate. On this pace, the entire 30-day error budget is consumed in 2h."
+
+      # Slow burn: 6x over 6h consumes 10% of the budget. Page warning.
+      - alert: AIGatewayErrorBudgetSlowBurn
+        expr: |
+          (1 - ai_gateway:sli:availability:30m) > (6 * 0.005)
+          and
+          (1 - ai_gateway:sli:availability:6h) > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: warning
+          tier: P2
+          slo: ai_gateway_availability_99_5
+        annotations:
+          summary: "AI Gateway error budget burning at 6x (slow burn)"
+          description: "Sustained elevated error rate over 30m + 6h windows. On this pace, the monthly error budget is consumed in 5 days."
+
+      # Latency SLO breach.
+      - alert: AIGatewayHighLatencyP99
+        expr: ai_gateway:sli:latency_p99_ms:5m > 5000
         for: 5m
         labels:
-          severity: page
-          tier: P1
+          severity: warning
+          tier: P2
+          slo: ai_gateway_latency_p99_5s
         annotations:
-          summary: "High API Error Rate Alert"
-          description: "Gateway availability dropped below 99.5% for 5 minutes."
+          summary: "AI Gateway p99 latency above 5s for 5m"
+          description: "p99 = {{ $value | humanize }}ms. Investigate model_inference and queue_wait phases in Tempo."
 
-      # ── Pod health ───────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────
+  # Pod / runner health (kept from the prior version)
+  # ─────────────────────────────────────────────────────────────────────
+  - name: ai_gateway_infra
+    interval: 1m
+    rules:
       - record: ai_gateway:pods_running:current
         expr: sum(kube_pod_status_phase{namespace="ai-gateway-ns", phase="Running"})
 
@@ -30,3 +110,29 @@ groups:
         annotations:
           summary: "Pod restarting frequently"
           description: "Pod {{ $labels.pod }} is restarting more than 6 times per hour."
+
+      # Runner self-observability: if no batches have been processed in 2
+      # minutes the runner is stuck — the health probe will already mark
+      # it un-ready, but page in case the probe is also misbehaving.
+      - alert: AITelemetryRunnerStuck
+        expr: |
+          rate(ai_telemetry_runner_batch_duration_seconds_count[2m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          tier: P1
+        annotations:
+          summary: "Runner has not processed a batch in 2 minutes"
+          description: "Check container logs and /readyz endpoint."
+
+      # Publish error spike — Event Hubs delivery is failing.
+      - alert: AITelemetryPublishErrors
+        expr: |
+          rate(ai_telemetry_runner_publish_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          tier: P2
+        annotations:
+          summary: "Runner is dropping events to Event Hubs"
+          description: "Publish error rate = {{ $value | humanize }}/s. Check Event Hubs throttling and partition health."

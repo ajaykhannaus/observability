@@ -1,0 +1,52 @@
+# Container App spec for the OTel Collector.
+# Substitute __PLACEHOLDERS__ in deploy.yml. Internal-only ingress.
+location: __LOCATION__
+properties:
+  managedEnvironmentId: __MANAGED_ENV_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false
+      targetPort: 4317
+      exposedPort: 4317
+      transport: http2
+      additionalPortMappings:
+        - targetPort: 4318
+          exposedPort: 4318
+          external: false
+        - targetPort: 8888
+          exposedPort: 8888
+          external: false
+        - targetPort: 13133
+          exposedPort: 13133
+          external: false
+    registries:
+      - server: __ACR_LOGIN_SERVER__
+        identity: system
+  template:
+    containers:
+      - name: otel-collector
+        image: __IMAGE__
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
+          - type: Readiness
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+    scale:
+      minReplicas: 2
+      maxReplicas: 4
+identity:
+  type: SystemAssigned

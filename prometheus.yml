@@ -1,40 +1,38 @@
 global:
   scrape_interval: 10s
   evaluation_interval: 10s
+  external_labels:
+    service: ai-telemetry
+    environment: prod
 
 rule_files:
   - /etc/prometheus/rules.yml
 
 scrape_configs:
-  - job_name: ai-telemetry-poc
+  # ── Runner sidecar /metrics (legacy direct-scrape path; kept as a
+  #    fallback for in-cluster Prometheus scrapers that prefer pull mode).
+  - job_name: ai-telemetry-runner
     static_configs:
-      # LOCAL DEV (Mac/Windows):
-      #   Set this to your Container App FQDN after deploying.
-      #   Example: ai-telemetry-runner.salmonpond-33c4abff.eastus.azurecontainerapps.io
-      #
-      # COMPANY AZURE (Prometheus Container App):
-      #   The entrypoint script replaces __SCRAPE_TARGET__ with the
-      #   SCRAPE_TARGET environment variable set on the Container App.
       - targets: ["__SCRAPE_TARGET__"]
     scheme: https
     metrics_path: /metrics
 
+  # ── OTel Collector self-metrics (Bucket 1 — observe the observer).
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8888"]
+    scheme: http
+    metrics_path: /metrics
+
 # ── Push to Azure Managed Prometheus ─────────────────────────────────────────
-# LOCAL DEV:  Token is written to /tmp/azure_prom_write_token.txt
-#             by scripts/refresh_azure_auth.py (run manually on your machine).
-#
-# COMPANY AZURE (Prometheus Container App):
-#   The Container App uses a Managed Identity — the token is fetched
-#   automatically via IMDS. __REMOTE_WRITE_URL__ is replaced at startup
-#   by the PROM_REMOTE_WRITE_URL environment variable.
-#
+# In Bucket 1 the primary metric path is OTLP → Collector → Prometheus inside
+# the cluster. This remote_write block is retained for customers who still
+# fan out to Azure Managed Prometheus.
 remote_write:
   - url: "__REMOTE_WRITE_URL__"
     name: azure-managed-prometheus
     authorization:
       type: Bearer
-      # LOCAL DEV only — Managed Identity auth is handled by the entrypoint
-      # script in the company Azure deployment (no credentials_file needed).
       credentials_file: /tmp/azure_prom_write_token.txt
     queue_config:
       max_shards: 4

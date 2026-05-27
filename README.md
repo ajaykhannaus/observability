@@ -1,18 +1,35 @@
 # AI Gateway Telemetry
 
-End-to-end observability pipeline: synthetic LLM traffic → Azure Event Hubs → OpenTelemetry → Grafana.
+Production observability pipeline: synthetic (or real) LLM gateway traffic →
+Azure Event Hubs → OpenTelemetry → Grafana (Bucket 1: with distributed tracing).
 
 ```
-GitHub push → GitHub Actions
-  ├── Build ai-telemetry-fn image  (Azure Functions)
-  └── Build ai-telemetry-runner image → Azure Container Apps (always-on)
-                    │
-                    ├── Event Hubs (Kafka)  — START/END events every 5 s
-                    ├── :8000/metrics       — Prometheus scrape endpoint
-                    └── stdout JSON logs    → Log Analytics → Grafana
+GitHub push → GitHub Actions  (lint + tests gate → build → push ACR → deploy)
+  │
+  └── ai-telemetry-runner  (Azure Container App, min-replicas=2)
+            │
+            ├── OTLP gRPC ──► OTel Collector ──► Grafana Tempo   (traces, 7 d)
+            │                       │          ──► Grafana Loki   (logs,  30 d)
+            │                       └──────────► Prometheus       (metrics, 30 d)
+            │
+            ├── Kafka ──► Azure Event Hubs  (raw START/END events, durable)
+            ├── :8000/metrics               (Prometheus scrape sidecar)
+            ├── :8080/healthz + /readyz     (Container App liveness probes)
+            └── stdout JSON                 → Log Analytics (Azure parallel sink)
 ```
+
+**Bucket 1 additions** (this branch) vs the prior hardening baseline:
+- Distributed tracing: every LLM request is a W3C span tree
+  (`ai.batch.run` → `ai.request` → 4 latency-phase child spans + 2 publish spans)
+- `traceparent` header injected into every Event Hub message
+- OTel Collector (memory-limiter, resource, tail-sampling 100 % errors / 10 % success, batch)
+- Grafana Tempo + Loki Container App templates
+- Multi-window burn-rate SLO alerts (fast burn P1, slow burn P2, latency P99 > 5 s)
+- Runner self-metrics: `batch_duration_seconds`, `publish_errors_total`, `kafka_queue_depth`
+- Semantic conventions: single-source-of-truth span names + attribute keys (`docs/semantic-conventions.md`)
 
 ---
+
 
 ## Quick start — run locally (no Azure needed)
 
@@ -179,6 +196,34 @@ Error rate climbs to ~8 %. Grafana alert fires within 2 minutes.
 
 ---
 
+
+
+## Bucket 1 — target signal flow
+
+```
+ai-telemetry-runner
+    │
+    ├─▶ [OTLP gRPC :4317] ──► OTel Collector
+    │         ├─ processors: memory_limiter, resource, tail_sampling, batch
+    │         ├─ traces   ──► Tempo  (TraceQL)
+    │         ├─ metrics  ──► Prometheus (remote_write + exemplars)
+    │         └─ logs     ──► Loki   (LogQL)
+    │
+    ├─▶ [Kafka] ──► Azure Event Hubs  (traceparent header on every message)
+    │
+    └─▶ [/metrics :8000] ──► Prometheus (scrape fallback)
+
+Grafana
+    ├─ Prometheus datasource  ──► Golden-signals + SLO dashboard
+    ├─ Tempo datasource        ──► Trace explorer (click metric exemplar → trace)
+    └─ Loki datasource         ──► Log explorer  (click trace → filtered logs)
+```
+
+Cross-signal correlation: clicking a data point on a Prometheus chart opens the
+Tempo trace for that request; clicking the trace opens the Loki log lines for
+that `trace_id`. All wired via exemplars + `derivedFields`.
+
+---
 ## Project structure
 
 ```
