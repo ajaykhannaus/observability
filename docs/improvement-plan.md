@@ -326,11 +326,55 @@ flowchart LR
 
 ---
 
-## 8. Open questions for the customer
+## 8. Locked decisions
 
-1. **Backend stack preference** — Grafana OSS (Tempo + Loki + Prometheus + Grafana) vs Azure-native (Azure Monitor + App Insights + Log Analytics) vs both? Bucket 1 is cheapest if we pick OSS now.
-2. **Prompt logging policy (FR-003)** — store full text, hashes only, or both with selective decryption? Drives Theme C decisions.
-3. **Evaluator model for FR-012** — self-hosted (cheap, latency-friendly) or OpenAI-as-judge (high quality, recurring cost)?
-4. **Alert routing** — Teams, Slack, PagerDuty, email? Bucket 2 is blocked on this answer.
-5. **Audit tier** — Azure SQL Flexible Server, Postgres Flexible Server, or Azure Data Explorer (cheaper at scale, KQL-native)?
-6. **Multi-tenant authz** — read-side label enforcement (cheap) vs full tenant-scoped Grafana orgs (expensive)?
+| # | Question | Decision |
+|---|---|---|
+| 1 | Backend stack | **Grafana OSS** (Tempo + Loki + Prometheus + Grafana) |
+| 2 | Prompt logging policy (FR-003) | **Hybrid** — hash + first/last 32 chars in Loki; full text in WORM Blob audit sink |
+| 3 | Evaluator model (FR-012) | **OpenAI-as-judge** (1 % sample, daily cost budget gate) |
+| 4 | Alert routing (FR-010) | **Email only** (single SMTP Alertmanager receiver) |
+| 5 | Audit store (FR-009 + NFR-011) | **Azure Data Explorer (ADX)** |
+| 6 | Multi-tenant authz | **Read-side label enforcement** (single Grafana, `$tenant` template variable from JWT claim) |
+
+### Rationale for the picks I made on your behalf
+
+**ADX for audit:** the reference repo's relational `TRACES / SPANS / METRIC_SNAPSHOTS / ALERT_EVENTS / AUDIT_LOG` shape doesn't scale to telemetry workloads. ADX gives us native Event Hubs ingestion (zero consumer code), KQL queries identical to Log Analytics, append-only by default with table-level update policies + per-table retention, and ~30–50 % the cost of equivalent Log Analytics ingest. The reference-repo schema translates 1:1 to ADX tables.
+
+**Label enforcement for tenancy:** Grafana OSS has no Enterprise Row-Level Security feature; strict cross-tenant blocking would require operating N Grafana orgs (heavy). The label path stamps `tenant_id` on every signal at the Collector, binds Grafana's `$tenant` template variable to a JWT claim, and documents the upgrade path to per-tenant orgs as a Bucket 3 follow-up. Honest limitation: a user with edit access to a dashboard can change the variable — strict isolation needs Enterprise or a query-rewriting proxy.
+
+---
+
+## 9. Bucket 1 execution plan
+
+Implemented on branch `cursor/bucket1-tracing-foundation-b58f`. Bucket 2 and 3 are separate branches.
+
+### Code
+
+| File | Change |
+|---|---|
+| `generator/semantic_conventions.py` (new) | Constants for every span/attribute name in `docs/semantic-conventions.md`. |
+| `generator/otel_tracing.py` (new) | `setup_tracing()` configures `TracerProvider`, OTLP gRPC exporter, `BatchSpanProcessor`. Helper `start_event_span(event)`. |
+| `generator/synthetic_generator.py` | `generate_event()` returns four latency phases (`queue_wait_ms`, `model_inference_ms`, `first_token_ms`, `stream_response_ms`) summing to `latency_ms`. |
+| `generator/runner.py` | Server span per `run_one_batch`, child span per event, latency-phase child spans, `traceparent` injected into Event Hub headers. Runner self-metrics. |
+| `generator/kafka_publisher.py` | `produce(headers=…)` carries `traceparent`. Helper extracts active-span context to W3C string. |
+| `generator/otel_metrics.py` | Histogram exemplars from active span. `record_self_metric()` for runner internals. |
+
+### Config + infra
+
+| File | Change |
+|---|---|
+| `infra/otel-collector-config.yaml` (new) | OTLP receivers, `memory_limiter` + `resource` + `tail_sampling` + `batch` processors, Tempo + Prometheus + Loki exporters. |
+| `infra/otel-collector.template.yaml` (new) | Container App spec, 2 replicas, system MI, internal-only 4317/4318. |
+| `infra/tempo.template.yaml` (new) | Tempo Container App, Azure Blob block backend, 7 d retention. |
+| `infra/loki.template.yaml` (new) | Loki Container App, Azure Blob, 30 d retention. |
+| `rules.yml` | SLI recording rules (5m / 30m / 1h / 6h windows) + multi-window burn-rate alerts. SLO = 99.5 % availability. |
+| `prometheus.yml` | Scrape `otel-collector:8888` self-metrics. |
+
+### Docs + tests
+
+| File | Change |
+|---|---|
+| `docs/semantic-conventions.md` (new) | Catalogue of every span name + attribute key + type + example. |
+| `tests/test_tracing.py` (new) | Spans emitted, `traceparent` matches active span, semantic-convention constants used. |
+| `README.md` | Architecture diagram + new env vars. |
