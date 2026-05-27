@@ -1,0 +1,1 @@
+Never add "Co-authored-by: Cursor", "Co-authored-by: Claude", "Made-with: Cursor", or any AI attribution trailer to git commits or pull requests. Commits must show only the human developer as author.
