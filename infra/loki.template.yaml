@@ -1,0 +1,36 @@
+# Loki Container App — Bucket 1.
+# Filesystem backend for the foundation deploy. Bucket 3 moves to Azure Blob
+# for multi-cloud and retention beyond 30 days.
+location: __LOCATION__
+properties:
+  managedEnvironmentId: __MANAGED_ENV_ID__
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: false
+      targetPort: 3100
+      exposedPort: 3100
+      transport: http
+    registries: []
+  template:
+    containers:
+      - name: loki
+        image: grafana/loki:3.2.1
+        args:
+          - "-config.file=/etc/loki/local-config.yaml"
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /ready
+              port: 3100
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+    scale:
+      minReplicas: 1
+      maxReplicas: 2
+identity:
+  type: SystemAssigned

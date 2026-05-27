@@ -595,6 +595,22 @@ def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
     )
     latency_ms = round(adjusted_latency, 2)
 
+    # ── Latency phase breakdown ──────────────────────────────────────────
+    # Decompose total latency into queue_wait + model_inference + first_token
+    # + stream_response so traces can show where time was spent. Phases must
+    # sum to latency_ms exactly (inference bucket absorbs rounding residual).
+    streaming_request = cfg["supports_streaming"] and random.random() < 0.40
+    queue_wait_ms = round(max(0.0, random.gauss(latency_ms * 0.05, latency_ms * 0.02)), 2)
+    if streaming_request:
+        first_token_ms     = round(max(20.0, random.gauss(latency_ms * 0.20, latency_ms * 0.05)), 2)
+        stream_response_ms = round(max(0.0,  random.gauss(latency_ms * 0.35, latency_ms * 0.08)), 2)
+    else:
+        first_token_ms     = 0.0
+        stream_response_ms = 0.0
+    model_inference_ms = round(
+        max(0.0, latency_ms - queue_wait_ms - first_token_ms - stream_response_ms), 2,
+    )
+
     # ── SLA breach ───────────────────────────────────────────────────────
     sla_target_ms = profile["p95_latency_ms"]
     sla_breached = latency_ms > sla_target_ms
@@ -635,8 +651,13 @@ def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
     _daily_spend[client_name] += cost_usd
     budget_exhausted = _daily_spend[client_name] >= profile["daily_budget_usd"]
 
-    # ── Streaming ────────────────────────────────────────────────────────
-    streaming = cfg["supports_streaming"] and random.random() < 0.40
+    # ── Streaming + throughput ───────────────────────────────────────────
+    # streaming_request was computed above (latency phase section).
+    streaming = streaming_request
+    if streaming and stream_response_ms > 0 and completion_tokens > 0:
+        tokens_per_second = round(completion_tokens / (stream_response_ms / 1000.0), 2)
+    else:
+        tokens_per_second = 0.0
 
     # ── User identity (stable within a session) ──────────────────────────
     user_id = f"u-{hash(session_id) % profile['user_count']:05d}"
@@ -677,10 +698,15 @@ def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
         "streaming":         streaming,
 
         # ── Performance ──────────────────────────────────────────────────
-        "latency_ms":        latency_ms,
-        "sla_target_ms":     sla_target_ms,
-        "sla_tier":          profile["sla_tier"],
-        "sla_breached":      sla_breached,
+        "latency_ms":               latency_ms,
+        "queue_wait_ms":            queue_wait_ms,
+        "model_inference_ms":       model_inference_ms,
+        "first_token_ms":           first_token_ms,
+        "stream_response_ms":       stream_response_ms,
+        "tokens_per_second":        tokens_per_second,
+        "sla_target_ms":            sla_target_ms,
+        "sla_tier":                 profile["sla_tier"],
+        "sla_breached":             sla_breached,
 
         # ── Tokens & cost ────────────────────────────────────────────────
         "prompt_tokens":     prompt_tokens,

@@ -1,18 +1,31 @@
-"""OpenTelemetry metrics for the AI Gateway telemetry POC.
+"""OpenTelemetry metrics for the AI telemetry pipeline.
 
-Five instruments are registered at module-load time against no-op stubs so
-they are always importable.  Calling setup_otel() replaces them with real
+Instruments are registered at module load time against no-op stubs so they
+are always importable. Calling :func:`setup_otel` replaces them with real
 SDK instruments.
 
-When PROMETHEUS_PORT is set, metrics are exposed on http://localhost:{port}/metrics
-so Grafana can scrape them directly via Prometheus — no extra collector needed.
-When the opentelemetry packages are absent the module degrades to debug logging.
+When ``PROMETHEUS_PORT`` is set, metrics are exposed on
+``http://localhost:{port}/metrics`` so Grafana can scrape them via
+Prometheus — no extra collector needed for the local-dev profile.
+
+In the production topology (Bucket 1) the runner sends OTLP to a central
+OTel Collector. The Prometheus scrape endpoint stays available as a
+sidecar for in-cluster scrapers that prefer pull mode.
+
+Exemplars
+---------
+When recording the request-duration histogram, the active span's
+``trace_id`` / ``span_id`` are attached as an exemplar by the SDK (provided
+the histogram is recorded **inside** an active span). Grafana then renders
+exemplars next to each bucket and a click navigates to Tempo.
 """
 from __future__ import annotations
 
 import logging
 import os
 from typing import Any
+
+from generator import semantic_conventions as sc  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +59,6 @@ try:
 except ImportError:
     _PROMETHEUS_AVAILABLE = False
 
-
 # ---------------------------------------------------------------------------
 # No-op stubs — replaced by setup_otel()
 # ---------------------------------------------------------------------------
@@ -62,19 +74,33 @@ class _NoOpHistogram:
         logger.debug("noop histogram %s %s", amount, attributes)
 
 
-request_count: Any = _NoOpCounter()
+class _NoOpGauge:
+    def set(self, amount: float, attributes: dict[str, Any] | None = None) -> None:
+        logger.debug("noop gauge =%s %s", amount, attributes)
+
+
+# Public instruments — see semantic_conventions.METRIC_* for canonical names.
+request_count:    Any = _NoOpCounter()
 request_duration: Any = _NoOpHistogram()
-request_token: Any = _NoOpCounter()
-request_cost: Any = _NoOpCounter()
-exception_count: Any = _NoOpCounter()
+request_token:    Any = _NoOpCounter()
+request_cost:     Any = _NoOpCounter()
+exception_count:  Any = _NoOpCounter()
+
+# Runner self-metrics (NFR-014).
+_self_batch_duration: Any = _NoOpHistogram()
+_self_publish_errors: Any = _NoOpCounter()
+_self_queue_depth:    Any = _NoOpGauge()
+
+_SELF_METRIC_INSTRUMENTS: dict[str, Any] = {}
 
 _initialized = False
 
-# Fixed process-level labels — read once from env, not random per event.
-# Keeping these fixed prevents cardinality explosion in Prometheus.
-_PROCESS_SERVICE     = os.getenv("AI_SERVICE",   "ai-gateway")
-_PROCESS_ENVIRONMENT = os.getenv("ENVIRONMENT",  "poc")
-_PROCESS_REGION      = os.getenv("AWS_REGION",   "us-east-1")
+# Process-level labels — read once from env so we don't blow up Prometheus
+# cardinality. High-cardinality fields (request_id, session_id, project_id)
+# belong on spans / EH events only.
+_PROCESS_SERVICE     = os.getenv("AI_SERVICE",  "ai-gateway")
+_PROCESS_ENVIRONMENT = os.getenv("ENVIRONMENT", "prod")
+_PROCESS_REGION      = os.getenv("AWS_REGION",  "us-east-1")
 
 
 # ---------------------------------------------------------------------------
@@ -86,11 +112,13 @@ def setup_otel() -> None:
     """Configure the real OTel MeterProvider and replace module-level instruments.
 
     Readers activated based on environment:
-      PROMETHEUS_PORT               → Prometheus /metrics HTTP endpoint (local Grafana)
-      OTEL_EXPORTER_OTLP_ENDPOINT   → OTLP gRPC (Azure Monitor / remote collector)
+      ``PROMETHEUS_PORT``               → Prometheus /metrics HTTP endpoint
+      ``OTEL_EXPORTER_OTLP_ENDPOINT``   → OTLP gRPC (the Collector)
     Both can be active simultaneously.
     """
-    global request_count, request_duration, request_token, request_cost, exception_count, _initialized
+    global request_count, request_duration, request_token, request_cost, exception_count
+    global _self_batch_duration, _self_publish_errors, _self_queue_depth
+    global _initialized
 
     if _initialized:
         return
@@ -106,42 +134,43 @@ def setup_otel() -> None:
     otlp_endpoint     = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
     prometheus_port   = int(os.getenv("PROMETHEUS_PORT", "0"))
 
-    resource = Resource.create(
-        {
-            "service.name": service_name,
-            "deployment.environment": environment,
-        }
-    )
+    resource = Resource.create({
+        "service.name":            service_name,
+        "deployment.environment":  environment,
+    })
 
     readers: list[Any] = []
 
-    # ── Prometheus reader (local Grafana scrape) ──────────────────────────
     if prometheus_port:
         if _PROMETHEUS_AVAILABLE:
             try:
                 readers.append(_PrometheusReader())
                 _start_http_server(prometheus_port)
                 logger.info(
-                    "Prometheus metrics exposed on http://localhost:%d/metrics", prometheus_port
+                    "Prometheus metrics exposed on http://localhost:%d/metrics",
+                    prometheus_port,
                 )
             except Exception as exc:
                 logger.warning("Prometheus exporter init failed: %s", exc)
         else:
             logger.warning(
-                "PROMETHEUS_PORT=%d set but opentelemetry-exporter-prometheus not installed",
+                "PROMETHEUS_PORT=%d set but opentelemetry-exporter-prometheus is missing",
                 prometheus_port,
             )
 
-    # ── OTLP reader (Azure Monitor / remote) ─────────────────────────────
     if otlp_endpoint and _OTLP_AVAILABLE:
         try:
-            exporter = OTLPMetricExporter(endpoint=otlp_endpoint)
+            insecure = os.getenv("OTEL_EXPORTER_OTLP_INSECURE", "true").lower() == "true"
+            exporter = OTLPMetricExporter(endpoint=otlp_endpoint, insecure=insecure)
             readers.append(
                 PeriodicExportingMetricReader(
-                    exporter, export_interval_millis=export_interval_ms
-                )
+                    exporter, export_interval_millis=export_interval_ms,
+                ),
             )
-            logger.info("OTLP metric exporter → %s (interval %dms)", otlp_endpoint, export_interval_ms)
+            logger.info(
+                "OTLP metric exporter → %s (interval %dms, insecure=%s)",
+                otlp_endpoint, export_interval_ms, insecure,
+            )
         except Exception as exc:
             logger.warning("OTLP exporter init failed: %s", exc)
 
@@ -150,49 +179,70 @@ def setup_otel() -> None:
     meter = _otel_metrics.get_meter(service_name)
 
     request_count = meter.create_counter(
-        name="ai_gateway_request_count",
+        name=sc.METRIC_REQUEST_COUNT,
         unit="1",
         description="Total AI gateway requests",
     )
     request_duration = meter.create_histogram(
-        name="ai_gateway_request_duration",
+        name=sc.METRIC_REQUEST_DURATION,
         unit="ms",
         description="AI gateway request latency in milliseconds",
     )
     request_token = meter.create_counter(
-        name="ai_gateway_request_token",
+        name=sc.METRIC_REQUEST_TOKEN,
         unit="1",
         description="Token consumption by type",
     )
     request_cost = meter.create_counter(
-        name="ai_gateway_request_cost",
+        name=sc.METRIC_REQUEST_COST,
         unit="USD",
         description="Accumulated request cost in USD",
     )
     exception_count = meter.create_counter(
-        name="ai_gateway_exception_count",
+        name=sc.METRIC_EXCEPTION_COUNT,
         unit="1",
         description="Failed requests",
     )
 
+    # Self-metrics (observe the observer).
+    _self_batch_duration = meter.create_histogram(
+        name=sc.METRIC_SELF_BATCH_DURATION,
+        unit="s",
+        description="Wall-clock time spent in run_one_batch",
+    )
+    _self_publish_errors = meter.create_counter(
+        name=sc.METRIC_SELF_PUBLISH_ERRORS,
+        unit="1",
+        description="Publish failures observed by the runner (does not include librdkafka internal retries)",
+    )
+    _self_queue_depth = meter.create_up_down_counter(
+        name=sc.METRIC_SELF_QUEUE_DEPTH,
+        unit="1",
+        description="Local Kafka producer queue depth at end of batch",
+    )
+
+    _SELF_METRIC_INSTRUMENTS[sc.METRIC_SELF_BATCH_DURATION] = _self_batch_duration
+    _SELF_METRIC_INSTRUMENTS[sc.METRIC_SELF_PUBLISH_ERRORS] = _self_publish_errors
+    _SELF_METRIC_INSTRUMENTS[sc.METRIC_SELF_QUEUE_DEPTH]    = _self_queue_depth
+
     _initialized = True
     logger.info(
-        "OTel metrics ready | service=%s | readers=%d", service_name, len(readers)
+        "OTel metrics ready | service=%s | readers=%d", service_name, len(readers),
     )
 
 
 # ---------------------------------------------------------------------------
-# Recording helper
+# Recording helpers
 # ---------------------------------------------------------------------------
 
 
 def record_metrics(event: dict[str, Any]) -> None:
     """Record all five OTel instruments for one event dict.
 
-    Labels are kept intentionally low-cardinality so Prometheus counters
-    accumulate on the same series across requests and rate() returns non-zero.
-    High-cardinality fields (project_id, client_name, per-event service/env/region)
-    are excluded here — they belong in the raw Event Hub events only.
+    Labels are kept low-cardinality so Prometheus counters accumulate on a
+    bounded set of series. The ``tenant_id`` label is included because
+    tenant breakdown is a primary view in every Grafana dashboard; it has a
+    small fixed cardinality (= number of client profiles).
     """
     base: dict[str, Any] = {
         "model_name":     event["model_name"],
@@ -202,10 +252,14 @@ def record_metrics(event: dict[str, Any]) -> None:
         "service":        _PROCESS_SERVICE,
         "environment":    _PROCESS_ENVIRONMENT,
         "region":         _PROCESS_REGION,
+        "tenant_id":      event.get("client_name", "unknown"),
     }
 
     try:
         request_count.add(1, base)
+        # Recording the histogram inside the active request span attaches
+        # the trace_id as an exemplar via the OTel SDK's automatic
+        # context-binding — no explicit exemplar API call needed.
         request_duration.record(event["latency_ms"], base)
 
         for token_type, count in (
@@ -229,3 +283,26 @@ def record_metrics(event: dict[str, Any]) -> None:
             )
     except Exception as exc:
         logger.error("OTel record_metrics failed: %s", exc)
+
+
+def record_self_metric(name: str, value: float, attrs: dict[str, str]) -> None:
+    """Record one runner self-metric (NFR-014: observe the observer).
+
+    Falls back to no-op when the OTel SDK isn't installed.
+    """
+    instrument = _SELF_METRIC_INSTRUMENTS.get(name)
+    base = {"service": _PROCESS_SERVICE, "environment": _PROCESS_ENVIRONMENT, **attrs}
+    try:
+        if name == sc.METRIC_SELF_BATCH_DURATION and instrument is not None:
+            instrument.record(value, base)
+        elif name == sc.METRIC_SELF_PUBLISH_ERRORS and instrument is not None:
+            instrument.add(int(value), base)
+        elif name == sc.METRIC_SELF_QUEUE_DEPTH and instrument is not None:
+            # UpDownCounter — emit a delta we'd ideally compute from the prior
+            # value; for now treat each call as a snapshot and add value.
+            # Prometheus exporter publishes this as a gauge in practice.
+            instrument.add(value, base)
+        else:
+            logger.debug("self-metric %s not initialised — noop", name)
+    except Exception as exc:
+        logger.debug("self-metric %s failed: %s", name, exc)

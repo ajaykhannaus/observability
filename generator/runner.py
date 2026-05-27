@@ -32,7 +32,9 @@ except ImportError:
 import generator.azure_logger as azure_logger  # noqa: E402
 import generator.health_server as health_server  # noqa: E402
 import generator.otel_metrics as otel  # noqa: E402
+import generator.otel_tracing as tracing  # noqa: E402
 import generator.pod_metrics_simulator as pod_sim  # noqa: E402
+import generator.semantic_conventions as sc  # noqa: E402
 from generator.kafka_publisher import KafkaPublisher, PublisherConfigError  # noqa: E402
 from generator.synthetic_generator import (  # noqa: E402
     generate_event,
@@ -63,6 +65,7 @@ HEALTH_PORT: int       = int(os.getenv("HEALTH_PORT", "8080"))
 _publisher: KafkaPublisher | None = None
 _otel_ready: bool = False
 _pod_sim_ready: bool = False
+_tracing_ready: bool = False
 _running: bool = True
 
 _error_window_end: float = 0.0
@@ -80,6 +83,13 @@ def _ensure_otel() -> None:
     if not _otel_ready:
         otel.setup_otel()
         _otel_ready = True
+
+
+def _ensure_tracing() -> None:
+    global _tracing_ready
+    if not _tracing_ready:
+        tracing.setup_tracing()
+        _tracing_ready = True
 
 
 def _ensure_pod_sim() -> None:
@@ -117,6 +127,44 @@ def _current_error_rate() -> float:
     return 0.08 if now <= _error_window_end else 0.008
 
 
+def _publish_event(publisher: KafkaPublisher, event: dict[str, Any]) -> tuple[bool, bool]:
+    """Publish START + END for one event with publish-path spans + traceparent.
+
+    Returns ``(start_ok, end_ok)``. The current span context is captured into
+    a W3C ``traceparent`` Kafka header so downstream consumers can continue
+    the trace.
+    """
+    event_id = event["request_id"]
+    headers = {"traceparent": tracing.current_traceparent() or ""}
+
+    with tracing.publish_span("start"):
+        start_ok = publisher.publish_start_event(event_id, event, headers=headers)
+
+    if SIMULATE_LATENCY:
+        time.sleep(event["latency_ms"] / 1000.0)
+
+    with tracing.publish_span("end"):
+        end_ok = publisher.publish_end_event(event_id, event, headers=headers)
+
+    return start_ok, end_ok
+
+
+def _record_latency_phases(event: dict[str, Any]) -> None:
+    """Open one short-lived child span per latency phase. Spans carry the
+    declared duration as an attribute; we don't synchronously sleep because
+    the runner is processing many events per batch.
+    """
+    with tracing.phase_span(sc.SPAN_QUEUE_WAIT, event.get("queue_wait_ms", 0.0)):
+        pass
+    with tracing.phase_span(sc.SPAN_MODEL_INFERENCE, event.get("model_inference_ms", 0.0)):
+        pass
+    if event.get("streaming"):
+        with tracing.phase_span(sc.SPAN_FIRST_TOKEN, event.get("first_token_ms", 0.0)):
+            pass
+        with tracing.phase_span(sc.SPAN_STREAM_RESPONSE, event.get("stream_response_ms", 0.0)):
+            pass
+
+
 # ---------------------------------------------------------------------------
 # Public batch entry point
 # ---------------------------------------------------------------------------
@@ -125,6 +173,7 @@ def _current_error_rate() -> float:
 def run_one_batch() -> dict[str, Any]:
     """Generate, publish, and record metrics for one batch of events."""
     _ensure_otel()
+    _ensure_tracing()
     _ensure_pod_sim()
     publisher = _get_publisher()
 
@@ -137,48 +186,80 @@ def run_one_batch() -> dict[str, Any]:
     sla_breaches = 0
     total_cost = 0.0
     total_tokens = 0
+    publish_errors = 0
 
-    for _ in range(batch_size):
-        try:
-            event = generate_event(error_rate=error_rate)
-            event_id = event["request_id"]
+    batch_started = time.monotonic()
 
-            publisher.publish_start_event(event_id, event)
+    with tracing.batch_span() as batch_span:
+        for _ in range(batch_size):
+            try:
+                event = generate_event(error_rate=error_rate)
+                with tracing.request_span(event):
+                    _record_latency_phases(event)
+                    start_ok, end_ok = _publish_event(publisher, event)
+                    otel.record_metrics(event)
+                    azure_logger.log_event(event)
 
-            if SIMULATE_LATENCY:
-                time.sleep(event["latency_ms"] / 1000.0)
+                if not (start_ok and end_ok):
+                    publish_errors += 1
 
-            publisher.publish_end_event(event_id, event)
-            otel.record_metrics(event)
-            azure_logger.log_event(event)
+                if event["status"] == "success":
+                    successes += 1
+                else:
+                    errors += 1
 
-            if event["status"] == "success":
-                successes += 1
-            else:
+                if event.get("sla_breached"):
+                    sla_breaches += 1
+
+                total_cost += event["cost_usd"]
+                total_tokens += event["total_tokens"]
+
+            except Exception as exc:
+                logger.exception("Event processing error: %s", exc)
                 errors += 1
+                publish_errors += 1
+                otel.record_self_metric(
+                    sc.METRIC_SELF_PUBLISH_ERRORS, 1, {"reason": "exception"},
+                )
 
-            if event.get("sla_breached"):
-                sla_breaches += 1
-
-            total_cost += event["cost_usd"]
-            total_tokens += event["total_tokens"]
-
+        try:
+            publisher.flush()
+            publisher_ok = True
         except Exception as exc:
-            logger.error("Event processing error: %s", exc)
-            errors += 1
+            logger.error("Producer flush error: %s", exc)
+            publisher_ok = False
+            otel.record_self_metric(
+                sc.METRIC_SELF_PUBLISH_ERRORS, 1, {"reason": "flush_error"},
+            )
 
-    try:
-        publisher.flush()
-        publisher_ok = True
-    except Exception as exc:
-        logger.error("Producer flush error: %s", exc)
-        publisher_ok = False
+        batch_duration = time.monotonic() - batch_started
+        otel.record_self_metric(sc.METRIC_SELF_BATCH_DURATION, batch_duration, {})
+        otel.record_self_metric(
+            sc.METRIC_SELF_QUEUE_DEPTH,
+            float(publisher.queue_depth),
+            {},
+        )
+
+        anomaly = get_anomaly_summary()
+        tracing.set_batch_attributes(
+            batch_span,
+            **{
+                sc.ATTR_BATCH_SIZE:        batch_size,
+                sc.ATTR_BATCH_OK:          successes,
+                sc.ATTR_BATCH_ERR:         errors,
+                sc.ATTR_BATCH_SLA_BREACH:  sla_breaches,
+                sc.ATTR_BATCH_COST_USD:    round(total_cost, 6),
+                sc.ATTR_BATCH_TOKENS:      total_tokens,
+                sc.ATTR_ANOMALY_DEGRADED:  anomaly["degraded_model"],
+                sc.ATTR_ANOMALY_CASCADE:   anomaly["cascade_active"],
+                sc.ATTR_ANOMALY_RATELIMIT: anomaly["rate_limited_client"],
+            },
+        )
 
     health_server.heartbeat(publisher_healthy=publisher_ok and publisher.is_healthy)
 
     pod_sim.update_load_signal(batch_size / BATCH_INTERVAL_S)
 
-    anomaly = get_anomaly_summary()
     budget_status = get_client_budget_status()
     exhausted_clients = [c for c, s in budget_status.items() if s["pct"] >= 95]
 
@@ -193,12 +274,15 @@ def run_one_batch() -> dict[str, Any]:
         "total_tokens":      total_tokens,
         "anomaly":           anomaly,
         "budget_alerts":     exhausted_clients,
+        "publish_errors":    publish_errors,
+        "batch_duration_s":  round(batch_duration, 4),
         "timestamp":         datetime.now(timezone.utc).isoformat(),
     }
 
     log_parts = (
         f"batch={batch_size} ok={successes} err={errors} "
-        f"sla_breach={sla_breaches} cost=${total_cost:.5f} tokens={total_tokens}"
+        f"sla_breach={sla_breaches} cost=${total_cost:.5f} tokens={total_tokens} "
+        f"dur={batch_duration:.2f}s"
     )
     if anomaly["degraded_model"]:
         log_parts += f" degraded={anomaly['degraded_model']}"
@@ -233,16 +317,17 @@ def main() -> int:
     signal.signal(signal.SIGINT, _signal_handler)
 
     azure_logger.log_startup_config({
-        "batch_interval_s":  BATCH_INTERVAL_S,
-        "base_batch_size":   BASE_BATCH_SIZE,
-        "error_window_prob": ERROR_WINDOW_PROB,
-        "simulate_latency":  SIMULATE_LATENCY,
-        "prometheus_port":   int(os.getenv("PROMETHEUS_PORT", "0")),
-        "health_port":       HEALTH_PORT,
-        "otel_service_name": os.getenv("OTEL_SERVICE_NAME", "ai-telemetry"),
-        "environment":       os.getenv("ENVIRONMENT", "prod"),
+        "batch_interval_s":   BATCH_INTERVAL_S,
+        "base_batch_size":    BASE_BATCH_SIZE,
+        "error_window_prob":  ERROR_WINDOW_PROB,
+        "simulate_latency":   SIMULATE_LATENCY,
+        "prometheus_port":    int(os.getenv("PROMETHEUS_PORT", "0")),
+        "health_port":        HEALTH_PORT,
+        "otel_service_name":  os.getenv("OTEL_SERVICE_NAME", "ai-telemetry"),
+        "otel_otlp_endpoint": os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+        "environment":        os.getenv("ENVIRONMENT", "prod"),
         "eventhub_namespace": os.getenv("EVENTHUB_NAMESPACE", ""),
-        "eventhub_name":     os.getenv("EVENTHUB_NAME", "ai-telemetry-events"),
+        "eventhub_name":      os.getenv("EVENTHUB_NAME", "ai-telemetry-events"),
     })
 
     logger.info(
@@ -252,15 +337,13 @@ def main() -> int:
         ERROR_WINDOW_PROB * 100,
     )
 
-    # Fail-fast: instantiate the publisher at startup so missing Event Hubs
-    # credentials surface immediately. In prod (ENVIRONMENT=prod) this raises
-    # PublisherConfigError instead of silently entering mock mode.
     try:
         _get_publisher()
     except PublisherConfigError as exc:
         logger.error("Startup aborted — publisher misconfigured: %s", exc)
         return 2
 
+    _ensure_tracing()
     health_server.start(HEALTH_PORT)
 
     while _running:

@@ -35,6 +35,21 @@ def _truthy(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _serialise_headers(headers: dict[str, str] | None) -> list[tuple[str, bytes]] | None:
+    """Convert the user-facing dict-style headers to the (key, bytes) tuples
+    confluent-kafka expects. Skips empty values so we don't emit useless
+    blank ``traceparent`` headers when tracing is disabled.
+    """
+    if not headers:
+        return None
+    out: list[tuple[str, bytes]] = []
+    for key, val in headers.items():
+        if val is None or val == "":
+            continue
+        out.append((key, val.encode("utf-8") if isinstance(val, str) else val))
+    return out or None
+
+
 class KafkaPublisher:
     """Publishes paired START/END events to Azure Event Hubs via Kafka protocol.
 
@@ -47,6 +62,8 @@ class KafkaPublisher:
     * Snappy compression to reduce egress costs.
     * In ``ENVIRONMENT=prod``, missing credentials raise
       :class:`PublisherConfigError` instead of silently dropping events.
+    * W3C ``traceparent`` is carried as a Kafka message header so downstream
+      consumers can continue the trace.
     """
 
     def __init__(self) -> None:
@@ -67,6 +84,20 @@ class KafkaPublisher:
     @property
     def mock_mode(self) -> bool:
         return self._mock_mode
+
+    @property
+    def queue_depth(self) -> int:
+        """Number of messages enqueued locally but not yet delivered.
+
+        Returns 0 in mock mode and 0 when the producer hasn't been
+        initialised. Used by the runner's self-metrics (NFR-014).
+        """
+        if self._mock_mode or self._producer is None:
+            return 0
+        try:
+            return int(len(self._producer))  # type: ignore[arg-type]
+        except Exception:
+            return 0
 
     # ------------------------------------------------------------------
     # Setup
@@ -111,7 +142,6 @@ class KafkaPublisher:
             "sasl.username":             "$ConnectionString",
             "sasl.password":             connection_string,
             "client.id":                 f"{service_name}-{uuid.uuid4().hex[:8]}",
-            # ── Durability + reliability ──
             "acks":                      "all",
             "enable.idempotence":        True,
             "retries":                   5,
@@ -119,7 +149,6 @@ class KafkaPublisher:
             "message.send.max.retries":  5,
             "delivery.timeout.ms":       30_000,
             "socket.timeout.ms":         10_000,
-            # ── Throughput ──
             "linger.ms":                 50,
             "compression.type":          "snappy",
         }
@@ -133,7 +162,7 @@ class KafkaPublisher:
                     f"Kafka producer init failed: {exc}"
                 ) from exc
             logger.error(
-                "Kafka producer init failed (%s) — falling back to mock mode", exc
+                "Kafka producer init failed (%s) — falling back to mock mode", exc,
             )
             self._mock_mode = True
 
@@ -152,25 +181,30 @@ class KafkaPublisher:
                 msg.offset(),
             )
 
-    def _publish_with_retry(self, payload: dict[str, Any]) -> bool:
+    def _publish_with_retry(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> bool:
         if self._mock_mode:
-            logger.info("[MOCK] → %s", json.dumps(payload)[:140])
+            tp = (headers or {}).get("traceparent", "-")
+            logger.info("[MOCK traceparent=%s] → %s", tp[:55], json.dumps(payload)[:120])
             return True
 
         serialized = json.dumps(payload).encode("utf-8")
-        # Application-level retry sits in front of librdkafka's own retry
-        # to handle local-queue-full conditions during traffic spikes.
+        kafka_headers = _serialise_headers(headers)
+
         for attempt in range(3):
             try:
                 self._producer.produce(  # type: ignore[union-attr]
                     self._topic,
                     value=serialized,
+                    headers=kafka_headers,
                     callback=self._delivery_cb,
                 )
                 self._producer.poll(0)  # type: ignore[union-attr]
                 return True
             except BufferError as exc:
-                # local queue full — flush & retry with exponential backoff + jitter
                 wait_s = (2 ** attempt) * 0.5 + random.uniform(0, 0.25)
                 logger.warning(
                     "Producer queue full (%s); flushing and retrying in %.2fs (attempt %d/3)",
@@ -200,7 +234,12 @@ class KafkaPublisher:
     # Public API
     # ------------------------------------------------------------------
 
-    def publish_start_event(self, event_id: str, event: dict[str, Any]) -> bool:
+    def publish_start_event(
+        self,
+        event_id: str,
+        event: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> bool:
         """Emit the START event before the simulated LLM call."""
         payload: dict[str, Any] = {
             "event_id": event_id,
@@ -209,6 +248,7 @@ class KafkaPublisher:
             "timestamp": event["timestamp_start"],
             "user_email": event["user_email"],
             "client_name": event["client_name"],
+            "tenant_id": event["client_name"],
             "project_id": event["project_id"],
             "auth_method": event["auth_method"],
             "operation_name": event["operation_name"],
@@ -216,9 +256,14 @@ class KafkaPublisher:
             "model_provider": event["model_provider"],
             "streaming": event["streaming"],
         }
-        return self._publish_with_retry(payload)
+        return self._publish_with_retry(payload, headers=headers)
 
-    def publish_end_event(self, event_id: str, event: dict[str, Any]) -> bool:
+    def publish_end_event(
+        self,
+        event_id: str,
+        event: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> bool:
         """Emit the END event after the simulated LLM call."""
         payload: dict[str, Any] = {
             "event_id": event_id,
@@ -227,24 +272,30 @@ class KafkaPublisher:
             "timestamp": event["timestamp_start"],
             "user_email": event["user_email"],
             "client_name": event["client_name"],
+            "tenant_id": event["client_name"],
             "project_id": event["project_id"],
             "auth_method": event["auth_method"],
             "operation_name": event["operation_name"],
             "model_name": event["model_name"],
             "model_provider": event["model_provider"],
             "streaming": event["streaming"],
-            "latency_ms": event["latency_ms"],
-            "prompt_tokens": event["prompt_tokens"],
-            "completion_tokens": event["completion_tokens"],
-            "cache_read_tokens": event["cache_read_tokens"],
-            "total_tokens": event["total_tokens"],
-            "cost_usd": event["cost_usd"],
-            "status": event["status"],
-            "error_type": event["error_type"],
-            "stop_reason": event["stop_reason"],
-            "http_status_code": event["http_status_code"],
+            "latency_ms":          event["latency_ms"],
+            "queue_wait_ms":       event.get("queue_wait_ms"),
+            "model_inference_ms":  event.get("model_inference_ms"),
+            "first_token_ms":      event.get("first_token_ms"),
+            "stream_response_ms":  event.get("stream_response_ms"),
+            "tokens_per_second":   event.get("tokens_per_second"),
+            "prompt_tokens":       event["prompt_tokens"],
+            "completion_tokens":   event["completion_tokens"],
+            "cache_read_tokens":   event["cache_read_tokens"],
+            "total_tokens":        event["total_tokens"],
+            "cost_usd":            event["cost_usd"],
+            "status":              event["status"],
+            "error_type":          event["error_type"],
+            "stop_reason":         event["stop_reason"],
+            "http_status_code":    event["http_status_code"],
         }
-        return self._publish_with_retry(payload)
+        return self._publish_with_retry(payload, headers=headers)
 
     def flush(self, timeout: float = 10.0) -> None:
         """Block until all enqueued messages are delivered."""

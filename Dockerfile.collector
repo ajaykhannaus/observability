@@ -1,0 +1,13 @@
+# OpenTelemetry Collector image — Bucket 1.
+# Uses the upstream contrib distribution so the tail_sampling, loki, and
+# prometheusremotewrite exporters are available out of the box.
+FROM otel/opentelemetry-collector-contrib:0.111.0
+
+COPY infra/otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
+
+# Non-root user is already the default in the upstream image; we only need
+# to expose the OTLP, health-check, and self-metrics ports.
+EXPOSE 4317 4318 8888 13133
+
+ENTRYPOINT ["/otelcol-contrib"]
+CMD ["--config=/etc/otelcol-contrib/config.yaml"]

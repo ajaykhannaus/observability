@@ -1,0 +1,145 @@
+# OpenTelemetry Collector pipeline configuration
+# =============================================================================
+# Receives OTLP (gRPC + HTTP) from the ai-telemetry-runner and any other
+# instrumented service, routes:
+#   - traces → Tempo
+#   - metrics → Prometheus (remote_write)
+#   - logs → Loki
+#
+# Loaded into the Container App via a Container Apps config-map equivalent
+# (image bind-mount). Override at deploy time by replacing this file in the
+# Collector image build.
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Self-scrape so the Collector reports its own pipeline health.
+  prometheus/self:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["0.0.0.0:8888"]
+
+processors:
+  # ── memory_limiter is required for any production Collector. It hard-caps
+  #    RAM usage by dropping or refusing data when the soft limit is hit.
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+  # ── resource processor stamps every signal with deployment metadata.
+  #    These attributes anchor read-side tenant filtering.
+  resource:
+    attributes:
+      - key: deployment.environment
+        from_attribute: deployment.environment
+        action: upsert
+      - key: cloud.provider
+        value: azure
+        action: insert
+      - key: cloud.region
+        from_attribute: cloud.region
+        action: upsert
+
+  # ── attributes/drop_high_cardinality removes per-request attributes from
+  #    metric streams BEFORE they reach the prometheusremotewrite exporter.
+  attributes/drop_high_cardinality:
+    actions:
+      - key: ai.request.id
+        action: delete
+      - key: ai.session.id
+        action: delete
+      - key: ai.user.id
+        action: delete
+      - key: ai.user.email
+        action: delete
+
+  # ── tail_sampling keeps 100% of error traces + 10% of successes.
+  #    Significant cost saving once real traffic is plumbed in.
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: errors-always
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: budget-exhausted-always
+        type: string_attribute
+        string_attribute:
+          key: ai.cost.budget_exhausted
+          values: ["true"]
+      - name: sample-success
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+    send_batch_max_size: 2000
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+  # Debug exporter is useful during deploy validation; remove from the
+  # production config once Tempo / Loki / Prometheus are wired and verified.
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers:  [otlp]
+      processors: [memory_limiter, resource, tail_sampling, batch]
+      exporters:  [otlp/tempo]
+
+    metrics:
+      receivers:  [otlp, prometheus/self]
+      processors: [memory_limiter, resource, attributes/drop_high_cardinality, batch]
+      exporters:  [prometheusremotewrite]
+
+    logs:
+      receivers:  [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters:  [loki]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
