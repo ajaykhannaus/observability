@@ -35,7 +35,10 @@ import generator.otel_metrics as otel  # noqa: E402
 import generator.otel_tracing as tracing  # noqa: E402
 import generator.pod_metrics_simulator as pod_sim  # noqa: E402
 import generator.semantic_conventions as sc  # noqa: E402
+from generator.evaluator import get_evaluator  # noqa: E402
 from generator.kafka_publisher import KafkaPublisher, PublisherConfigError  # noqa: E402
+from generator.pii_scanner import scan as pii_scan  # noqa: E402
+from generator.prompt_logger import log_prompt  # noqa: E402
 from generator.synthetic_generator import (  # noqa: E402
     generate_event,
     get_anomaly_summary,
@@ -199,6 +202,29 @@ def run_one_batch() -> dict[str, Any]:
                     start_ok, end_ok = _publish_event(publisher, event)
                     otel.record_metrics(event)
                     azure_logger.log_event(event)
+
+                    # ── Safety + audit (FR-003, FR-014, FR-012) ──────────
+                    # Synthetic events don't carry real prompt/response text.
+                    # The hooks below are no-ops until real text is supplied;
+                    # they exercise the code path so it's ready for the real
+                    # gateway cutover described in docs/improvement-plan.md §6.
+                    _prompt_text   = event.get("prompt_text")
+                    _response_text = event.get("response_text")
+                    if _prompt_text or _response_text:
+                        from generator.pii_scanner import scan_event_fields
+                        ev_scanned = scan_event_fields(event)
+                        log_prompt(
+                            ev_scanned,
+                            prompt_text=_prompt_text,
+                            response_text=_response_text,
+                            prompt_pii=ev_scanned.get("prompt_pii"),
+                            response_pii=ev_scanned.get("response_pii"),
+                        )
+                        get_evaluator().maybe_evaluate(
+                            event,
+                            prompt_text=_prompt_text,
+                            response_text=_response_text,
+                        )
 
                 if not (start_ok and end_ok):
                     publish_errors += 1

@@ -15,6 +15,7 @@ ignore = [
     "UP017",  # datetime.UTC alias — legacy code still uses timezone.utc
     "SIM102", # nested ifs are sometimes more readable
     "SIM105", # contextlib.suppress style — try/except/pass is fine
+    "SIM108", # ternary operator preference — if/else more readable in this context
     "F401",   # unused imports in __init__ are intentional re-exports
 ]
 

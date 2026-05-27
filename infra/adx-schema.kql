@@ -1,0 +1,248 @@
+// =============================================================================
+// Azure Data Explorer — AI Telemetry Audit Schema
+// =============================================================================
+// Run this script once in an ADX database to create the audit tables,
+// ingestion mappings, and retention policies.
+//
+// Reference model lifted from RRastogi1981/observability (PostgreSQL ERD)
+// and translated to KQL / ADX syntax.
+//
+// Retention strategy:
+//   spans           90 days  (operational debugging)
+//   metric_snapshots 395 days  (13 months — covers year-over-year comparisons)
+//   audit_log       2555 days  (7 years — SOX / HIPAA requirement)
+//   prompt_log       395 days
+//   eval_results     395 days
+//   alert_events     395 days
+//
+// Data flows:
+//   ai-telemetry-events (Event Hubs) → Data Connection → RawEvents table
+//   Update policies on RawEvents fan out to typed destination tables.
+// =============================================================================
+
+// ── Raw ingest landing table ──────────────────────────────────────────────
+.create-merge table RawEvents (
+    EnqueuedTimeUtc: datetime,
+    SystemProperties: dynamic,
+    Properties: dynamic,
+    Body: dynamic
+)
+
+// ── Spans ─────────────────────────────────────────────────────────────────
+.create-merge table Spans (
+    ingested_at:        datetime,
+    trace_id:           string,
+    span_id:            string,
+    parent_span_id:     string,
+    span_name:          string,
+    span_kind:          string,
+    status_code:        string,     // ok | error | unset
+    status_message:     string,
+    duration_ms:        real,
+    tenant_id:          string,
+    model_name:         string,
+    model_provider:     string,
+    operation_name:     string,
+    region:             string,
+    environment:        string,
+    service_name:       string,
+    cost_usd:           real,
+    total_tokens:       int,
+    attributes:         dynamic,    // full span attribute bag (no PII)
+    started_at:         datetime,
+    ended_at:           datetime
+)
+
+.alter-merge table Spans policy retention softdelete = 90d
+
+// ── Audit log — immutable per-request record ─────────────────────────────
+.create-merge table AuditLog (
+    ingested_at:        datetime,
+    request_id:         string,
+    trace_id:           string,
+    session_id:         string,
+    turn_number:        int,
+    tenant_id:          string,
+    user_id:            string,
+    auth_method:        string,
+    data_classification:string,     // phi | pii | confidential | internal
+    model_name:         string,
+    model_provider:     string,
+    routing_reason:     string,
+    operation_name:     string,
+    region:             string,
+    latency_ms:         real,
+    prompt_tokens:      int,
+    completion_tokens:  int,
+    total_tokens:       int,
+    cost_usd:           real,
+    status:             string,
+    http_status_code:   int,
+    error_type:         string,
+    is_retried:         bool,
+    retry_count:        int,
+    sla_breached:       bool,
+    timestamp_start:    datetime,
+    service_name:       string,
+    environment:        string
+)
+
+// Immutability: block all deletes and updates on AuditLog.
+.alter-merge table AuditLog policy restricted_view_access enable
+
+// Retention: 7 years for SOX / HIPAA.
+.alter-merge table AuditLog policy retention softdelete = 2555d recoverability = enabled
+
+// ── Prompt log ───────────────────────────────────────────────────────────
+// Hashes + truncated text only — full text in WORM Blob.
+.create-merge table PromptLog (
+    ingested_at:        datetime,
+    request_id:         string,
+    trace_id:           string,
+    session_id:         string,
+    turn_number:        int,
+    tenant_id:          string,
+    model_name:         string,
+    operation_name:     string,
+    data_classification:string,
+    prompt_hash:        string,
+    prompt_truncated:   string,
+    response_hash:      string,
+    response_truncated: string,
+    pii_detected:       bool,
+    pii_entity_counts:  dynamic,    // {"EMAIL": 2, "PHONE": 1}
+    status:             string,
+    cost_usd:           real,
+    timestamp:          datetime
+)
+
+.alter-merge table PromptLog policy retention softdelete = 395d
+
+// ── Evaluation results ───────────────────────────────────────────────────
+.create-merge table EvalResults (
+    ingested_at:   datetime,
+    request_id:    string,
+    tenant_id:     string,
+    model_name:    string,
+    operation_name:string,
+    faithfulness:  real,
+    relevance:     real,
+    groundedness:  real,
+    eval_model:    string,
+    tokens_used:   int,
+    latency_ms:    real,
+    error:         string,
+    timestamp:     datetime
+)
+
+.alter-merge table EvalResults policy retention softdelete = 395d
+
+// ── Alert events ─────────────────────────────────────────────────────────
+.create-merge table AlertEvents (
+    ingested_at:   datetime,
+    alert_name:    string,
+    severity:      string,
+    status:        string,          // firing | resolved
+    labels:        dynamic,
+    annotations:   dynamic,
+    fired_at:      datetime,
+    resolved_at:   datetime
+)
+
+.alter-merge table AlertEvents policy retention softdelete = 395d
+
+// ── Metric snapshots ─────────────────────────────────────────────────────
+.create-merge table MetricSnapshots (
+    ingested_at:   datetime,
+    metric_name:   string,
+    value:         real,
+    labels:        dynamic,
+    recorded_at:   datetime
+)
+
+.alter-merge table MetricSnapshots policy retention softdelete = 395d
+
+// =============================================================================
+// Ingestion mappings (JSON → table columns from Event Hubs Body)
+// =============================================================================
+
+.create-or-alter table AuditLog ingestion json mapping 'AuditLogMapping'
+'['
+'  {"column":"request_id",           "path":"$.request_id"},'
+'  {"column":"trace_id",             "path":"$.request_id"},'
+'  {"column":"session_id",           "path":"$.session_id"},'
+'  {"column":"turn_number",          "path":"$.turn_number"},'
+'  {"column":"tenant_id",            "path":"$.client_name"},'
+'  {"column":"user_id",              "path":"$.user_id"},'
+'  {"column":"auth_method",          "path":"$.auth_method"},'
+'  {"column":"data_classification",  "path":"$.data_classification"},'
+'  {"column":"model_name",           "path":"$.model_name"},'
+'  {"column":"model_provider",       "path":"$.model_provider"},'
+'  {"column":"routing_reason",       "path":"$.routing_reason"},'
+'  {"column":"operation_name",       "path":"$.operation_name"},'
+'  {"column":"region",               "path":"$.region"},'
+'  {"column":"latency_ms",           "path":"$.latency_ms"},'
+'  {"column":"prompt_tokens",        "path":"$.prompt_tokens"},'
+'  {"column":"completion_tokens",    "path":"$.completion_tokens"},'
+'  {"column":"total_tokens",         "path":"$.total_tokens"},'
+'  {"column":"cost_usd",             "path":"$.cost_usd"},'
+'  {"column":"status",               "path":"$.status"},'
+'  {"column":"http_status_code",     "path":"$.http_status_code"},'
+'  {"column":"error_type",           "path":"$.error_type"},'
+'  {"column":"is_retried",           "path":"$.is_retried"},'
+'  {"column":"retry_count",          "path":"$.retry_count"},'
+'  {"column":"sla_breached",         "path":"$.sla_breached"},'
+'  {"column":"timestamp_start",      "path":"$.timestamp_start"},'
+'  {"column":"service_name",         "path":"$.service_name"},'
+'  {"column":"environment",          "path":"$.environment"},'
+'  {"column":"ingested_at",          "path":"$.ingested_at"}'
+']'
+
+.create-or-alter table PromptLog ingestion json mapping 'PromptLogMapping'
+'['
+'  {"column":"request_id",           "path":"$.request_id"},'
+'  {"column":"trace_id",             "path":"$.trace_id"},'
+'  {"column":"session_id",           "path":"$.session_id"},'
+'  {"column":"turn_number",          "path":"$.turn_number"},'
+'  {"column":"tenant_id",            "path":"$.tenant_id"},'
+'  {"column":"model_name",           "path":"$.model_name"},'
+'  {"column":"operation_name",       "path":"$.operation_name"},'
+'  {"column":"data_classification",  "path":"$.data_classification"},'
+'  {"column":"prompt_hash",          "path":"$.prompt_hash"},'
+'  {"column":"prompt_truncated",     "path":"$.prompt_truncated"},'
+'  {"column":"response_hash",        "path":"$.response_hash"},'
+'  {"column":"response_truncated",   "path":"$.response_truncated"},'
+'  {"column":"pii_detected",         "path":"$.pii_detected"},'
+'  {"column":"pii_entity_counts",    "path":"$.pii_entity_counts"},'
+'  {"column":"status",               "path":"$.status"},'
+'  {"column":"cost_usd",             "path":"$.cost_usd"},'
+'  {"column":"timestamp",            "path":"$.timestamp"},'
+'  {"column":"ingested_at",          "path":"$.ingested_at"}'
+']'
+
+// =============================================================================
+// Example KQL queries for the audit team
+// =============================================================================
+//
+// All PHI requests in the last 24 h:
+//   AuditLog
+//   | where data_classification == "phi"
+//   | where ingested_at > ago(24h)
+//   | project timestamp_start, tenant_id, user_id, model_name, cost_usd
+//   | order by timestamp_start desc
+//
+// PII detections by tenant this week:
+//   PromptLog
+//   | where ingested_at > ago(7d) and pii_detected == true
+//   | summarize total_hits=sum(1), types=make_set(pii_entity_counts) by tenant_id
+//
+// Correlation: find all spans for a known prompt hash:
+//   let h = "abc123...";
+//   PromptLog | where prompt_hash == h | project trace_id
+//   | join Spans on $left.trace_id == $right.trace_id
+//
+// 30-day cost per tenant:
+//   AuditLog
+//   | where ingested_at > ago(30d)
+//   | summarize total_cost=sum(cost_usd) by tenant_id
+//   | order by total_cost desc

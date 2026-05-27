@@ -1,0 +1,162 @@
+# OTel Collector pipeline — Bucket 2 variant
+# =============================================================================
+# Extends the Bucket 1 config (otel-collector-config.yaml) with a belt-and-
+# braces PII protection layer that runs AFTER the application-side pii_scanner.
+#
+# Motivation: the application scanner covers real prompt/response text. This
+# Collector-level layer catches any high-cardinality attribute that accidentally
+# slips through (e.g. a future library adds user_email to span attrs).
+#
+# Safe to deploy without the Python Presidio sidecar — uses only built-in
+# transform/attributes processors which ship in otel-collector-contrib.
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  prometheus/self:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["0.0.0.0:8888"]
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+  resource:
+    attributes:
+      - key: deployment.environment
+        from_attribute: deployment.environment
+        action: upsert
+      - key: cloud.provider
+        value: azure
+        action: insert
+      - key: cloud.region
+        from_attribute: cloud.region
+        action: upsert
+
+  # ── PII belt-and-braces: drop sensitive span/log attributes ───────────────
+  # These fields should never reach a log store or trace backend raw.
+  # The application pii_scanner handles them first; this is the second line.
+  attributes/pii_guard:
+    actions:
+      # Identity fields with high cardinality and PII risk
+      - key: ai.user.email
+        action: delete
+      - key: user.email
+        action: delete
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: enduser.id
+        action: delete
+      # Prompt/response full text must never appear as span attributes;
+      # they go through the WORM Blob path only.
+      - key: ai.prompt.text
+        action: delete
+      - key: ai.response.text
+        action: delete
+      - key: prompt_text
+        action: delete
+      - key: response_text
+        action: delete
+
+  # ── Metric cardinality guard ──────────────────────────────────────────────
+  attributes/drop_high_cardinality:
+    actions:
+      - key: ai.request.id
+        action: delete
+      - key: ai.session.id
+        action: delete
+      - key: ai.user.id
+        action: delete
+      - key: ai.user.email
+        action: delete
+
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 100
+    policies:
+      - name: errors-always
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: pii-detected-always
+        type: string_attribute
+        string_attribute:
+          key: ai.pii.detected
+          values: ["true"]
+      - name: budget-exhausted-always
+        type: string_attribute
+        string_attribute:
+          key: ai.cost.budget_exhausted
+          values: ["true"]
+      - name: sample-success
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+    send_batch_max_size: 2000
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers:  [otlp]
+      processors: [memory_limiter, resource, attributes/pii_guard, tail_sampling, batch]
+      exporters:  [otlp/tempo]
+
+    metrics:
+      receivers:  [otlp, prometheus/self]
+      processors: [memory_limiter, resource, attributes/drop_high_cardinality, batch]
+      exporters:  [prometheusremotewrite]
+
+    logs:
+      receivers:  [otlp]
+      processors: [memory_limiter, resource, attributes/pii_guard, batch]
+      exporters:  [loki]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888
