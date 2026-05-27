@@ -134,7 +134,7 @@ Write-Host "  Next: set these GitHub secrets for your company Azure account:" -F
 Write-Host "  (repo → Settings → Secrets and variables → Actions)" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  AZURE_CREDENTIALS        <SP JSON — az ad sp create-for-rbac --sdk-auth>" -ForegroundColor White
-Write-Host "  AZURE_RESOURCE_GROUP     <your resource group, e.g. rg-ai-telemetry-prod>" -ForegroundColor White
+Write-Host "  AZURE_RESOURCE_GROUP     <your resource group, e.g. rg-ai-telemetry-dev>" -ForegroundColor White
 Write-Host "  ACR_LOGIN_SERVER         <your ACR FQDN, e.g. acrcompanyprod.azurecr.io>" -ForegroundColor White
 Write-Host "  AZURE_ACR_NAME           <your ACR short name, e.g. acrcompanyprod>" -ForegroundColor White
 Write-Host "  ACR_PASSWORD             <az acr credential show --name acrcompanyprod>" -ForegroundColor White

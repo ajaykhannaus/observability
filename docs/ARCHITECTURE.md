@@ -196,7 +196,7 @@ graph LR
 
 ```mermaid
 graph TD
-    subgraph RG["Resource Group: rg-ai-telemetry-prod"]
+    subgraph RG["Resource Group: rg-ai-telemetry-dev"]
 
         subgraph CAE["Container Apps Environment: cae-telemetry-prod"]
             CA["ai-telemetry-runner\nSystem-assigned Managed Identity\nmin=2 / max=4 replicas\nCPU 0.5 · RAM 1 GiB"]

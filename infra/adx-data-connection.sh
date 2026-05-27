@@ -7,7 +7,7 @@
 # Usage:
 #   chmod +x infra/adx-data-connection.sh
 #   ./infra/adx-data-connection.sh \
-#     --resource-group  rg-ai-telemetry-prod \
+#     --resource-group  rg-ai-telemetry-dev \
 #     --location        eastus \
 #     --cluster-name    adxtelemetryprod \
 #     --db-name         ai-telemetry-audit \
@@ -27,7 +27,7 @@
 # =============================================================================
 set -euo pipefail
 
-RG="rg-ai-telemetry-prod"
+RG="rg-ai-telemetry-dev"
 LOCATION="eastus"
 CLUSTER="adxtelemetryprod"
 DB="ai-telemetry-audit"

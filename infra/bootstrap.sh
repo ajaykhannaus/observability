@@ -16,7 +16,7 @@
 # Usage:
 #   chmod +x infra/bootstrap.sh
 #   ./infra/bootstrap.sh \
-#     --resource-group rg-ai-telemetry-prod \
+#     --resource-group rg-ai-telemetry-dev \
 #     --location       eastus \
 #     --acr-name       acrtelemetryprod \
 #     --cae-name       cae-telemetry-prod \
@@ -34,7 +34,7 @@
 set -euo pipefail
 
 # ── Defaults (override via flags) ─────────────────────────────────────────────
-RG="rg-ai-telemetry-prod"
+RG="rg-ai-telemetry-dev"
 LOCATION="eastus"
 ACR_NAME="acrtelemetryprod"
 CAE_NAME="cae-telemetry-prod"

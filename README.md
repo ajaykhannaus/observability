@@ -59,7 +59,7 @@ Without `EVENTHUB_CONNECTION_STRING` the runner runs in **mock mode** — events
 chmod +x infra/bootstrap.sh
 
 ./infra/bootstrap.sh \
-  --resource-group  rg-ai-telemetry-prod \
+  --resource-group  rg-ai-telemetry-dev \
   --location        eastus \
   --acr-name        acrtelemetryprod \
   --cae-name        cae-telemetry-prod \
@@ -77,7 +77,7 @@ Go to **GitHub repo → Settings → Secrets and variables → Actions** and add
 | Secret | Description | Example |
 |---|---|---|
 | `AZURE_CREDENTIALS` | Service Principal JSON (`az ad sp create-for-rbac --sdk-auth`) | `{"clientId":"...","clientSecret":"..."}` |
-| `AZURE_RESOURCE_GROUP` | Resource group name | `rg-ai-telemetry-prod` |
+| `AZURE_RESOURCE_GROUP` | Resource group name | `rg-ai-telemetry-dev` |
 | `ACR_LOGIN_SERVER` | Full ACR login server | `acrtelemetryprod.azurecr.io` |
 | `ACR_PASSWORD` | ACR admin password | `az acr credential show --name <acr>` |
 | `AZURE_CONTAINER_APP_NAME` | Container App name | `ai-telemetry-runner` |

@@ -4,7 +4,7 @@ name: Build and Deploy to Azure
 # Required GitHub Secrets (repo → Settings → Secrets → Actions):
 #
 #   AZURE_CREDENTIALS        SP credentials JSON  (az ad sp create-for-rbac --sdk-auth)
-#   AZURE_RESOURCE_GROUP     e.g. rg-ai-telemetry-prod
+#   AZURE_RESOURCE_GROUP     e.g. rg-ai-telemetry-dev
 #   ACR_LOGIN_SERVER         e.g. acrcompanyprod.azurecr.io
 #   AZURE_ACR_NAME           short ACR name only  e.g. acrcompanyprod
 #   ACR_PASSWORD             ACR admin password  (az acr credential show --name <acr>)

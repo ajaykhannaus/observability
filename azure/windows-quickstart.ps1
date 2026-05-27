@@ -153,7 +153,7 @@ Available functions (run in PowerShell):
   Setup-EnvFile            # Create .env template
   Run-MockMode             # Run generator locally (no Azure)
   Push-Image -AcrName 'acrtelemetrycorp'
-  Open-Grafana -GrafanaName 'grafana-ai-telemetry' -ResourceGroup 'rg-ai-telemetry'
-  Watch-Logs -AppName 'ai-telemetry-runner' -ResourceGroup 'rg-ai-telemetry'
+  Open-Grafana -GrafanaName 'grafana-ai-telemetry' -ResourceGroup 'rg-ai-telemetry-dev'
+  Watch-Logs -AppName 'ai-telemetry-runner' -ResourceGroup 'rg-ai-telemetry-dev'
 
 "@ -ForegroundColor Gray

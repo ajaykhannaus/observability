@@ -48,7 +48,7 @@ cd azure-telemetry-llm
 
 # Run bootstrap — creates resource group, ACR, Container Apps Environment, Service Principal
 .\infra\bootstrap.sh `
-  --resource-group  rg-ai-telemetry-prod `
+  --resource-group  rg-ai-telemetry-dev `
   --location        eastus `
   --acr-name        <your-acr-name>          # e.g. acrcompanyprod  (globally unique)
   --cae-name        cae-telemetry-prod `
@@ -70,7 +70,7 @@ Set all 7 secrets:
 | Secret | Where to get it | Example |
 |---|---|---|
 | `AZURE_CREDENTIALS` | Printed by bootstrap.sh (JSON block) | `{"clientId":"...","clientSecret":"...","tenantId":"...","subscriptionId":"..."}` |
-| `AZURE_RESOURCE_GROUP` | What you passed to bootstrap.sh | `rg-ai-telemetry-prod` |
+| `AZURE_RESOURCE_GROUP` | What you passed to bootstrap.sh | `rg-ai-telemetry-dev` |
 | `ACR_LOGIN_SERVER` | Printed by bootstrap.sh | `acrcompanyprod.azurecr.io` |
 | `AZURE_ACR_NAME` | Short name only | `acrcompanyprod` |
 | `ACR_PASSWORD` | Printed by bootstrap.sh | `az acr credential show --name acrcompanyprod` |
@@ -164,18 +164,18 @@ You will see:
 # From the VM (on VPN), confirm the Container App is up
 az containerapp show `
   --name ai-telemetry-runner `
-  --resource-group rg-ai-telemetry-prod `
+  --resource-group rg-ai-telemetry-dev `
   --query "{status:properties.runningStatus, fqdn:properties.configuration.ingress.fqdn}" `
   -o json
 
 # Hit the metrics endpoint
-$fqdn = az containerapp show --name ai-telemetry-runner --resource-group rg-ai-telemetry-prod --query "properties.configuration.ingress.fqdn" -o tsv
+$fqdn = az containerapp show --name ai-telemetry-runner --resource-group rg-ai-telemetry-dev --query "properties.configuration.ingress.fqdn" -o tsv
 curl "https://$fqdn/metrics"
 
 # View live logs
 az containerapp logs show `
   --name ai-telemetry-runner `
-  --resource-group rg-ai-telemetry-prod `
+  --resource-group rg-ai-telemetry-dev `
   --tail 20 --follow
 ```
 
@@ -230,7 +230,7 @@ cd C:\actions-runner
 | Docker build fails: `linux/amd64` not supported | Switch to Linux containers — see Step 3.4 |
 | `az containerapp` command not found | Run `az extension add --name containerapp --upgrade --yes` |
 | Push fails with 403 | Token expired — generate a new PAT at github.com/settings/tokens |
-| Container App keeps restarting | Check logs: `az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-telemetry-prod --tail 50` |
+| Container App keeps restarting | Check logs: `az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-telemetry-dev --tail 50` |
 
 ---
 

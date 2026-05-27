@@ -208,7 +208,7 @@ az account set --subscription "YOUR_COMPANY_SUBSCRIPTION_ID"
 ### 3. Run full Azure provisioning (one-time)
 ```powershell
 .\azure\setup-company.ps1 `
-  -ResourceGroup "rg-ai-telemetry-prod" `
+  -ResourceGroup "rg-ai-telemetry-dev" `
   -Location "eastus" `
   -AcrName "acrtelemetryprod"
 ```
@@ -221,7 +221,7 @@ Go to: **GitHub repo → Settings → Secrets and variables → Actions**
 |---|---|
 | `AZURE_CREDENTIALS` | SP JSON from provisioning output |
 | `ACR_LOGIN_SERVER` | e.g. `acrtelemetryprod.azurecr.io` |
-| `AZURE_RESOURCE_GROUP` | `rg-ai-telemetry-prod` |
+| `AZURE_RESOURCE_GROUP` | `rg-ai-telemetry-dev` |
 | `AZURE_CONTAINER_APP_NAME` | `ai-telemetry-runner` |
 | `AZURE_PROM_APP_NAME` | `prometheus-scraper` |
 | `PROM_REMOTE_WRITE_URL` | DCR write URL from provisioning output |
@@ -240,14 +240,14 @@ Watch GitHub Actions: 4 jobs run, ~5 minutes total. After all green:
 ### 6. Verify pipeline health
 ```powershell
 # Check Container App is running
-az containerapp show --name ai-telemetry-runner --resource-group rg-ai-telemetry-prod `
+az containerapp show --name ai-telemetry-runner --resource-group rg-ai-telemetry-dev `
   --query "properties.runningStatus" -o tsv
 
 # Check metrics endpoint is live
 curl https://<runner-fqdn>/metrics | Select-String "ai_gateway"
 
 # Stream live logs
-az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-telemetry-prod --follow
+az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-telemetry-dev --follow
 ```
 
 ---
@@ -273,7 +273,7 @@ Run `.\azure\setup-company.ps1` — it creates all of these automatically.
 
 | Resource | Type | Purpose |
 |---|---|---|
-| `rg-ai-telemetry-prod` | Resource Group | Contains everything |
+| `rg-ai-telemetry-dev` | Resource Group | Contains everything |
 | `acrtelemetryprod` | Container Registry (Basic) | Stores 3 Docker images |
 | `telemetry-prometheus-ws` | Azure Monitor Account | Managed Prometheus workspace |
 | `grafana-ai-telemetry` | Azure Managed Grafana (Standard) | Dashboards + alerts, Azure AD auth |
