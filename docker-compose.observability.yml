@@ -1,0 +1,95 @@
+# Local observability stack — Prometheus + Tempo + Loki + Grafana (all 7 dashboards)
+# ==================================================================================
+# Usage:
+#   cp .env.example .env        # set ALLOW_MOCK_MODE=true, ENVIRONMENT=dev
+#   docker compose -f docker-compose.observability.yml up -d
+#   open http://localhost:3000  # admin / admin
+#
+# The ai-telemetry-runner connects to the OTel Collector on localhost:4317.
+# After starting:
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 python3 -m generator.runner
+
+version: "3.9"
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
+
+services:
+
+  # ── OTel Collector ──────────────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # self-metrics
+    networks: [observability]
+    restart: unless-stopped
+
+  # ── Prometheus ──────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks: [observability]
+    restart: unless-stopped
+
+  # ── Grafana Tempo ───────────────────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./infra/tempo-local-config.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # HTTP API
+      - "4327:4317"   # OTLP gRPC (mapped to avoid clash with collector)
+    networks: [observability]
+    restart: unless-stopped
+
+  # ── Grafana Loki ────────────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.2.1
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks: [observability]
+    restart: unless-stopped
+
+  # ── Grafana ─────────────────────────────────────────────────────────────────
+  grafana:
+    build:
+      context: .
+      dockerfile: Dockerfile.grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor traceToMetrics"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks: [observability]
+    depends_on: [prometheus, loki, tempo]
+    restart: unless-stopped
