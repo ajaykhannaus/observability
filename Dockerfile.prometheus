@@ -4,15 +4,20 @@
 #
 # SCRAPE_TARGET env var is set by the Container App env var to the runner FQDN.
 
-FROM prom/prometheus:latest
+# Pin a specific Prometheus version — never use :latest in production images.
+FROM prom/prometheus:v2.54.1
 
 COPY prometheus.yml /etc/prometheus/prometheus.yml
+COPY rules.yml      /etc/prometheus/rules.yml
 
-# Override the scrape target at runtime via SCRAPE_TARGET env var.
-# The entrypoint below replaces the placeholder in prometheus.yml.
+# The entrypoint script substitutes runtime env vars into prometheus.yml,
+# then execs the real prometheus binary as the non-root `nobody` user.
 COPY azure/prometheus-entrypoint.sh /prometheus-entrypoint.sh
 
 USER root
-RUN chmod +x /prometheus-entrypoint.sh
+RUN chmod +x /prometheus-entrypoint.sh \
+ && chown nobody:nogroup /etc/prometheus/prometheus.yml /etc/prometheus/rules.yml
+
+USER nobody
 
 ENTRYPOINT ["/prometheus-entrypoint.sh"]

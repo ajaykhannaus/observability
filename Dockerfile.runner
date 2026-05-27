@@ -8,23 +8,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libssl-dev \
         libsasl2-dev \
         libsasl2-modules \
-    && rm -rf /var/lib/apt/lists/*
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Install Python dependencies (layer-cached until requirements change)
 COPY generator/requirements.txt /app/generator/requirements.txt
-RUN pip install --no-cache-dir -r /app/generator/requirements.txt && \
-    # Install OTel Prometheus exporter separately so pip resolves the version
-    # that's compatible with the already-installed opentelemetry-sdk
-    pip install --no-cache-dir opentelemetry-exporter-prometheus
+RUN pip install --no-cache-dir -r /app/generator/requirements.txt
 
-# Copy the generator package
 COPY generator/ /app/generator/
 
-# PYTHONUNBUFFERED=1 ensures stdout is flushed immediately →
-# Container Apps captures every log line in real-time to Log Analytics.
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+# Create a non-root user with no shell, then drop privileges. Container Apps
+# does not enforce non-root by default, but doing so here protects against
+# privilege escalation if the image is ever reused on a stricter runtime.
+RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin runner \
+    && chown -R runner:runner /app
 
-# Long-running continuous loop (not a Functions timer trigger).
-# Set BATCH_INTERVAL_S, BASE_BATCH_SIZE, EVENTHUB_* via Container App env vars.
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PROMETHEUS_PORT=8000 \
+    HEALTH_PORT=8080
+
+EXPOSE 8000 8080
+
+# Container-level liveness probe. Container Apps may also be configured to
+# probe :8080/healthz directly via its `probes` spec — both can coexist.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl --fail --silent --show-error \
+        "http://127.0.0.1:${HEALTH_PORT}/healthz" || exit 1
+
+USER 10001:10001
+
 ENTRYPOINT ["python3", "-m", "generator.runner"]
