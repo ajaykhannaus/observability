@@ -1,16 +1,5 @@
-# ============================================================================
-# AI Gateway Telemetry — Company Azure Setup Script (Windows PowerShell)
-# ============================================================================
-# Run this ONCE from your Windows machine to provision all company Azure resources.
-# Prerequisites:
-#   - Azure CLI installed  : winget install Microsoft.AzureCLI
-#   - Docker Desktop       : winget install Docker.DockerDesktop
-#   - Git                  : winget install Git.Git
-#   - Python 3.11+         : winget install Python.Python.3.11
-#
-# Usage:
-#   .\azure\setup-company.ps1 -ResourceGroup "rg-ai-telemetry" -Location "eastus"
-# ============================================================================
+# AI Gateway Telemetry — Azure Setup (Windows PowerShell)
+# Usage: .\azure\setup-azure.ps1 -ResourceGroup "rg-telemetry-dev" -Location "eastus"
 
 param(
     [Parameter(Mandatory=$true)]

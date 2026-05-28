@@ -1,26 +1,3 @@
-// =============================================================================
-// Azure Data Explorer — AI Telemetry Audit Schema
-// =============================================================================
-// Run this script once in an ADX database to create the audit tables,
-// ingestion mappings, and retention policies.
-//
-// Reference model lifted from RRastogi1981/observability (PostgreSQL ERD)
-// and translated to KQL / ADX syntax.
-//
-// Retention strategy:
-//   spans           90 days  (operational debugging)
-//   metric_snapshots 395 days  (13 months — covers year-over-year comparisons)
-//   audit_log       2555 days  (7 years — SOX / HIPAA requirement)
-//   prompt_log       395 days
-//   eval_results     395 days
-//   alert_events     395 days
-//
-// Data flows:
-//   ai-telemetry-events (Event Hubs) → Data Connection → RawEvents table
-//   Update policies on RawEvents fan out to typed destination tables.
-// =============================================================================
-
-// ── Raw ingest landing table ──────────────────────────────────────────────
 .create-merge table RawEvents (
     EnqueuedTimeUtc: datetime,
     SystemProperties: dynamic,
@@ -28,221 +5,220 @@
     Body: dynamic
 )
 
-// ── Spans ─────────────────────────────────────────────────────────────────
+.create-merge table AppRegistry (
+    app_id: string,
+    display_name: string,
+    team: string,
+    domain: string,
+    registered_at: datetime,
+    active: bool
+)
+
+.create-merge table AppEvents (
+    ingested_at: datetime,
+    event_id: string,
+    event_type: string,
+    app_id: string,
+    service_name: string,
+    environment: string,
+    tenant_id: string,
+    trace_id: string,
+    correlation_id: string,
+    region: string,
+    occurred_at: datetime,
+    payload: dynamic
+)
+
+.alter-merge table AppEvents policy retention softdelete = 395d
+
 .create-merge table Spans (
-    ingested_at:        datetime,
-    trace_id:           string,
-    span_id:            string,
-    parent_span_id:     string,
-    span_name:          string,
-    span_kind:          string,
-    status_code:        string,     // ok | error | unset
-    status_message:     string,
-    duration_ms:        real,
-    tenant_id:          string,
-    model_name:         string,
-    model_provider:     string,
-    operation_name:     string,
-    region:             string,
-    environment:        string,
-    service_name:       string,
-    cost_usd:           real,
-    total_tokens:       int,
-    attributes:         dynamic,    // full span attribute bag (no PII)
-    started_at:         datetime,
-    ended_at:           datetime
+    ingested_at: datetime,
+    trace_id: string,
+    span_id: string,
+    parent_span_id: string,
+    span_name: string,
+    span_kind: string,
+    status_code: string,
+    status_message: string,
+    duration_ms: real,
+    tenant_id: string,
+    app_id: string,
+    model_name: string,
+    model_provider: string,
+    operation_name: string,
+    region: string,
+    environment: string,
+    service_name: string,
+    cost_usd: real,
+    total_tokens: int,
+    attributes: dynamic,
+    started_at: datetime,
+    ended_at: datetime
 )
 
 .alter-merge table Spans policy retention softdelete = 90d
 
-// ── Audit log — immutable per-request record ─────────────────────────────
 .create-merge table AuditLog (
-    ingested_at:        datetime,
-    request_id:         string,
-    trace_id:           string,
-    session_id:         string,
-    turn_number:        int,
-    tenant_id:          string,
-    user_id:            string,
-    auth_method:        string,
-    data_classification:string,     // phi | pii | confidential | internal
-    model_name:         string,
-    model_provider:     string,
-    routing_reason:     string,
-    operation_name:     string,
-    region:             string,
-    latency_ms:         real,
-    prompt_tokens:      int,
-    completion_tokens:  int,
-    total_tokens:       int,
-    cost_usd:           real,
-    status:             string,
-    http_status_code:   int,
-    error_type:         string,
-    is_retried:         bool,
-    retry_count:        int,
-    sla_breached:       bool,
-    timestamp_start:    datetime,
-    service_name:       string,
-    environment:        string
+    ingested_at: datetime,
+    request_id: string,
+    trace_id: string,
+    session_id: string,
+    turn_number: int,
+    tenant_id: string,
+    app_id: string,
+    user_id: string,
+    auth_method: string,
+    data_classification: string,
+    model_name: string,
+    model_provider: string,
+    routing_reason: string,
+    operation_name: string,
+    region: string,
+    latency_ms: real,
+    prompt_tokens: int,
+    completion_tokens: int,
+    total_tokens: int,
+    cost_usd: real,
+    status: string,
+    http_status_code: int,
+    error_type: string,
+    is_retried: bool,
+    retry_count: int,
+    sla_breached: bool,
+    timestamp_start: datetime,
+    service_name: string,
+    environment: string
 )
 
-// Immutability: block all deletes and updates on AuditLog.
 .alter-merge table AuditLog policy restricted_view_access enable
-
-// Retention: 7 years for SOX / HIPAA.
 .alter-merge table AuditLog policy retention softdelete = 2555d recoverability = enabled
 
-// ── Prompt log ───────────────────────────────────────────────────────────
-// Hashes + truncated text only — full text in WORM Blob.
 .create-merge table PromptLog (
-    ingested_at:        datetime,
-    request_id:         string,
-    trace_id:           string,
-    session_id:         string,
-    turn_number:        int,
-    tenant_id:          string,
-    model_name:         string,
-    operation_name:     string,
-    data_classification:string,
-    prompt_hash:        string,
-    prompt_truncated:   string,
-    response_hash:      string,
+    ingested_at: datetime,
+    request_id: string,
+    trace_id: string,
+    session_id: string,
+    turn_number: int,
+    tenant_id: string,
+    app_id: string,
+    model_name: string,
+    operation_name: string,
+    data_classification: string,
+    prompt_hash: string,
+    prompt_truncated: string,
+    response_hash: string,
     response_truncated: string,
-    pii_detected:       bool,
-    pii_entity_counts:  dynamic,    // {"EMAIL": 2, "PHONE": 1}
-    status:             string,
-    cost_usd:           real,
-    timestamp:          datetime
+    pii_detected: bool,
+    pii_entity_counts: dynamic,
+    status: string,
+    cost_usd: real,
+    timestamp: datetime
 )
 
 .alter-merge table PromptLog policy retention softdelete = 395d
 
-// ── Evaluation results ───────────────────────────────────────────────────
+.create-merge table ObservabilityLogs (
+    ingested_at: datetime,
+    event_id: string,
+    app_id: string,
+    service_name: string,
+    environment: string,
+    tenant_id: string,
+    level: string,
+    message: string,
+    logger: string,
+    attributes: dynamic,
+    occurred_at: datetime
+)
+
+.alter-merge table ObservabilityLogs policy retention softdelete = 90d
+
 .create-merge table EvalResults (
-    ingested_at:   datetime,
-    request_id:    string,
-    tenant_id:     string,
-    model_name:    string,
-    operation_name:string,
-    faithfulness:  real,
-    relevance:     real,
-    groundedness:  real,
-    eval_model:    string,
-    tokens_used:   int,
-    latency_ms:    real,
-    error:         string,
-    timestamp:     datetime
+    ingested_at: datetime,
+    request_id: string,
+    tenant_id: string,
+    app_id: string,
+    model_name: string,
+    operation_name: string,
+    faithfulness: real,
+    relevance: real,
+    groundedness: real,
+    eval_model: string,
+    tokens_used: int,
+    latency_ms: real,
+    error: string,
+    timestamp: datetime
 )
 
 .alter-merge table EvalResults policy retention softdelete = 395d
 
-// ── Alert events ─────────────────────────────────────────────────────────
 .create-merge table AlertEvents (
-    ingested_at:   datetime,
-    alert_name:    string,
-    severity:      string,
-    status:        string,          // firing | resolved
-    labels:        dynamic,
-    annotations:   dynamic,
-    fired_at:      datetime,
-    resolved_at:   datetime
+    ingested_at: datetime,
+    alert_name: string,
+    severity: string,
+    status: string,
+    app_id: string,
+    labels: dynamic,
+    annotations: dynamic,
+    fired_at: datetime,
+    resolved_at: datetime
 )
 
 .alter-merge table AlertEvents policy retention softdelete = 395d
 
-// ── Metric snapshots ─────────────────────────────────────────────────────
 .create-merge table MetricSnapshots (
-    ingested_at:   datetime,
-    metric_name:   string,
-    value:         real,
-    labels:        dynamic,
-    recorded_at:   datetime
+    ingested_at: datetime,
+    metric_name: string,
+    app_id: string,
+    value: real,
+    labels: dynamic,
+    recorded_at: datetime
 )
 
 .alter-merge table MetricSnapshots policy retention softdelete = 395d
 
-// =============================================================================
-// Ingestion mappings (JSON → table columns from Event Hubs Body)
-// =============================================================================
+.alter-merge table RawEvents policy update @'[
+  {
+    "IsEnabled": true,
+    "Source": "RawEvents",
+    "Query": "RawEvents | where isnotempty(Body) and tostring(Body.event_type) == \"ai.request.end\" | extend ingested_at=coalesce(todatetime(Body.ingested_at), now()), request_id=tostring(Body.payload.request_id), trace_id=tostring(Body.trace_id), session_id=tostring(Body.payload.session_id), turn_number=toint(Body.payload.turn_number), tenant_id=tostring(Body.tenant_id), app_id=tostring(Body.app_id), user_id=tostring(Body.payload.user_id), auth_method=tostring(Body.payload.auth_method), data_classification=tostring(Body.payload.data_classification), model_name=tostring(Body.payload.model_name), model_provider=tostring(Body.payload.model_provider), routing_reason=tostring(Body.payload.routing_reason), operation_name=tostring(Body.payload.operation_name), region=tostring(Body.region), latency_ms=toreal(Body.payload.latency_ms), prompt_tokens=toint(Body.payload.prompt_tokens), completion_tokens=toint(Body.payload.completion_tokens), total_tokens=toint(Body.payload.total_tokens), cost_usd=toreal(Body.payload.cost_usd), status=tostring(Body.payload.status), http_status_code=toint(Body.payload.http_status_code), error_type=tostring(Body.payload.error_type), is_retried=tobool(Body.payload.is_retried), retry_count=toint(Body.payload.retry_count), sla_breached=tobool(Body.payload.sla_breached), timestamp_start=todatetime(Body.payload.timestamp_start), service_name=tostring(Body.service_name), environment=tostring(Body.environment)",
+    "IsTransactional": false,
+    "PropagateIngestionProperties": true
+  },
+  {
+    "IsEnabled": true,
+    "Source": "RawEvents",
+    "Query": "RawEvents | where isnotempty(Body) and tostring(Body.event_type) == \"ai.prompt.log\" | extend ingested_at=coalesce(todatetime(Body.ingested_at), now()), request_id=tostring(Body.payload.request_id), trace_id=tostring(Body.trace_id), session_id=tostring(Body.payload.session_id), turn_number=toint(Body.payload.turn_number), tenant_id=tostring(Body.tenant_id), app_id=tostring(Body.app_id), model_name=tostring(Body.payload.model_name), operation_name=tostring(Body.payload.operation_name), data_classification=tostring(Body.payload.data_classification), prompt_hash=tostring(Body.payload.prompt_hash), prompt_truncated=tostring(Body.payload.prompt_truncated), response_hash=tostring(Body.payload.response_hash), response_truncated=tostring(Body.payload.response_truncated), pii_detected=tobool(Body.payload.pii_detected), pii_entity_counts=Body.payload.pii_entity_counts, status=tostring(Body.payload.status), cost_usd=toreal(Body.payload.cost_usd), timestamp=todatetime(Body.payload.timestamp)",
+    "IsTransactional": false,
+    "PropagateIngestionProperties": true
+  },
+  {
+    "IsEnabled": true,
+    "Source": "RawEvents",
+    "Query": "RawEvents | where isnotempty(Body) and tostring(Body.event_type) startswith \"app.\" | extend ingested_at=coalesce(todatetime(Body.ingested_at), now()), event_id=tostring(Body.event_id), event_type=tostring(Body.event_type), app_id=tostring(Body.app_id), service_name=tostring(Body.service_name), environment=tostring(Body.environment), tenant_id=tostring(Body.tenant_id), trace_id=tostring(Body.trace_id), correlation_id=tostring(Body.correlation_id), region=tostring(Body.region), occurred_at=todatetime(Body.occurred_at), payload=Body.payload",
+    "IsTransactional": false,
+    "PropagateIngestionProperties": true
+  },
+  {
+    "IsEnabled": true,
+    "Source": "RawEvents",
+    "Query": "RawEvents | where isnotempty(Body) and tostring(Body.event_type) == \"app.log\" | extend ingested_at=coalesce(todatetime(Body.ingested_at), now()), event_id=tostring(Body.event_id), app_id=tostring(Body.app_id), service_name=tostring(Body.service_name), environment=tostring(Body.environment), tenant_id=tostring(Body.tenant_id), level=tostring(Body.payload.level), message=tostring(Body.payload.message), logger=tostring(Body.payload.logger), attributes=Body.payload.attributes, occurred_at=todatetime(Body.occurred_at)",
+    "IsTransactional": false,
+    "PropagateIngestionProperties": true
+  }
+]'
 
-.create-or-alter table AuditLog ingestion json mapping 'AuditLogMapping'
+.create-or-alter table AppRegistry ingestion json mapping 'AppRegistryMapping'
 '['
-'  {"column":"request_id",           "path":"$.request_id"},'
-'  {"column":"trace_id",             "path":"$.request_id"},'
-'  {"column":"session_id",           "path":"$.session_id"},'
-'  {"column":"turn_number",          "path":"$.turn_number"},'
-'  {"column":"tenant_id",            "path":"$.client_name"},'
-'  {"column":"user_id",              "path":"$.user_id"},'
-'  {"column":"auth_method",          "path":"$.auth_method"},'
-'  {"column":"data_classification",  "path":"$.data_classification"},'
-'  {"column":"model_name",           "path":"$.model_name"},'
-'  {"column":"model_provider",       "path":"$.model_provider"},'
-'  {"column":"routing_reason",       "path":"$.routing_reason"},'
-'  {"column":"operation_name",       "path":"$.operation_name"},'
-'  {"column":"region",               "path":"$.region"},'
-'  {"column":"latency_ms",           "path":"$.latency_ms"},'
-'  {"column":"prompt_tokens",        "path":"$.prompt_tokens"},'
-'  {"column":"completion_tokens",    "path":"$.completion_tokens"},'
-'  {"column":"total_tokens",         "path":"$.total_tokens"},'
-'  {"column":"cost_usd",             "path":"$.cost_usd"},'
-'  {"column":"status",               "path":"$.status"},'
-'  {"column":"http_status_code",     "path":"$.http_status_code"},'
-'  {"column":"error_type",           "path":"$.error_type"},'
-'  {"column":"is_retried",           "path":"$.is_retried"},'
-'  {"column":"retry_count",          "path":"$.retry_count"},'
-'  {"column":"sla_breached",         "path":"$.sla_breached"},'
-'  {"column":"timestamp_start",      "path":"$.timestamp_start"},'
-'  {"column":"service_name",         "path":"$.service_name"},'
-'  {"column":"environment",          "path":"$.environment"},'
-'  {"column":"ingested_at",          "path":"$.ingested_at"}'
+'  {"column":"app_id", "path":"$.app_id"},'
+'  {"column":"display_name", "path":"$.display_name"},'
+'  {"column":"team", "path":"$.team"},'
+'  {"column":"domain", "path":"$.domain"},'
+'  {"column":"registered_at", "path":"$.registered_at"},'
+'  {"column":"active", "path":"$.active"}'
 ']'
 
-.create-or-alter table PromptLog ingestion json mapping 'PromptLogMapping'
-'['
-'  {"column":"request_id",           "path":"$.request_id"},'
-'  {"column":"trace_id",             "path":"$.trace_id"},'
-'  {"column":"session_id",           "path":"$.session_id"},'
-'  {"column":"turn_number",          "path":"$.turn_number"},'
-'  {"column":"tenant_id",            "path":"$.tenant_id"},'
-'  {"column":"model_name",           "path":"$.model_name"},'
-'  {"column":"operation_name",       "path":"$.operation_name"},'
-'  {"column":"data_classification",  "path":"$.data_classification"},'
-'  {"column":"prompt_hash",          "path":"$.prompt_hash"},'
-'  {"column":"prompt_truncated",     "path":"$.prompt_truncated"},'
-'  {"column":"response_hash",        "path":"$.response_hash"},'
-'  {"column":"response_truncated",   "path":"$.response_truncated"},'
-'  {"column":"pii_detected",         "path":"$.pii_detected"},'
-'  {"column":"pii_entity_counts",    "path":"$.pii_entity_counts"},'
-'  {"column":"status",               "path":"$.status"},'
-'  {"column":"cost_usd",             "path":"$.cost_usd"},'
-'  {"column":"timestamp",            "path":"$.timestamp"},'
-'  {"column":"ingested_at",          "path":"$.ingested_at"}'
-']'
-
-// =============================================================================
-// Example KQL queries for the audit team
-// =============================================================================
-//
-// All PHI requests in the last 24 h:
-//   AuditLog
-//   | where data_classification == "phi"
-//   | where ingested_at > ago(24h)
-//   | project timestamp_start, tenant_id, user_id, model_name, cost_usd
-//   | order by timestamp_start desc
-//
-// PII detections by tenant this week:
-//   PromptLog
-//   | where ingested_at > ago(7d) and pii_detected == true
-//   | summarize total_hits=sum(1), types=make_set(pii_entity_counts) by tenant_id
-//
-// Correlation: find all spans for a known prompt hash:
-//   let h = "abc123...";
-//   PromptLog | where prompt_hash == h | project trace_id
-//   | join Spans on $left.trace_id == $right.trace_id
-//
-// 30-day cost per tenant:
-//   AuditLog
-//   | where ingested_at > ago(30d)
-//   | summarize total_cost=sum(cost_usd) by tenant_id
-//   | order by total_cost desc
+.create table AppRegistry <| datatable(app_id:string, display_name:string, team:string, domain:string, registered_at:datetime, active:bool)
+[
+  "ai-telemetry-runner-dev", "AI Telemetry Runner", "Platform", "ai-gateway", datetime(2026-01-01), true
+]

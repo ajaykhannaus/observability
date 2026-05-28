@@ -1,5 +1,8 @@
 # Secrets — never commit real credentials
 .env
+.env.azure
+.env.azure.*
+azure/bootstrap-azure.env
 
 # macOS metadata
 .DS_Store

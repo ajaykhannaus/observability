@@ -207,7 +207,7 @@ az account set --subscription "YOUR_COMPANY_SUBSCRIPTION_ID"
 
 ### 3. Run full Azure provisioning (one-time)
 ```powershell
-.\azure\setup-company.ps1 `
+.\azure\setup-azure.ps1 `
   -ResourceGroup "rg-ai-telemetry-dev" `
   -Location "eastus" `
   -AcrName "acrtelemetryprod"
@@ -258,10 +258,10 @@ az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-tele
 |---|---|---|
 | `AZURE_CREDENTIALS` | Service Principal JSON for GitHub Actions Azure login | `az ad sp create-for-rbac --sdk-auth --role Contributor --scopes /subscriptions/<id>/resourceGroups/<rg>` |
 | `ACR_LOGIN_SERVER` | ACR hostname | `az acr show --name <acr> --query loginServer -o tsv` |
-| `AZURE_RESOURCE_GROUP` | Resource group name | Whatever you set in setup-company.ps1 |
+| `AZURE_RESOURCE_GROUP` | Resource group name | Whatever you set in setup-azure.ps1 |
 | `AZURE_CONTAINER_APP_NAME` | Runner app name | `ai-telemetry-runner` |
 | `AZURE_PROM_APP_NAME` | Prometheus scraper app name | `prometheus-scraper` |
-| `PROM_REMOTE_WRITE_URL` | Azure Managed Prometheus DCR ingest URL | Output of setup-company.ps1 |
+| `PROM_REMOTE_WRITE_URL` | Azure Managed Prometheus DCR ingest URL | Output of setup-azure.ps1 |
 | `AZURE_GRAFANA_NAME` | Managed Grafana instance name | `grafana-ai-telemetry` |
 | `EVENTHUB_CONNECTION_STRING` | Event Hub connection string | `az eventhubs namespace authorization-rule keys list ... --query primaryConnectionString` |
 
@@ -269,7 +269,7 @@ az containerapp logs show --name ai-telemetry-runner --resource-group rg-ai-tele
 
 ## Azure Resources to Provision
 
-Run `.\azure\setup-company.ps1` — it creates all of these automatically.
+Run `.\azure\setup-azure.ps1` — it creates all of these automatically.
 
 | Resource | Type | Purpose |
 |---|---|---|
@@ -532,7 +532,7 @@ Telemetry/
 │   ├── pod_metrics_simulator.py ← kube-state-metrics simulation (HPA, pods, nodes)
 │   └── requirements.txt
 ├── azure/
-│   ├── setup-company.ps1        ← Windows PowerShell one-time provisioning
+│   ├── setup-azure.ps1        ← Windows PowerShell one-time provisioning
 │   ├── windows-quickstart.ps1   ← Dev helper functions for Windows
 │   └── prometheus-entrypoint.sh ← Env-var substitution for Prometheus Container App
 ├── dashboards/

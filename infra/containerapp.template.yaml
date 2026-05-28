@@ -32,6 +32,8 @@ properties:
             value: dev
           - name: OTEL_SERVICE_NAME
             value: ai-telemetry-dev
+          - name: OBS_APP_ID
+            value: ai-telemetry-dev
           - name: PROMETHEUS_PORT
             value: "8000"
           - name: HEALTH_PORT
