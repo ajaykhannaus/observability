@@ -2,15 +2,15 @@
 
 Run this guide in **Bash** from **Azure Cloud Shell** or **VS Code for the Web on Azure**. You are already logged in — no `az login` or GitHub secrets required.
 
-**Repo:** https://github.com/ajaykhannaus/obserability
+**Repo:** https://github.com/ajaykhannaus/observability
 
 ---
 
 ## Quick start
 
 ```bash
-git clone https://github.com/ajaykhannaus/obserability.git
-cd obserability
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
 
 # Optional — if the wrong subscription is selected
 export AZURE_SUBSCRIPTION_ID="<your-subscription-guid>"
@@ -56,7 +56,7 @@ LOCATION="eastus"
 az group create \
   --name "$RG" \
   --location "$LOCATION" \
-  --tags project=obserability environment=dev
+  --tags project=observability environment=dev
 
 az group show --name "$RG" -o table
 ```

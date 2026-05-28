@@ -4,8 +4,8 @@
 # =============================================================================
 # Run in Bash (Azure Cloud Shell or VS Code Web on Azure):
 #
-#   git clone https://github.com/ajaykhannaus/obserability.git
-#   cd obserability
+#   git clone https://github.com/ajaykhannaus/observability.git
+#   cd observability
 #   chmod +x scripts/azure-cloudshell-setup.sh
 #   ./scripts/azure-cloudshell-setup.sh
 #
@@ -74,7 +74,7 @@ else
   az group create \
     --name "$RG" \
     --location "$LOCATION" \
-    --tags project=obserability environment=dev \
+    --tags project=observability environment=dev \
     --output none
   log "  ✓ Created $RG"
 fi
