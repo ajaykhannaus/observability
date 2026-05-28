@@ -5,11 +5,11 @@ name: Build and Deploy to Azure
 #
 #   AZURE_CREDENTIALS        SP credentials JSON  (az ad sp create-for-rbac --sdk-auth)
 #   AZURE_RESOURCE_GROUP     e.g. rg-ai-telemetry-dev
-#   ACR_LOGIN_SERVER         e.g. acrcompanyprod.azurecr.io
-#   AZURE_ACR_NAME           short ACR name only  e.g. acrcompanyprod
+#   ACR_LOGIN_SERVER         e.g. acrtelemetrydev.azurecr.io
+#   AZURE_ACR_NAME           short ACR name only  e.g. acrtelemetrydev
 #   ACR_PASSWORD             ACR admin password  (az acr credential show --name <acr>)
-#   AZURE_CONTAINER_APP_NAME e.g. ai-telemetry-runner
-#   AZURE_CAE_NAME           Container Apps Environment  e.g. cae-telemetry-prod
+#   AZURE_CONTAINER_APP_NAME e.g. ai-telemetry-runner-dev
+#   AZURE_CAE_NAME           Container Apps Environment  e.g. cae-telemetry-dev
 #
 # Optional (jobs 3 & 4 skip gracefully if not set):
 #   PROM_REMOTE_WRITE_URL    Azure Managed Prometheus ingestion URL

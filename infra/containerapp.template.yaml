@@ -22,16 +22,16 @@ properties:
         identity: system
   template:
     containers:
-      - name: ai-telemetry-runner
+      - name: ai-telemetry-runner-dev
         image: __IMAGE__
         resources:
           cpu: 0.5
           memory: 1Gi
         env:
           - name: ENVIRONMENT
-            value: prod
+            value: dev
           - name: OTEL_SERVICE_NAME
-            value: ai-telemetry
+            value: ai-telemetry-dev
           - name: PROMETHEUS_PORT
             value: "8000"
           - name: HEALTH_PORT

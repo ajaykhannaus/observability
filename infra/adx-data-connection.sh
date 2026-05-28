@@ -9,9 +9,9 @@
 #   ./infra/adx-data-connection.sh \
 #     --resource-group  rg-ai-telemetry-dev \
 #     --location        eastus \
-#     --cluster-name    adxtelemetryprod \
-#     --db-name         ai-telemetry-audit \
-#     --eventhub-ns     evhns-telemetry-prod \
+#     --cluster-name    adxtelemetrydev \
+#     --db-name         ai-telemetry-audit-dev \
+#     --eventhub-ns     evhns-telemetry-dev \
 #     --eventhub-name   ai-telemetry-events
 #
 # What it provisions:
@@ -29,12 +29,12 @@ set -euo pipefail
 
 RG="rg-ai-telemetry-dev"
 LOCATION="eastus"
-CLUSTER="adxtelemetryprod"
-DB="ai-telemetry-audit"
+CLUSTER="adxtelemetrydev"
+DB="ai-telemetry-audit-dev"
 EH_NS=""
 EH_NAME="ai-telemetry-events"
-CONSUMER_GROUP="adx-ingest"
-ENV="prod"
+CONSUMER_GROUP="adx-ingest-dev"
+ENV="dev"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -130,7 +130,7 @@ az kusto data-connection event-hub create \
   --cluster-name "$CLUSTER" \
   --database-name "$DB" \
   --resource-group "$RG" \
-  --data-connection-name "ai-telemetry-ingest" \
+  --data-connection-name "ai-telemetry-ingest-dev" \
   --location "$LOCATION" \
   --event-hub-resource-id "$EH_RESOURCE_ID" \
   --consumer-group "$CONSUMER_GROUP" \

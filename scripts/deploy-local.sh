@@ -194,8 +194,6 @@ render_containerapp_yaml() {
       -e "s|__IMAGE__|$image|g" \
       "$ROOT/infra/containerapp.template.yaml" > "$rendered"
 
-  # Dev deployment label inside the running app
-  sed -i.bak 's/value: prod/value: dev/' "$rendered" && rm -f "${rendered}.bak"
   echo "$rendered"
 }
 

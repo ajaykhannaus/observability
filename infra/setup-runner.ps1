@@ -135,11 +135,11 @@ Write-Host "  (repo → Settings → Secrets and variables → Actions)" -Foregr
 Write-Host ""
 Write-Host "  AZURE_CREDENTIALS        <SP JSON — az ad sp create-for-rbac --sdk-auth>" -ForegroundColor White
 Write-Host "  AZURE_RESOURCE_GROUP     <your resource group, e.g. rg-ai-telemetry-dev>" -ForegroundColor White
-Write-Host "  ACR_LOGIN_SERVER         <your ACR FQDN, e.g. acrcompanyprod.azurecr.io>" -ForegroundColor White
-Write-Host "  AZURE_ACR_NAME           <your ACR short name, e.g. acrcompanyprod>" -ForegroundColor White
-Write-Host "  ACR_PASSWORD             <az acr credential show --name acrcompanyprod>" -ForegroundColor White
-Write-Host "  AZURE_CONTAINER_APP_NAME ai-telemetry-runner" -ForegroundColor White
-Write-Host "  AZURE_CAE_NAME           <your CAE name, e.g. cae-telemetry-prod>" -ForegroundColor White
+Write-Host "  ACR_LOGIN_SERVER         <your ACR FQDN, e.g. acrtelemetrydev.azurecr.io>" -ForegroundColor White
+Write-Host "  AZURE_ACR_NAME           <your ACR short name, e.g. acrtelemetrydev>" -ForegroundColor White
+Write-Host "  ACR_PASSWORD             <az acr credential show --name acrtelemetrydev>" -ForegroundColor White
+Write-Host "  AZURE_CONTAINER_APP_NAME ai-telemetry-runner-dev" -ForegroundColor White
+Write-Host "  AZURE_CAE_NAME           <your CAE name, e.g. cae-telemetry-dev>" -ForegroundColor White
 Write-Host ""
 Write-Host "  Then push to main/master — this VM will pick up the job." -ForegroundColor Green
 Write-Host ""

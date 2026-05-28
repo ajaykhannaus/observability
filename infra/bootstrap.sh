@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AI Gateway Telemetry — Azure Infrastructure Bootstrap (production)
+# AI Gateway Telemetry — Azure Infrastructure Bootstrap (dev)
 # =============================================================================
 # Run this ONCE from any machine with the Azure CLI logged in (`az login`).
 # It provisions every Azure resource the deploy workflow needs and prints
@@ -18,10 +18,10 @@
 #   ./infra/bootstrap.sh \
 #     --resource-group rg-ai-telemetry-dev \
 #     --location       eastus \
-#     --acr-name       acrtelemetryprod \
-#     --cae-name       cae-telemetry-prod \
-#     --app-name       ai-telemetry-runner \
-#     --eventhub-ns    evhns-telemetry-prod \
+#     --acr-name       acrtelemetrydev \
+#     --cae-name       cae-telemetry-dev \
+#     --app-name       ai-telemetry-runner-dev \
+#     --eventhub-ns    evhns-telemetry-dev \
 #     --eventhub-name  ai-telemetry-events
 #
 # Add --preflight to verify Azure access and quota WITHOUT creating anything.
@@ -36,10 +36,10 @@ set -euo pipefail
 # ── Defaults (override via flags) ─────────────────────────────────────────────
 RG="rg-ai-telemetry-dev"
 LOCATION="eastus"
-ACR_NAME="acrtelemetryprod"
-CAE_NAME="cae-telemetry-prod"
-APP_NAME="ai-telemetry-runner"
-EH_NS=""
+ACR_NAME="acrtelemetrydev"
+CAE_NAME="cae-telemetry-dev"
+APP_NAME="ai-telemetry-runner-dev"
+EH_NS="evhns-telemetry-dev"
 EH_NAME="ai-telemetry-events"
 SKIP_EVENTHUB=false
 PREFLIGHT=false
@@ -81,7 +81,7 @@ TENANT_ID=$(az account show --query tenantId -o tsv)
 
 # Sensible default for EH namespace if the caller didn't pass one.
 if [[ -z "$EH_NS" && "$SKIP_EVENTHUB" == "false" ]]; then
-  EH_NS="evhns-${APP_NAME}-$(echo "$SUB_ID" | cut -c1-6)"
+  EH_NS="evhns-telemetry-dev"
 fi
 
 echo ""
