@@ -11,6 +11,10 @@
 #
 # Optional: set subscription before running
 #   export AZURE_SUBSCRIPTION_ID="<your-subscription-guid>"
+#
+# Use an existing resource group (no permission to create RG):
+#   export AZURE_RESOURCE_GROUP="<your-company-rg-name>"
+#   export USE_EXISTING_RG=true
 #   ./scripts/azure-cloudshell-setup.sh
 #
 # Cloud Shell is already logged in — no az login or .env required for this script.
@@ -27,6 +31,13 @@ CAE_NAME="${CAE_NAME:-cae-telemetry-dev}"
 APP_NAME="${APP_NAME:-ai-telemetry-runner-dev}"
 EH_NS="${EH_NS:-evhns-telemetry-dev}"
 EH_NAME="${EVENTHUB_NAME:-ai-telemetry-events}"
+USE_EXISTING_RG="${USE_EXISTING_RG:-false}"
+
+for arg in "$@"; do
+  case "$arg" in
+    --use-existing-rg) USE_EXISTING_RG=true ;;
+  esac
+done
 
 log() { echo "[cloudshell-setup] $*"; }
 
@@ -67,32 +78,49 @@ for ns in Microsoft.App Microsoft.ContainerRegistry Microsoft.EventHub \
 done
 
 # ── 3. Resource group ─────────────────────────────────────────────────────────
-log "Creating resource group $RG in $LOCATION ..."
-if az group show --name "$RG" >/dev/null 2>&1; then
-  log "  ✓ Resource group $RG already exists"
+if [[ "$USE_EXISTING_RG" == "true" ]]; then
+  log "Using existing resource group $RG ..."
+  if ! az group show --name "$RG" >/dev/null 2>&1; then
+    echo "ERROR: Resource group '$RG' not found." >&2
+    echo "       export AZURE_RESOURCE_GROUP='<name-from-your-admin>'" >&2
+    exit 1
+  fi
+  LOCATION=$(az group show --name "$RG" --query location -o tsv)
+  log "  ✓ Found $RG (location: $LOCATION)"
 else
-  az group create \
-    --name "$RG" \
-    --location "$LOCATION" \
-    --tags project=observability environment=dev \
-    --output none
-  log "  ✓ Created $RG"
+  log "Creating resource group $RG in $LOCATION ..."
+  if az group show --name "$RG" >/dev/null 2>&1; then
+    log "  ✓ Resource group $RG already exists"
+  else
+    az group create \
+      --name "$RG" \
+      --location "$LOCATION" \
+      --tags project=observability environment=dev \
+      --output none
+    log "  ✓ Created $RG"
+  fi
 fi
 
 az group show --name "$RG" \
   --query "{name:name, location:location, state:properties.provisioningState}" -o table
 
+BOOTSTRAP_ARGS=(
+  --resource-group "$RG"
+  --location       "$LOCATION"
+  --acr-name       "$ACR_NAME"
+  --cae-name       "$CAE_NAME"
+  --app-name       "$APP_NAME"
+  --eventhub-ns    "$EH_NS"
+  --eventhub-name  "$EH_NAME"
+)
+if [[ "$USE_EXISTING_RG" == "true" ]]; then
+  BOOTSTRAP_ARGS+=(--use-existing-rg)
+fi
+
 # ── 4. Bootstrap (ACR, Container Apps env, Event Hubs, CI/CD SP) ────────────
 log "Running infra/bootstrap.sh ..."
 chmod +x "$ROOT/infra/bootstrap.sh"
-"$ROOT/infra/bootstrap.sh" \
-  --resource-group "$RG" \
-  --location       "$LOCATION" \
-  --acr-name       "$ACR_NAME" \
-  --cae-name       "$CAE_NAME" \
-  --app-name       "$APP_NAME" \
-  --eventhub-ns    "$EH_NS" \
-  --eventhub-name  "$EH_NAME"
+"$ROOT/infra/bootstrap.sh" "${BOOTSTRAP_ARGS[@]}"
 
 # ── 5. Summary ────────────────────────────────────────────────────────────────
 echo ""

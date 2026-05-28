@@ -26,6 +26,8 @@
 #
 # Add --preflight to verify Azure access and quota WITHOUT creating anything.
 # Add --skip-eventhub if you already have an Event Hubs namespace.
+# Add --use-existing-rg if you cannot create resource groups (uses an RG your
+#   admin already created; location is read from that RG automatically).
 #
 # Naming rules enforced by Azure:
 #   * ACR name      : 5-50 chars, alphanumeric only, globally unique
@@ -43,6 +45,7 @@ EH_NS="evhns-telemetry-dev"
 EH_NAME="ai-telemetry-events"
 SKIP_EVENTHUB=false
 PREFLIGHT=false
+USE_EXISTING_RG=false
 
 # ── Parse arguments ───────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -56,6 +59,7 @@ while [[ $# -gt 0 ]]; do
     --eventhub-name)   EH_NAME="$2";  shift 2 ;;
     --skip-eventhub)   SKIP_EVENTHUB=true; shift ;;
     --preflight)       PREFLIGHT=true;     shift ;;
+    --use-existing-rg) USE_EXISTING_RG=true; shift ;;
     -h|--help)
       sed -n '2,40p' "$0"
       exit 0 ;;
@@ -102,6 +106,7 @@ else
   echo "  Event Hubs     : --skip-eventhub (bring your own connection string)"
 fi
 echo "  Mode           : $([[ "$PREFLIGHT" == "true" ]] && echo "PREFLIGHT (no changes)" || echo "create / update")"
+echo "  Resource group : $([[ "$USE_EXISTING_RG" == "true" ]] && echo "use existing" || echo "create if needed")"
 echo "============================================================"
 echo ""
 
@@ -151,9 +156,23 @@ fi
 
 # ── 1. Resource Group ─────────────────────────────────────────────────────────
 echo ""
-echo "[1/5] Creating resource group..."
-az group create --name "$RG" --location "$LOCATION" --output none
-echo "      ✓ $RG"
+if [[ "$USE_EXISTING_RG" == "true" ]]; then
+  echo "[1/5] Using existing resource group..."
+  if ! az group show --name "$RG" >/dev/null 2>&1; then
+    echo "ERROR: Resource group '$RG' not found or you lack read access." >&2
+    echo "       Ask your Azure admin for the exact name and Reader/Contributor on it." >&2
+    exit 1
+  fi
+  RG_LOCATION=$(az group show --name "$RG" --query location -o tsv)
+  if [[ -n "$RG_LOCATION" ]]; then
+    LOCATION="$RG_LOCATION"
+  fi
+  echo "      ✓ $RG (location: $LOCATION)"
+else
+  echo "[1/5] Creating resource group..."
+  az group create --name "$RG" --location "$LOCATION" --output none
+  echo "      ✓ $RG"
+fi
 
 # ── 2. Azure Container Registry (admin disabled — uses SP / managed identity) ─
 echo "[2/5] Creating Azure Container Registry (admin disabled)..."

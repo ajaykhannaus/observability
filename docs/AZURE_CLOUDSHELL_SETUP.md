@@ -6,7 +6,52 @@ Run this guide in **Bash** from **Azure Cloud Shell** or **VS Code for the Web o
 
 ---
 
-## Quick start
+## Using an existing resource group (no RG create permission)
+
+If your admin already gave you a resource group, **do not create a new one**. Set your RG name and use `--use-existing-rg`. The script reads the **location from that RG** automatically.
+
+```bash
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
+
+export AZURE_SUBSCRIPTION_ID="<your-subscription-guid>"
+export AZURE_RESOURCE_GROUP="<your-company-rg-name>"   # e.g. rg-myteam-dev
+export USE_EXISTING_RG=true
+
+# Optional — pick globally unique names if defaults are taken
+export ACR_NAME=acrtelemetrydev<yourinitials>
+export EH_NS=evhns-telemetry-dev<yourinitials>
+
+chmod +x scripts/azure-cloudshell-setup.sh
+./scripts/azure-cloudshell-setup.sh
+```
+
+**Verify access first:**
+
+```bash
+az account set --subscription "<your-subscription-guid>"
+az group show --name "<your-company-rg-name>" -o table
+```
+
+You need **Contributor** (or equivalent) **on that resource group** to create ACR, Container Apps, Event Hubs, etc. You do **not** need subscription-level RG create permission.
+
+**Manual bootstrap only** (same RG, no RG create):
+
+```bash
+./infra/bootstrap.sh \
+  --use-existing-rg \
+  --resource-group "<your-company-rg-name>" \
+  --acr-name       acrtelemetrydev \
+  --cae-name       cae-telemetry-dev \
+  --app-name       ai-telemetry-runner-dev \
+  --eventhub-ns    evhns-telemetry-dev
+```
+
+---
+
+## Quick start (create new resource group)
+
+If you **can** create resource groups, use the default flow:
 
 ```bash
 git clone https://github.com/ajaykhannaus/observability.git
@@ -114,7 +159,8 @@ For full provisioning including Managed Grafana and Prometheus:
 
 | Problem | Fix |
 |---|---|
-| `Authorization failed` | Ask Azure admin for **Contributor** on the subscription or resource group |
+| `Authorization failed` on RG create | Use **existing RG**: `export USE_EXISTING_RG=true` and `AZURE_RESOURCE_GROUP=<admin-rg>` |
+| `Authorization failed` on ACR/CAE | Ask admin for **Contributor** on the resource group, not just Reader |
 | `ACR name not available` | Pick a globally unique name: `export ACR_NAME=acrtelemetrydev<yourinitials>` before running the script |
 | `Microsoft.App not registered` | Re-run provider registration (see above) |
 | `az: command not found` | Use **Bash** Cloud Shell, not a plain terminal without Azure CLI |

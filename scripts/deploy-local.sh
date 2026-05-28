@@ -53,6 +53,16 @@ cmd_provision() {
   load_env
   cmd_login
 
+  if [[ "${USE_EXISTING_RG:-false}" == "true" ]]; then
+    if ! az group show --name "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+      echo "ERROR: Resource group '$AZURE_RESOURCE_GROUP' not found." >&2
+      exit 1
+    fi
+    AZURE_LOCATION=$(az group show --name "$AZURE_RESOURCE_GROUP" --query location -o tsv)
+    export AZURE_LOCATION
+    log "Using existing RG $AZURE_RESOURCE_GROUP (location: $AZURE_LOCATION)"
+  fi
+
   log "Registering Azure providers..."
   for ns in Microsoft.App Microsoft.Monitor Microsoft.Dashboard \
             Microsoft.OperationalInsights Microsoft.ContainerRegistry Microsoft.EventHub; do
@@ -63,15 +73,20 @@ cmd_provision() {
     fi
   done
 
-  log "Bootstrapping base infra (RG, ACR, CAE, Event Hubs)..."
-  "$ROOT/infra/bootstrap.sh" \
-    --resource-group "$AZURE_RESOURCE_GROUP" \
-    --location       "$AZURE_LOCATION" \
-    --acr-name       "$ACR_NAME" \
-    --cae-name       "$CAE_NAME" \
-    --app-name       "$APP_NAME" \
-    --eventhub-ns    "$EH_NS" \
+  log "Bootstrapping base infra (ACR, CAE, Event Hubs)..."
+  BOOTSTRAP_ARGS=(
+    --resource-group "$AZURE_RESOURCE_GROUP"
+    --location       "$AZURE_LOCATION"
+    --acr-name       "$ACR_NAME"
+    --cae-name       "$CAE_NAME"
+    --app-name       "$APP_NAME"
+    --eventhub-ns    "$EH_NS"
     --eventhub-name  "$EH_NAME"
+  )
+  if [[ "${USE_EXISTING_RG:-false}" == "true" ]]; then
+    BOOTSTRAP_ARGS+=(--use-existing-rg)
+  fi
+  "$ROOT/infra/bootstrap.sh" "${BOOTSTRAP_ARGS[@]}"
 
   log "Creating Azure Managed Prometheus ($PROM_WS)..."
   if ! az monitor account show --name "$PROM_WS" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
