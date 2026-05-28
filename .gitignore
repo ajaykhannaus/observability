@@ -27,6 +27,7 @@ htmlcov/
 
 # Prometheus local data
 /tmp/prom-data/
+data/
 
 # Azure Functions local settings (may contain secrets)
 function_app/local.settings.json
