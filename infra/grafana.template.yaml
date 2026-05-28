@@ -30,6 +30,8 @@ properties:
             value: "false"
           - name: GF_USERS_ALLOW_SIGN_UP
             value: "false"
+          - name: GF_USERS_DEFAULT_THEME
+            value: light
           # Tenant template variable default — read from a JWT claim if
           # fronting auth (Azure AD / APIM) injects it; otherwise empty,
           # which the dashboards interpret as "all tenants".

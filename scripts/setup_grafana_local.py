@@ -375,7 +375,19 @@ def _dashboard_files() -> list[Path]:
     return files
 
 
+def _set_light_theme() -> None:
+    """Default Grafana UI to light theme (canvas + panel backgrounds)."""
+    for path, label in (("/api/org/preferences", "org"), ("/api/user/preferences", "user")):
+        try:
+            _req("PUT", path, {"theme": "light"})
+            print(f"  set {label} theme: light")
+        except RuntimeError as exc:
+            print(f"  warning: could not set {label} theme ({exc})")
+
+
 def main() -> None:
+    _set_light_theme()
+
     for name in ("azure-managed-prometheus", "Azure Monitor"):
         _delete_datasource(name)
 
