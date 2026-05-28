@@ -2,7 +2,7 @@
 
 Complete instructions for deploying this project on a company Azure VM with GitHub Actions CI/CD.
 
-**Repo:** https://github.com/ajaykhannaus/azure-telemetry-llm (private)
+**Repo:** https://github.com/ajaykhannaus/observability (public)
 
 ---
 
@@ -12,7 +12,7 @@ Complete instructions for deploying this project on a company Azure VM with GitH
 You (push code)
       │
       ▼
-GitHub (ajaykhannaus/azure-telemetry-llm)
+GitHub (ajaykhannaus/observability)
       │
       ▼  triggers job on self-hosted runner
 Company Windows Server VM  ←── inside VPN ──→  Company Azure
@@ -43,8 +43,8 @@ az account set --subscription <company-subscription-id>
 ### 1.2 — Run the bootstrap script
 
 ```powershell
-git clone https://github.com/ajaykhannaus/azure-telemetry-llm.git
-cd azure-telemetry-llm
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
 
 # Run bootstrap — creates resource group, ACR, Container Apps Environment, Service Principal
 .\infra\bootstrap.sh `
@@ -63,7 +63,7 @@ The script will **print all 7 GitHub secrets** at the end — copy them, you'll 
 
 ## Part 2 — GitHub Secrets (set once per repo)
 
-Go to: **https://github.com/ajaykhannaus/azure-telemetry-llm/settings/secrets/actions**
+Go to: **https://github.com/ajaykhannaus/observability/settings/secrets/actions**
 
 Set all 7 secrets:
 
@@ -83,7 +83,7 @@ Set all 7 secrets:
 
 ### 3.1 — Get a runner registration token (expires in 1 hour)
 
-Go to: **https://github.com/ajaykhannaus/azure-telemetry-llm/settings/actions/runners/new**
+Go to: **https://github.com/ajaykhannaus/observability/settings/actions/runners/new**
 
 Select **Windows** → Copy the token shown (looks like `AABC...XYZ`)
 
@@ -93,14 +93,14 @@ Open **PowerShell as Administrator** and run:
 
 ```powershell
 # Step A: Clone the repo
-git clone https://github.com/ajaykhannaus/azure-telemetry-llm.git
-cd azure-telemetry-llm
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
 
 # Step B: Run the setup script
 Set-ExecutionPolicy RemoteSigned -Scope Process -Force
 
 .\infra\setup-runner.ps1 `
-  -GitHubRepo    "ajaykhannaus/azure-telemetry-llm" `
+  -GitHubRepo    "ajaykhannaus/observability" `
   -GitHubToken   "<paste token from Step 3.1>" `
   -RunnerName    "company-vm-runner"
 ```
@@ -117,7 +117,7 @@ Set-ExecutionPolicy RemoteSigned -Scope Process -Force
 
 ### 3.3 — Verify the runner is online
 
-Go to: **https://github.com/ajaykhannaus/azure-telemetry-llm/settings/actions/runners**
+Go to: **https://github.com/ajaykhannaus/observability/settings/actions/runners**
 
 You should see `company-vm-runner` with a green **Idle** status.
 
@@ -141,8 +141,8 @@ docker version
 From your machine (or directly from the VM):
 
 ```powershell
-git clone https://github.com/ajaykhannaus/azure-telemetry-llm.git
-cd azure-telemetry-llm
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
 git push origin master
 ```
 
@@ -150,7 +150,7 @@ Or trigger manually: **GitHub → Actions → Build and Deploy to Azure → Run 
 
 ### 4.2 — Watch the deploy
 
-Go to: **https://github.com/ajaykhannaus/azure-telemetry-llm/actions**
+Go to: **https://github.com/ajaykhannaus/observability/actions**
 
 You will see:
 - `build-fn` — runs on company VM ✅
@@ -237,7 +237,7 @@ cd C:\actions-runner
 ## File reference
 
 ```
-azure-telemetry-llm/
+observability/
 ├── .github/workflows/deploy.yml    ← CI/CD pipeline (jobs 1&2 run on company VM)
 ├── infra/
 │   ├── bootstrap.sh                ← creates all Azure resources (run once)

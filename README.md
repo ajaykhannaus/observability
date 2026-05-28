@@ -1,5 +1,7 @@
 # AI Gateway Telemetry
 
+**Repository:** https://github.com/ajaykhannaus/observability
+
 Production observability pipeline: synthetic (or real) LLM gateway traffic →
 Azure Event Hubs → OpenTelemetry → Grafana (Bucket 1: with distributed tracing).
 
@@ -46,6 +48,9 @@ Without `EVENTHUB_CONNECTION_STRING` the runner runs in **mock mode** — events
 ---
 
 ## Deploy to Azure
+
+**Cloud Shell (recommended):** see [docs/AZURE_CLOUDSHELL_SETUP.md](docs/AZURE_CLOUDSHELL_SETUP.md)  
+**Local secrets only:** see [scripts/deploy-local.sh](scripts/deploy-local.sh)
 
 ### Prerequisites
 

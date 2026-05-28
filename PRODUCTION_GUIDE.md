@@ -190,8 +190,8 @@ az extension add --name amg --upgrade --yes
 
 ### 1. Clone repo and set up Python
 ```powershell
-git clone https://github.com/ajaykhanna123ak/azure-telemetry-llm.git
-cd azure-telemetry-llm
+git clone https://github.com/ajaykhannaus/observability.git
+cd observability
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
