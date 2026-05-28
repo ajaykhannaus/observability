@@ -15,22 +15,20 @@ After bootstrap, deploy from your Mac using `.env.azure` (secrets stay local, no
 
 ## Step 1 — Verify access
 
+Copy and run in Cloud Shell:
+
 ```bash
 az account set --subscription "216d62c8-0f0c-4e5c-9cda-cc553e7ab186"
+
 az group show --name "az03-al-titan-sandbox-rg" -o table
-```
 
-Check your role on the resource group (need **Contributor** to run bootstrap):
-
-```bash
-az account set --subscription "216d62c8-0f0c-4e5c-9cda-cc553e7ab186"
 az role assignment list \
   --assignee "$(az ad signed-in-user show --query id -o tsv)" \
   --resource-group "az03-al-titan-sandbox-rg" \
   -o table
 ```
 
-If you only see **Reader** (or no rows), ask your admin for **Contributor** on the resource group, or have them run bootstrap and send you `.env.azure`.
+You need **Contributor** on the resource group to run bootstrap. If you only see **Reader** (or no rows), ask your admin for **Contributor**, or have them run bootstrap and send you `.env.azure`.
 
 Replace subscription ID and resource group if yours differ.
 
