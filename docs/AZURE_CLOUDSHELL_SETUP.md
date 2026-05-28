@@ -81,42 +81,27 @@ git pull
 
 ---
 
-## Part C — Create bootstrap settings file
+## Part C — Bootstrap settings (already in repo)
 
-### Command 7 — Create `azure/bootstrap-azure.env`
+### Command 7 — Copy sandbox config
 
-Copy this **whole block** as one paste (it is one command):
+No need to type settings — they are in the repo:
 
 ```bash
-cat > azure/bootstrap-azure.env <<'EOF'
-AZURE_SUBSCRIPTION_NAME=az-uc-analytics-sandbox-eastus
-AZURE_SUBSCRIPTION_ID=216d62c8-0f0c-4e5c-9cda-cc553e7ab186
-USE_EXISTING_RG=true
-AZURE_RESOURCE_GROUP=az03-al-titan-sandbox-rg
-AZURE_LOCATION=eastus
-ACR_NAME=acrtelemetrydev
-CAE_NAME=cae-telemetry-dev
-APP_NAME=ai-telemetry-runner-dev
-PROM_APP_NAME=prometheus-scraper-dev
-GRAFANA_NAME=grafana-telemetry-dev
-PROM_WS=telemetry-prometheus-dev
-EH_NS=evhns-telemetry-dev
-EVENTHUB_NAME=ai-telemetry-events
-PROVISION_OBSERVABILITY=true
-PROVISION_ADX=true
-ADX_CLUSTER=adxtelemetrydev
-ADX_DATABASE=observability
-ADX_ENV=dev
-BUILD_IMAGES=true
-WRITE_ENV_FILE=.env.azure
-EOF
+cp azure/bootstrap-azure.sandbox.env azure/bootstrap-azure.env
 ```
 
 **Success:** no output.
 
+**Alternative:** run the prepare helper (does command 7 + command 9):
+
+```bash
+./scripts/cloudshell-prepare.sh
+```
+
 ---
 
-### Command 8 — Confirm the file was created
+### Command 8 — Confirm the file
 
 ```bash
 cat azure/bootstrap-azure.env
@@ -130,8 +115,10 @@ cat azure/bootstrap-azure.env
 
 ### Command 9 — Make scripts executable
 
+Skip if you already ran `./scripts/cloudshell-prepare.sh`.
+
 ```bash
-chmod +x scripts/bootstrap-azure.sh infra/bootstrap.sh infra/adx-data-connection.sh
+chmod +x scripts/bootstrap-azure.sh infra/bootstrap.sh infra/adx-data-connection.sh scripts/cloudshell-prepare.sh
 ```
 
 **Success:** no output.
@@ -306,7 +293,7 @@ chmod +x scripts/deploy-local.sh scripts/azure-local-login.sh
 | 4 | `git clone ...` | ☐ |
 | 5 | `cd observability` | ☐ |
 | 6 | `git pull` | ☐ |
-| 7 | `cat > azure/bootstrap-azure.env ...` | ☐ |
+| 7 | `cp azure/bootstrap-azure.sandbox.env azure/bootstrap-azure.env` | ☐ |
 | 10 | `./scripts/bootstrap-azure.sh --preflight` | ☐ |
 | 12 | `./scripts/bootstrap-azure.sh` | ☐ |
 | 14 | ADX schema in Portal | ☐ |
@@ -331,6 +318,10 @@ chmod +x scripts/deploy-local.sh scripts/azure-local-login.sh
 
 | File | Purpose |
 |---|---|
-| `azure/bootstrap-azure.env` | Your Azure settings (created in step 7) |
-| `.env.azure` | Secrets output after bootstrap (step 15) |
+| `azure/bootstrap-azure.sandbox.env` | Pre-filled sandbox settings (committed — safe to clone) |
+| `azure/bootstrap-azure.env` | Active config (gitignored — created from sandbox file) |
+| `scripts/cloudshell-prepare.sh` | Copy config + chmod scripts |
+| `scripts/bootstrap-azure.sh` | Full Azure provisioning |
+| `infra/adx-schema.kql` | ADX tables and routing policies |
+| `scripts/deploy-local.sh` | Deploy from Mac using `.env` |
 | `docs/AZURE_OBSERVABILITY.md` | How other apps connect later |
