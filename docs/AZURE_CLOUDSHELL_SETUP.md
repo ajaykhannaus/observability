@@ -20,6 +20,18 @@ az account set --subscription "216d62c8-0f0c-4e5c-9cda-cc553e7ab186"
 az group show --name "az03-al-titan-sandbox-rg" -o table
 ```
 
+Check your role on the resource group (need **Contributor** to run bootstrap):
+
+```bash
+az account set --subscription "216d62c8-0f0c-4e5c-9cda-cc553e7ab186"
+az role assignment list \
+  --assignee "$(az ad signed-in-user show --query id -o tsv)" \
+  --resource-group "az03-al-titan-sandbox-rg" \
+  -o table
+```
+
+If you only see **Reader** (or no rows), ask your admin for **Contributor** on the resource group, or have them run bootstrap and send you `.env.azure`.
+
 Replace subscription ID and resource group if yours differ.
 
 ---
@@ -183,7 +195,7 @@ az containerapp show \
 
 | Problem | Fix |
 |---|---|
-| `Authorization failed` | Ask admin for **Contributor** on the resource group |
+| `Authorization failed` | Run the role check in Step 1; ask admin for **Contributor** on the resource group |
 | ACR name not available | Change `ACR_NAME` in `azure/bootstrap-azure.env` |
 | Event Hub name not available | Change `EH_NS` in `azure/bootstrap-azure.env` |
 | ADX cluster slow | Normal — can take 5–10 minutes |
