@@ -208,93 +208,55 @@ else
   echo "[4/5] event hubs skipped"
 fi
 
-echo "[5/5] service principal"
-SP_NAME="sp-telemetry-cicd-${RG}"
-SP_JSON=""
-SP_CLIENT_ID=""
-SP_CLIENT_SECRET=""
+echo "[5/5] managed identity"
+# No service principal is required. The Container App uses a system-assigned
+# managed identity to pull images from ACR (already declared in
+# infra/containerapp.template.yaml via registries[*].identity: system).
+# The self-hosted CI runner VM authenticates to Azure via its own managed
+# identity too (auth-type: IDENTITY in azure/login@v2 — no secret needed).
 
-# Helper: build the AZURE_CREDENTIALS JSON blob from raw SP fields.
-# --sdk-auth is deprecated; we construct the same shape manually.
-_build_sp_json() {
-  local client_id="$1" client_secret="$2"
-  python3 - "$client_id" "$client_secret" "$SUB_ID" "$TENANT_ID" <<'PYEOF'
-import json, sys
-cid, csec, sub, ten = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-print(json.dumps({
-  "clientId":                         cid,
-  "clientSecret":                     csec,
-  "subscriptionId":                   sub,
-  "tenantId":                         ten,
-  "activeDirectoryEndpointUrl":       "https://login.microsoftonline.com",
-  "resourceManagerEndpointUrl":       "https://management.azure.com/",
-  "activeDirectoryGraphResourceId":   "https://graph.windows.net/",
-  "sqlManagementEndpointUrl":         "https://management.core.windows.net:8443/",
-  "galleryEndpointUrl":               "https://gallery.azure.com/",
-  "managementEndpointUrl":            "https://management.core.windows.net/",
-}, indent=2))
-PYEOF
-}
+MI_PRINCIPAL_ID=""
 
-EXISTING_APP_ID=$(az ad sp list --display-name "$SP_NAME" --query "[0].appId" -o tsv 2>/dev/null || true)
+if az containerapp show --name "$APP_NAME" --resource-group "$RG" >/dev/null 2>&1; then
+  az containerapp identity assign \
+    --name "$APP_NAME" \
+    --resource-group "$RG" \
+    --system-assigned \
+    --output none
 
-if [[ -n "$EXISTING_APP_ID" ]]; then
-  echo "  reset credentials for $SP_NAME"
-  RAW=$(az ad sp credential reset \
-    --id "$EXISTING_APP_ID" \
-    --display-name "$(date -u +%Y%m%d-%H%M%S)" \
-    --output json 2>&1) && {
-      SP_CLIENT_ID=$(python3 -c "import sys,json; print(json.load(sys.stdin)['appId'])"   <<<"$RAW")
-      SP_CLIENT_SECRET=$(python3 -c "import sys,json; print(json.load(sys.stdin)['password'])" <<<"$RAW")
-      SP_JSON=$(_build_sp_json "$SP_CLIENT_ID" "$SP_CLIENT_SECRET")
-      echo "  $SP_NAME"
-    } || {
-      echo "  WARNING: could not reset SP credentials (insufficient Azure AD privileges)."
-      echo "  Ask an Azure AD admin to run: az ad sp credential reset --id $EXISTING_APP_ID"
-    }
-else
-  # az ad sp create-for-rbac requires Application Administrator (or higher) in
-  # Azure AD. If the caller lacks that role the command fails with
-  # "Insufficient privileges". We catch that and continue so the rest of the
-  # infra (ACR, CAE, Event Hub) is still usable.
-  RAW=$(az ad sp create-for-rbac \
-    --name "$SP_NAME" \
-    --role Reader \
-    --scopes "/subscriptions/${SUB_ID}/resourceGroups/${RG}" \
-    --output json 2>&1) && {
-      SP_CLIENT_ID=$(python3 -c "import sys,json; print(json.load(sys.stdin)['appId'])"   <<<"$RAW")
-      SP_CLIENT_SECRET=$(python3 -c "import sys,json; print(json.load(sys.stdin)['password'])" <<<"$RAW")
-      SP_JSON=$(_build_sp_json "$SP_CLIENT_ID" "$SP_CLIENT_SECRET")
-      echo "  $SP_NAME"
-    } || {
-      echo "  WARNING: could not create service principal (insufficient Azure AD privileges)."
-      echo "  To create it manually, an Azure AD admin must run:"
-      echo "    az ad sp create-for-rbac --name $SP_NAME --role Reader \\"
-      echo "      --scopes /subscriptions/${SUB_ID}/resourceGroups/${RG}"
-      echo "  Then assign AcrPush and 'Container Apps Contributor' to the new SP."
-    }
-fi
+  MI_PRINCIPAL_ID=$(az containerapp show \
+    --name "$APP_NAME" \
+    --resource-group "$RG" \
+    --query identity.principalId -o tsv)
 
-# Assign additional roles only when we have a valid SP.
-if [[ -n "$SP_CLIENT_ID" ]]; then
   az role assignment create \
-    --assignee "$SP_CLIENT_ID" \
-    --role AcrPush \
+    --assignee "$MI_PRINCIPAL_ID" \
+    --role AcrPull \
     --scope "/subscriptions/${SUB_ID}/resourceGroups/${RG}/providers/Microsoft.ContainerRegistry/registries/${ACR_NAME}" \
     --output none 2>/dev/null || true
 
-  az role assignment create \
-    --assignee "$SP_CLIENT_ID" \
-    --role "Container Apps Contributor" \
-    --scope "/subscriptions/${SUB_ID}/resourceGroups/${RG}" \
-    --output none 2>/dev/null || true
+  echo "  $APP_NAME  principal: $MI_PRINCIPAL_ID"
+else
+  echo "  Container App '$APP_NAME' not deployed yet."
+  echo "  Its managed identity will be created on first deploy (see .github/workflows/deploy.yml)."
 fi
+
+# The self-hosted runner VM needs these two roles assigned to its managed
+# identity so CI can push images and update the Container App without any
+# AZURE_CREDENTIALS secret. Run once as a subscription Owner/Contributor:
+#
+#   RUNNER_MI=$(az vm show -g <runner-rg> -n <runner-vm> \
+#                 --query identity.principalId -o tsv)
+#   az role assignment create --assignee "$RUNNER_MI" --role AcrPush \
+#     --scope /subscriptions/${SUB_ID}/resourceGroups/${RG}/providers/\
+# Microsoft.ContainerRegistry/registries/${ACR_NAME}
+#   az role assignment create --assignee "$RUNNER_MI" \
+#     --role "Container Apps Contributor" \
+#     --scope /subscriptions/${SUB_ID}/resourceGroups/${RG}
 
 if [[ -n "$WRITE_ENV" ]]; then
   mkdir -p "$(dirname "$WRITE_ENV")"
   cat > "$WRITE_ENV" <<EOF
-AZURE_CLIENT_ID=$SP_CLIENT_ID
-AZURE_CLIENT_SECRET=$SP_CLIENT_SECRET
 AZURE_TENANT_ID=$TENANT_ID
 AZURE_SUBSCRIPTION_ID=$SUB_ID
 USE_EXISTING_RG=$USE_EXISTING_RG
@@ -314,15 +276,7 @@ fi
 
 if [[ "$SKIP_PRINT_SECRETS" != "true" ]]; then
   echo ""
-  if [[ -n "$SP_JSON" ]]; then
-    echo "GitHub secrets"
-    echo "  AZURE_CREDENTIALS"
-    echo "$SP_JSON" | sed 's/^/    /'
-    echo ""
-  else
-    echo "GitHub secrets (AZURE_CREDENTIALS skipped — SP not created)"
-    echo ""
-  fi
+  echo "GitHub secrets (repo → Settings → Secrets → Actions)"
   echo "  AZURE_SUBSCRIPTION_ID=$SUB_ID"
   echo "  AZURE_TENANT_ID=$TENANT_ID"
   echo "  AZURE_RESOURCE_GROUP=$RG"
@@ -334,6 +288,11 @@ if [[ "$SKIP_PRINT_SECRETS" != "true" ]]; then
   [[ -n "$EH_CONN" ]] && echo "  EVENTHUB_NAMESPACE=${EH_NS}.servicebus.windows.net"
   [[ -n "$EH_CONN" ]] && echo "  EVENTHUB_CONNECTION_STRING=$EH_CONN"
   [[ -n "$WRITE_ENV" ]] && echo "  env file: $WRITE_ENV"
+  echo ""
+  echo "  NOTE: AZURE_CREDENTIALS is no longer required."
+  echo "  Make sure the self-hosted runner VM has a system-assigned managed"
+  echo "  identity with AcrPush (on the registry) and 'Container Apps"
+  echo "  Contributor' (on the resource group). See the comment above."
   echo ""
   echo "Bootstrap complete."
 fi
