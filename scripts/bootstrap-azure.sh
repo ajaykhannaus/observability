@@ -251,12 +251,24 @@ fi
   echo "EVAL_ENABLED=false"
 } >> "$WRITE_ENV_FILE"
 
+acr_image_exists() {
+  az acr repository show --name "$ACR_NAME" --image "$1" >/dev/null 2>&1
+}
+
+build_image_if_missing() {
+  local tag=$1 dockerfile=$2
+  if [[ "${FORCE_IMAGE_BUILD:-false}" != "true" ]] && acr_image_exists "$tag"; then
+    log "reuse $ACR_NAME/$tag — skipping build"
+    return 0
+  fi
+  log "building $ACR_NAME/$tag"
+  az acr build --registry "$ACR_NAME" --platform linux/amd64 \
+    --image "$tag" -f "$dockerfile" "$ROOT"
+}
+
 if [[ "$BUILD_IMAGES" == "true" ]]; then
-  log "acr build"
-  az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-    --image "ai-telemetry-runner:latest" -f "$ROOT/Dockerfile.runner" "$ROOT"
-  az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-    --image "prometheus-scraper:latest" -f "$ROOT/Dockerfile.prometheus" "$ROOT"
+  build_image_if_missing "ai-telemetry-runner:latest" "$ROOT/Dockerfile.runner"
+  build_image_if_missing "prometheus-scraper:latest" "$ROOT/Dockerfile.prometheus"
 fi
 
 echo ""

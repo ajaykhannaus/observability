@@ -229,6 +229,10 @@ ensure_acr_pull() {
     --output none 2>/dev/null || true
 }
 
+containerapp_exists() {
+  az containerapp show --name "$1" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1
+}
+
 cmd_deploy() {
   load_env
   cmd_login
@@ -249,12 +253,17 @@ cmd_deploy() {
       "eventhub-connection-string=$EVENTHUB_CONNECTION_STRING" \
     2>/dev/null || true
 
-  if az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
-    log "Updating $APP_NAME ..."
-    az containerapp update \
-      --name "$APP_NAME" \
-      --resource-group "$AZURE_RESOURCE_GROUP" \
-      --yaml "$rendered"
+  if containerapp_exists "$APP_NAME"; then
+    log "Container app $APP_NAME already exists — skipping create"
+    if [[ "${SKIP_EXISTING_CONTAINERS:-false}" == "true" ]]; then
+      log "SKIP_EXISTING_CONTAINERS=true — leaving $APP_NAME unchanged"
+    else
+      log "Updating $APP_NAME ..."
+      az containerapp update \
+        --name "$APP_NAME" \
+        --resource-group "$AZURE_RESOURCE_GROUP" \
+        --yaml "$rendered"
+    fi
   else
     log "Creating $APP_NAME ..."
     az containerapp create \
@@ -274,14 +283,19 @@ cmd_deploy() {
     acr_login="${ACR_LOGIN_SERVER:-$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)}"
 
     log "Deploying $PROM_APP_NAME (scrape target: $fqdn) ..."
-    if az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
-      az containerapp update \
-        --name "$PROM_APP_NAME" \
-        --resource-group "$AZURE_RESOURCE_GROUP" \
-        --image "${acr_login}/prometheus-scraper:latest" \
-        --set-env-vars \
-          "SCRAPE_TARGET=$fqdn" \
-          "PROM_REMOTE_WRITE_URL=$PROM_REMOTE_WRITE_URL"
+    if containerapp_exists "$PROM_APP_NAME"; then
+      log "Container app $PROM_APP_NAME already exists — skipping create"
+      if [[ "${SKIP_EXISTING_CONTAINERS:-false}" != "true" ]]; then
+        az containerapp update \
+          --name "$PROM_APP_NAME" \
+          --resource-group "$AZURE_RESOURCE_GROUP" \
+          --image "${acr_login}/prometheus-scraper:latest" \
+          --set-env-vars \
+            "SCRAPE_TARGET=$fqdn" \
+            "PROM_REMOTE_WRITE_URL=$PROM_REMOTE_WRITE_URL"
+      else
+        log "SKIP_EXISTING_CONTAINERS=true — leaving $PROM_APP_NAME unchanged"
+      fi
     else
       az containerapp create \
         --name "$PROM_APP_NAME" \

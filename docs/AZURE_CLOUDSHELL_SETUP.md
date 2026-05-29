@@ -185,6 +185,19 @@ Download via Cloud Shell **Download** if you want a copy for later.
 
 ---
 
+## Re-run safely (containers already exist)
+
+Bootstrap and deploy **reuse** same-named resources — they do not create duplicates.
+
+| Re-run | Behavior |
+|---|---|
+| `./scripts/bootstrap-azure.sh` | Reuses ACR, Event Hubs, ADX; skips image build if `:latest` already in ACR |
+| `./scripts/cloudshell-deploy.sh` | Skips **create** if Container App exists; **updates** config |
+| Skip updates too | `export SKIP_EXISTING_CONTAINERS=true` before deploy |
+| Force image rebuild | `export FORCE_IMAGE_BUILD=true` before bootstrap |
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |

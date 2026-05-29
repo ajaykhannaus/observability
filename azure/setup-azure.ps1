@@ -173,29 +173,32 @@ if ($DcrImmutableId -eq "") {
 # ── 8. Deploy Container Apps ──────────────────────────────────────────────────
 Write-Host "`n[9/9] Deploying Container Apps (runner + prometheus-scraper)..." -ForegroundColor Yellow
 
-# 8a. Get SP/managed identity for ACR pull
-# Using system-assigned managed identity for Container App (no SP secret needed)
-az containerapp create `
-    --name $AppName `
-    --resource-group $ResourceGroup `
-    --environment $CaeName `
-    --image "${AcrName}.azurecr.io/ai-telemetry-runner:latest" `
-    --registry-server "${AcrName}.azurecr.io" `
-    --ingress external --target-port 8000 `
-    --min-replicas 1 --max-replicas 1 `
-    --cpu 0.5 --memory 1Gi `
-    --system-assigned `
-    --env-vars `
-        OTEL_SERVICE_NAME=ai-telemetry-poc `
-        ENVIRONMENT=production `
-        EVENTHUB_NAMESPACE="${EventHubNs}.servicebus.windows.net" `
-        EVENTHUB_NAME=$EventHubName `
-        PROMETHEUS_PORT=8000 `
-        BATCH_INTERVAL_S=5 `
-        BASE_BATCH_SIZE=8 `
-        EVENTHUB_CONNECTION_STRING="secretref:eventhub-conn-str" `
-    --secrets "eventhub-conn-str=$EventHubConn" `
-    --output none
+# 8a. Runner Container App (skip create if same name already exists)
+if (az containerapp show --name $AppName --resource-group $ResourceGroup 2>$null) {
+    Write-Host "      Runner $AppName already exists — skipping create" -ForegroundColor Gray
+} else {
+    az containerapp create `
+        --name $AppName `
+        --resource-group $ResourceGroup `
+        --environment $CaeName `
+        --image "${AcrName}.azurecr.io/ai-telemetry-runner:latest" `
+        --registry-server "${AcrName}.azurecr.io" `
+        --ingress external --target-port 8000 `
+        --min-replicas 1 --max-replicas 1 `
+        --cpu 0.5 --memory 1Gi `
+        --system-assigned `
+        --env-vars `
+            OTEL_SERVICE_NAME=ai-telemetry-poc `
+            ENVIRONMENT=production `
+            EVENTHUB_NAMESPACE="${EventHubNs}.servicebus.windows.net" `
+            EVENTHUB_NAME=$EventHubName `
+            PROMETHEUS_PORT=8000 `
+            BATCH_INTERVAL_S=5 `
+            BASE_BATCH_SIZE=8 `
+            EVENTHUB_CONNECTION_STRING="secretref:eventhub-conn-str" `
+        --secrets "eventhub-conn-str=$EventHubConn" `
+        --output none
+}
 
 $RunnerFqdn = az containerapp show `
     --name $AppName `
@@ -211,21 +214,23 @@ az role assignment create --assignee $RunnerPrincipalId --role AcrPull --scope $
 
 Write-Host "      Runner FQDN : $RunnerFqdn" -ForegroundColor Gray
 
-# 8b. Deploy Prometheus scraper Container App
-# prometheus.yml is baked into Dockerfile.prometheus
-# Override scrape target via env var
-az containerapp create `
-    --name $PrometheusAppName `
-    --resource-group $ResourceGroup `
-    --environment $CaeName `
-    --image "prom/prometheus:latest" `
-    --ingress internal --target-port 9090 `
-    --min-replicas 1 --max-replicas 1 `
-    --cpu 0.25 --memory 0.5Gi `
-    --args "--config.file=/etc/prometheus/prometheus.yml" `
-           "--storage.tsdb.retention.time=2h" `
-           "--log.level=warn" `
-    --output none
+# 8b. Prometheus scraper Container App (skip create if same name already exists)
+if (az containerapp show --name $PrometheusAppName --resource-group $ResourceGroup 2>$null) {
+    Write-Host "      Prometheus $PrometheusAppName already exists — skipping create" -ForegroundColor Gray
+} else {
+    az containerapp create `
+        --name $PrometheusAppName `
+        --resource-group $ResourceGroup `
+        --environment $CaeName `
+        --image "prom/prometheus:latest" `
+        --ingress internal --target-port 9090 `
+        --min-replicas 1 --max-replicas 1 `
+        --cpu 0.25 --memory 0.5Gi `
+        --args "--config.file=/etc/prometheus/prometheus.yml" `
+               "--storage.tsdb.retention.time=2h" `
+               "--log.level=warn" `
+        --output none
+}
 
 Write-Host "      Prometheus scraper deployed." -ForegroundColor Green
 
