@@ -145,18 +145,21 @@ if [[ "$PROVISION_OBSERVABILITY" == "true" ]]; then
   log "observability"
   for ns in Microsoft.Monitor Microsoft.Dashboard; do
     state=$(az provider show --namespace "$ns" --query registrationState -o tsv 2>/dev/null || echo "NotRegistered")
-      if [[ "$state" != "Registered" ]]; then
-        if ! az provider register --namespace "$ns" --output none 2>/dev/null; then
-          log "WARNING: cannot register $ns (insufficient subscription-level permissions)."
-          log "  Ask a subscription Owner to run: az provider register --namespace $ns"
-          log "  Skipping Azure Monitor / Managed Grafana provisioning."
-          log "  Self-hosted Grafana Container App will still be deployed."
-          PROVISION_OBSERVABILITY=false
-          break
-        fi
+    if [[ "$state" != "Registered" ]]; then
+      if ! az provider register --namespace "$ns" --output none 2>/dev/null; then
+        log "WARNING: cannot register $ns (insufficient subscription-level permissions)."
+        log "  Ask a subscription Owner to run: az provider register --namespace $ns"
+        log "  Skipping Azure Monitor / Managed Grafana provisioning."
+        log "  Self-hosted Grafana Container App will still be deployed."
+        PROVISION_OBSERVABILITY=false
+        break
       fi
+    fi
   done
+fi
 
+# Re-check: provider registration may have set this to false above.
+if [[ "$PROVISION_OBSERVABILITY" == "true" ]]; then
   if ! az monitor account show --name "$PROM_WS" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
     az monitor account create \
       --name "$PROM_WS" \
