@@ -67,7 +67,9 @@ for ns in \
     log "  ✓ $ns"
   else
     log "  → Registering $ns ..."
-    az provider register --namespace "$ns" --output none
+    # Requires Contributor/Owner at subscription scope; warn and continue if lacking.
+    az provider register --namespace "$ns" --output none 2>/dev/null || \
+      log "  WARNING: could not register $ns (insufficient subscription-level permissions — ask a subscription Owner)."
   fi
 done
 

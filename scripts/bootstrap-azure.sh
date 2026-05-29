@@ -145,7 +145,18 @@ if [[ "$PROVISION_OBSERVABILITY" == "true" ]]; then
   log "observability"
   for ns in Microsoft.Monitor Microsoft.Dashboard; do
     state=$(az provider show --namespace "$ns" --query registrationState -o tsv 2>/dev/null || echo "NotRegistered")
-    [[ "$state" == "Registered" ]] || az provider register --namespace "$ns" --output none
+    if [[ "$state" != "Registered" ]]; then
+      # Registering providers requires Contributor/Owner at the subscription
+      # level. Sandbox/limited accounts may not have that role. We warn and
+      # continue rather than aborting the whole bootstrap.
+      if ! az provider register --namespace "$ns" --output none 2>/dev/null; then
+        echo "  WARNING: could not register $ns (insufficient subscription-level permissions)."
+        echo "  Ask a subscription Owner to run: az provider register --namespace $ns"
+        echo "  Skipping observability provisioning."
+        PROVISION_OBSERVABILITY=false
+        break
+      fi
+    fi
   done
 
   if ! az monitor account show --name "$PROM_WS" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then

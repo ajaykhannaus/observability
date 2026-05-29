@@ -76,7 +76,10 @@ cmd_provision() {
     state=$(az provider show --namespace "$ns" --query registrationState -o tsv 2>/dev/null || echo "NotRegistered")
     if [[ "$state" != "Registered" ]]; then
       log "  Registering $ns ..."
-      az provider register --namespace "$ns" --output none
+      # Provider registration requires Contributor/Owner at subscription scope.
+      # Skip with a warning if the account lacks that permission.
+      az provider register --namespace "$ns" --output none 2>/dev/null || \
+        log "  WARNING: could not register $ns (insufficient subscription-level permissions — ask a subscription Owner)."
     fi
   done
 
