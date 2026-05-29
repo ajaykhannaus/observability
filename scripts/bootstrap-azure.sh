@@ -276,10 +276,8 @@ fi
 deploy_grafana() {
   local grafana_app="${GRAFANA_APP_NAME:-grafana-telemetry-dev}"
   local grafana_image="$ACR_LOGIN_SERVER/grafana:latest"
-  # Default credentials: admin / admin. Override with GRAFANA_ADMIN_PASSWORD.
   local admin_pass="${GRAFANA_ADMIN_PASSWORD:-admin}"
 
-  # Resolve the Prometheus scraper URL from Container Apps (external FQDN).
   local prom_fqdn
   prom_fqdn=$(az containerapp show \
     --name "$PROM_APP_NAME" \
@@ -295,7 +293,6 @@ deploy_grafana() {
     --resource-group "$AZURE_RESOURCE_GROUP" \
     --query id -o tsv)
 
-  # Substitute placeholders in the template.
   local rendered="$ROOT/infra/grafana.rendered.yaml"
   sed \
     -e "s|__LOCATION__|${AZURE_LOCATION}|g" \
@@ -319,7 +316,6 @@ deploy_grafana() {
       --resource-group "$AZURE_RESOURCE_GROUP" \
       --yaml "$rendered" --output none
 
-    # Grant system-assigned identity AcrPull on the registry.
     local principal_id
     principal_id=$(az containerapp show \
       --name "$grafana_app" \
@@ -331,7 +327,6 @@ deploy_grafana() {
       --assignee "$principal_id" \
       --role AcrPull \
       --scope "$acr_id" --output none 2>/dev/null || true
-    # Re-apply so registry pull works immediately.
     az containerapp update \
       --name "$grafana_app" \
       --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -344,7 +339,6 @@ deploy_grafana() {
     --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
   [[ -n "$GRAFANA_URL" ]] && GRAFANA_URL="https://${GRAFANA_URL}"
 
-  # Append Grafana info to the env file.
   {
     echo "GRAFANA_APP_NAME=$grafana_app"
     echo "GRAFANA_URL=${GRAFANA_URL:-}"
