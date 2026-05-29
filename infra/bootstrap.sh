@@ -190,11 +190,16 @@ if [[ "$SKIP_EVENTHUB" == "false" ]]; then
   if az eventhubs eventhub show --name "$EH_NAME" --namespace-name "$EH_NS" --resource-group "$RG" >/dev/null 2>&1; then
     echo "  reuse hub $EH_NAME"
   else
+    # Newer Azure REST API requires `cleanupPolicy` whenever
+    # `retentionDescription` is set. Passing --retention-time alone triggers:
+    #   RequestJsonDeserializationFailure: Required property 'cleanupPolicy'
+    #   not found in JSON. Path 'properties.retentionDescription'.
     az eventhubs eventhub create \
       --name "$EH_NAME" \
       --namespace-name "$EH_NS" \
       --resource-group "$RG" \
       --partition-count 4 \
+      --cleanup-policy Delete \
       --retention-time 24 \
       --output none
   fi
