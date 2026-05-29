@@ -145,18 +145,7 @@ if [[ "$PROVISION_OBSERVABILITY" == "true" ]]; then
   log "observability"
   for ns in Microsoft.Monitor Microsoft.Dashboard; do
     state=$(az provider show --namespace "$ns" --query registrationState -o tsv 2>/dev/null || echo "NotRegistered")
-    if [[ "$state" != "Registered" ]]; then
-      # Registering providers requires Contributor/Owner at the subscription
-      # level. Sandbox/limited accounts may not have that role. We warn and
-      # continue rather than aborting the whole bootstrap.
-      if ! az provider register --namespace "$ns" --output none 2>/dev/null; then
-        echo "  WARNING: could not register $ns (insufficient subscription-level permissions)."
-        echo "  Ask a subscription Owner to run: az provider register --namespace $ns"
-        echo "  Skipping observability provisioning."
-        PROVISION_OBSERVABILITY=false
-        break
-      fi
-    fi
+    [[ "$state" == "Registered" ]] || az provider register --namespace "$ns" --output none
   done
 
   if ! az monitor account show --name "$PROM_WS" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
@@ -280,7 +269,92 @@ build_image_if_missing() {
 if [[ "$BUILD_IMAGES" == "true" ]]; then
   build_image_if_missing "ai-telemetry-runner:latest" "$ROOT/Dockerfile.runner"
   build_image_if_missing "prometheus-scraper:latest" "$ROOT/Dockerfile.prometheus"
+  build_image_if_missing "grafana:latest" "$ROOT/Dockerfile.grafana"
 fi
+
+# ── Self-hosted Grafana Container App ────────────────────────────────────────
+deploy_grafana() {
+  local grafana_app="${GRAFANA_APP_NAME:-grafana-telemetry-dev}"
+  local grafana_image="$ACR_LOGIN_SERVER/grafana:latest"
+  local admin_pass="${GRAFANA_ADMIN_PASSWORD:-$(openssl rand -base64 16)}"
+
+  # Resolve the Prometheus scraper URL (internal Container App FQDN).
+  local prom_fqdn
+  prom_fqdn=$(az containerapp show \
+    --name "$PROM_APP_NAME" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+
+  local prom_url="http://prometheus:9090"
+  [[ -n "$prom_fqdn" ]] && prom_url="https://${prom_fqdn}"
+
+  local env_id
+  env_id=$(az containerapp env show \
+    --name "$CAE_NAME" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --query id -o tsv)
+
+  # Substitute placeholders in the template.
+  local rendered="$ROOT/infra/grafana.rendered.yaml"
+  sed \
+    -e "s|__LOCATION__|${AZURE_LOCATION}|g" \
+    -e "s|__MANAGED_ENV_ID__|${env_id}|g" \
+    -e "s|__ACR_LOGIN_SERVER__|${ACR_LOGIN_SERVER}|g" \
+    -e "s|__IMAGE__|${grafana_image}|g" \
+    -e "s|__PROMETHEUS_URL__|${prom_url}|g" \
+    -e "s|__GRAFANA_ADMIN_PASSWORD__|${admin_pass}|g" \
+    "$ROOT/infra/grafana.template.yaml" > "$rendered"
+
+  if az containerapp show --name "$grafana_app" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+    log "grafana: update $grafana_app"
+    az containerapp update \
+      --name "$grafana_app" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --yaml "$rendered" --output none
+  else
+    log "grafana: create $grafana_app"
+    az containerapp create \
+      --name "$grafana_app" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --yaml "$rendered" --output none
+
+    # Grant system-assigned identity AcrPull on the registry.
+    local principal_id
+    principal_id=$(az containerapp show \
+      --name "$grafana_app" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --query identity.principalId -o tsv)
+    local acr_id
+    acr_id=$(az acr show --name "$ACR_NAME" --query id -o tsv)
+    az role assignment create \
+      --assignee "$principal_id" \
+      --role AcrPull \
+      --scope "$acr_id" --output none 2>/dev/null || true
+    # Re-apply so registry pull works immediately.
+    az containerapp update \
+      --name "$grafana_app" \
+      --resource-group "$AZURE_RESOURCE_GROUP" \
+      --yaml "$rendered" --output none
+  fi
+
+  GRAFANA_URL=$(az containerapp show \
+    --name "$grafana_app" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+  [[ -n "$GRAFANA_URL" ]] && GRAFANA_URL="https://${GRAFANA_URL}"
+
+  # Append Grafana info to the env file.
+  {
+    echo "GRAFANA_APP_NAME=$grafana_app"
+    echo "GRAFANA_URL=${GRAFANA_URL:-}"
+    echo "GRAFANA_ADMIN_PASSWORD=${admin_pass}"
+  } >> "$WRITE_ENV_FILE"
+
+  rm -f "$rendered"
+}
+
+log "self-hosted grafana"
+deploy_grafana
 
 echo ""
 echo "Done"

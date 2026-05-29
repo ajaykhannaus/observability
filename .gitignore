@@ -35,6 +35,9 @@ data/
 # Azure Functions local settings (may contain secrets)
 function_app/local.settings.json
 
+# Rendered Container App YAML (substituted at deploy time, may contain secrets)
+infra/*.rendered.yaml
+
 # IDE
 .idea/
 .vscode/

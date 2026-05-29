@@ -87,6 +87,9 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_USERS_DEFAULT_THEME: light
       GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor traceToMetrics"
+      PROMETHEUS_URL: http://prometheus:9090
+      LOKI_URL: http://loki:3100
+      TEMPO_URL: http://tempo:3200
     volumes:
       - grafana-data:/var/lib/grafana
     ports:

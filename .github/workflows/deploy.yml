@@ -3,21 +3,32 @@ name: Build and Deploy to Azure
 # ─────────────────────────────────────────────────────────────────────────────
 # Required GitHub Secrets (repo → Settings → Secrets → Actions):
 #
-#   AZURE_CREDENTIALS        SP credentials JSON  (az ad sp create-for-rbac --sdk-auth)
+#   AZURE_SUBSCRIPTION_ID    e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+#   AZURE_TENANT_ID          e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 #   AZURE_RESOURCE_GROUP     e.g. rg-ai-telemetry-dev
+#   AZURE_LOCATION           e.g. eastus
 #   ACR_LOGIN_SERVER         e.g. acrtelemetrydev.azurecr.io
 #   AZURE_ACR_NAME           short ACR name only  e.g. acrtelemetrydev
-#   ACR_PASSWORD             ACR admin password  (az acr credential show --name <acr>)
 #   AZURE_CONTAINER_APP_NAME e.g. ai-telemetry-runner-dev
 #   AZURE_CAE_NAME           Container Apps Environment  e.g. cae-telemetry-dev
 #
-# Optional (jobs 3 & 4 skip gracefully if not set):
-#   PROM_REMOTE_WRITE_URL    Azure Managed Prometheus ingestion URL
-#   AZURE_GRAFANA_NAME       Azure Managed Grafana resource name
+# No AZURE_CREDENTIALS secret required. Jobs 1, 2 & 4 run on the company
+# Windows Server VM (self-hosted runner) and authenticate via the VM's
+# system-assigned managed identity (auth-type: IDENTITY).
+# The VM identity needs: AcrPush on the registry + Container Apps Contributor
+# on the resource group (see infra/bootstrap.sh [5/5] for commands).
+#
+# Optional:
+#   GRAFANA_ADMIN_PASSWORD   Grafana admin password (default: ChangeMe123!)
+#   EVENTHUB_NAMESPACE       Event Hub namespace FQDN
+#   EVENTHUB_CONNECTION_STRING  Event Hub connection string
+#   PROM_REMOTE_WRITE_URL    Azure Managed Prometheus ingestion URL (job 3)
+#   AZURE_CREDENTIALS        SP JSON — only needed for job 5 (Azure Managed Grafana)
+#   AZURE_GRAFANA_NAME       Azure Managed Grafana name (job 5)
 #
 # Runner setup:
-#   Jobs 1 & 2 run on the company Windows Server VM (self-hosted runner).
-#   Jobs 3 & 4 run on GitHub-hosted ubuntu (optional, continue-on-error).
+#   Jobs 1, 2 & 4 run on the company Windows Server VM (self-hosted runner).
+#   Jobs 3 & 5 run on GitHub-hosted ubuntu (optional, continue-on-error).
 #   See infra/setup-runner.ps1 to register the VM as a runner.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -203,7 +214,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: azure/login@v2
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 

@@ -1,11 +1,17 @@
 apiVersion: 1
 
+# URL env vars let this file work both locally (docker-compose defaults) and
+# in Azure (Container App env vars set by the deploy scripts).
+#   PROMETHEUS_URL  default: http://prometheus:9090
+#   LOKI_URL        default: http://loki:3100
+#   TEMPO_URL       default: http://tempo:3200
+
 datasources:
   - name: Prometheus
     uid: prometheus-ds
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: ${PROMETHEUS_URL:-http://prometheus:9090}
     isDefault: true
     jsonData:
       timeInterval: 10s
@@ -18,7 +24,7 @@ datasources:
     uid: loki-ds
     type: loki
     access: proxy
-    url: http://loki:3100
+    url: ${LOKI_URL:-http://loki:3100}
     jsonData:
       derivedFields:
         - datasourceUid: tempo-ds
@@ -32,7 +38,7 @@ datasources:
     uid: tempo-ds
     type: tempo
     access: proxy
-    url: http://tempo:3200
+    url: ${TEMPO_URL:-http://tempo:3200}
     jsonData:
       tracesToLogsV2:
         datasourceUid: loki-ds

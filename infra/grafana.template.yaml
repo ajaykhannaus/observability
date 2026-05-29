@@ -1,7 +1,11 @@
-# Grafana Container App — Bucket 1.
-# Provisions datasources for Prometheus, Tempo, Loki via mounted config files
-# (those configs land in this image in a follow-up commit; the template
-# captures the Container App shape).
+# Container Apps deployment template for self-hosted Grafana.
+# Applied by scripts/bootstrap-azure.sh and .github/workflows/deploy.yml.
+#
+# Placeholders surrounded by __DOUBLE_UNDERSCORES__ are substituted at
+# deploy time (see scripts/bootstrap-azure.sh deploy_grafana()).
+#
+# Grafana reads datasource URLs from env vars baked into the image via
+# dashboards/provisioning/datasources.yaml (${PROMETHEUS_URL:-...} etc).
 location: __LOCATION__
 properties:
   managedEnvironmentId: __MANAGED_ENV_ID__
@@ -10,16 +14,18 @@ properties:
     ingress:
       external: true
       targetPort: 3000
-      transport: http
+      transport: auto
       allowInsecure: false
+    registries:
+      - server: __ACR_LOGIN_SERVER__
+        identity: system
     secrets:
       - name: grafana-admin-password
         value: __GRAFANA_ADMIN_PASSWORD__
-    registries: []
   template:
     containers:
       - name: grafana
-        image: grafana/grafana:11.3.0
+        image: __IMAGE__
         resources:
           cpu: 0.5
           memory: 1Gi
@@ -32,19 +38,10 @@ properties:
             value: "false"
           - name: GF_USERS_DEFAULT_THEME
             value: light
-          # Tenant template variable default — read from a JWT claim if
-          # fronting auth (Azure AD / APIM) injects it; otherwise empty,
-          # which the dashboards interpret as "all tenants".
-          - name: GF_AUTH_JWT_ENABLED
-            value: "false"
-        probes:
-          - type: Liveness
-            httpGet:
-              path: /api/health
-              port: 3000
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            failureThreshold: 3
+          - name: GF_SERVER_ROOT_URL
+            value: "%(protocol)s://%(domain)s/"
+          - name: PROMETHEUS_URL
+            value: __PROMETHEUS_URL__
     scale:
       minReplicas: 1
       maxReplicas: 1
