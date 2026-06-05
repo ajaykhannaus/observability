@@ -1,5 +1,5 @@
 # Grafana image with baked dashboards (survive container restarts) + datasource env vars.
-FROM python:3.12-alpine AS dashboard-baker
+FROM mcr.microsoft.com/mirror/docker/library/python:3.12-alpine AS dashboard-baker
 
 WORKDIR /src
 COPY dashboards/*.json /src/dashboards/
@@ -7,7 +7,7 @@ COPY scripts/bake_grafana_dashboards.py scripts/setup_grafana_local.py /src/scri
 
 RUN python3 /src/scripts/bake_grafana_dashboards.py /out
 
-FROM grafana/grafana:11.3.0
+FROM mcr.microsoft.com/mirror/docker/grafana/grafana:11.3.0
 
 COPY dashboards/provisioning/datasources.yaml \
      /etc/grafana/provisioning/datasources/datasources.yaml

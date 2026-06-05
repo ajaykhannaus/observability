@@ -1,5 +1,5 @@
 # Tempo image with local-storage config baked in for Azure Container Apps.
-FROM grafana/tempo:2.6.1
+FROM mcr.microsoft.com/mirror/docker/grafana/tempo:2.6.1
 
 COPY infra/tempo-local-config.yaml /etc/tempo/tempo.yaml
 

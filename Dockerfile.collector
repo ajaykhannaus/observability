@@ -1,9 +1,10 @@
 # OpenTelemetry Collector image — Bucket 1.
 # Upstream contrib image is distroless (no shell, no root in passwd).
 # Use Alpine for entrypoint env substitution, copy the static otelcol binary.
-FROM otel/opentelemetry-collector-contrib:0.111.0 AS otel
+# Use MCR Docker Hub mirror — avoids unauthenticated Docker Hub rate limits in ACR builds.
+FROM mcr.microsoft.com/mirror/docker/otel/opentelemetry-collector-contrib:0.111.0 AS otel
 
-FROM alpine:3.20
+FROM mcr.microsoft.com/mirror/docker/library/alpine:3.20
 
 RUN apk add --no-cache ca-certificates
 

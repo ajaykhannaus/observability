@@ -5,7 +5,7 @@
 # SCRAPE_TARGET env var is set by the Container App env var to the runner FQDN.
 
 # Pin a specific Prometheus version — never use :latest in production images.
-FROM prom/prometheus:v2.54.1
+FROM mcr.microsoft.com/mirror/docker/prom/prometheus:v2.54.1
 
 ARG CACHEBUST=1
 
