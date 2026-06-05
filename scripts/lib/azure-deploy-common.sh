@@ -150,7 +150,7 @@ grafana_datasource_urls() {
 prometheus_deploy_sandbox() {
   local prom_app=$1 cae_name=$2 rg=$3 acr_name=$4 acr_login=$5 runner_fqdn=$6
   local image_ref=${7:-"${acr_login}/prometheus-scraper:latest"}
-  local user pass deploy_stamp
+  local user pass deploy_stamp container_name
 
   if [[ -z "$runner_fqdn" ]]; then
     echo "[prometheus] ERROR: runner FQDN required" >&2
@@ -161,6 +161,9 @@ prometheus_deploy_sandbox() {
   user="$ACR_ADMIN_USER"
   pass="$ACR_ADMIN_PASS"
   deploy_stamp=$(date +%s)
+  container_name=$(az containerapp show --name "$prom_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].name" -o tsv 2>/dev/null || echo "$prom_app")
+  [[ -n "$container_name" && "$container_name" != "None" ]] || container_name="$prom_app"
 
   bind_prometheus_acr_registry() {
     az containerapp registry set \
@@ -172,13 +175,18 @@ prometheus_deploy_sandbox() {
       --output none
   }
 
+  # Stock prom/prometheus deploys often pin /bin/prometheus + args without the remote-write
+  # receiver flag. Force our entrypoint so --web.enable-remote-write-receiver is always set.
   if az containerapp show --name "$prom_app" --resource-group "$rg" >/dev/null 2>&1; then
-    echo "[prometheus] Updating $prom_app ..."
+    echo "[prometheus] Updating $prom_app (container=$container_name) ..."
     bind_prometheus_acr_registry
     az containerapp update \
       --name "$prom_app" \
       --resource-group "$rg" \
+      --container-name "$container_name" \
       --image "$image_ref" \
+      --command "/prometheus-entrypoint.sh" \
+      --args "" \
       --set-env-vars \
         "SCRAPE_TARGET=${runner_fqdn}" \
         "DEPLOY_STAMP=${deploy_stamp}" \
@@ -190,6 +198,7 @@ prometheus_deploy_sandbox() {
       --resource-group "$rg" \
       --environment "$cae_name" \
       --image "$image_ref" \
+      --command "/prometheus-entrypoint.sh" \
       --registry-server "$acr_login" \
       --registry-username "$user" \
       --registry-password "$pass" \

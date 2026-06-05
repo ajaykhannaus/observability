@@ -129,6 +129,16 @@ PROM_FQDN=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZUR
 PROM_IMAGE=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
   --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
 log "  image: ${PROM_IMAGE:-unknown}"
+PROM_CMD=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].command" -o tsv 2>/dev/null || true)
+PROM_ARGS=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].args" -o tsv 2>/dev/null || true)
+log "  command: ${PROM_CMD:-<image default>}"
+log "  args:    ${PROM_ARGS:-<none>}"
+if [[ -n "$PROM_CMD" && "$PROM_CMD" != *prometheus-entrypoint* ]]; then
+  fail "Prometheus container command overrides entrypoint — remote write flag may be missing"
+  log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
+fi
 if [[ -n "$PROM_FQDN" ]]; then
   PROM_RW_CODE=$(curl -sk -o /dev/null -w '%{http_code}' -X POST \
     "https://${PROM_FQDN}/api/v1/write" --max-time 15 2>/dev/null || echo "000")
