@@ -7,12 +7,15 @@
 # Pin a specific Prometheus version — never use :latest in production images.
 FROM prom/prometheus:v2.54.1
 
+ARG CACHEBUST=1
+
 COPY prometheus.yml /etc/prometheus/prometheus.yml
 COPY prometheus-sandbox.yml /etc/prometheus/prometheus-sandbox.yml
 COPY rules.yml      /etc/prometheus/rules.yml
 
 # The entrypoint script substitutes runtime env vars into prometheus.yml,
 # then execs the real prometheus binary as the non-root `nobody` user.
+RUN echo "cachebust=${CACHEBUST}" > /dev/null
 COPY azure/prometheus-entrypoint.sh /prometheus-entrypoint.sh
 
 USER root

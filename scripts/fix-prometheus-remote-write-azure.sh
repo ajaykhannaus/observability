@@ -45,10 +45,10 @@ RUNNER_FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$AZURE_R
   --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
 [[ -n "$RUNNER_FQDN" ]] || { log "ERROR: Runner $APP_NAME has no FQDN"; exit 1; }
 
-log "Step 1/3 — ACR build prometheus-scraper (no cache, ~3–8 min)..."
+log "Step 1/3 — ACR build prometheus-scraper (cache-bust, ~3–8 min)..."
 az acr build --registry "$ACR_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
   --platform linux/amd64 \
-  --no-cache \
+  --build-arg "CACHEBUST=$(date +%s)" \
   --image "${IMAGE_REPO}:latest" \
   -f "$ROOT/Dockerfile.prometheus" "$ROOT"
 
