@@ -32,6 +32,7 @@ set +a
 
 ACR_NAME="${ACR_NAME:-acrtelemetrydevaj}"
 PROM_APP_NAME="${PROM_APP_NAME:-prometheus-scraper-dev}"
+OTEL_APP_NAME="${OTEL_APP_NAME:-otel-collector-dev}"
 APP_NAME="${APP_NAME:-ai-telemetry-runner-dev}"
 IMAGE_REPO="prometheus-scraper"
 
@@ -69,40 +70,42 @@ AFTER_CMD=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZUR
   --query "properties.template.containers[0].{command:command,args:args}" -o json 2>/dev/null || echo "{}")
 log "  after:  $AFTER_CMD"
 
-PROM_FQDN=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
-
-log "Step 3/3 — Wait for Prometheus + verify remote write receiver..."
-for i in $(seq 1 24); do
+log "Step 3/3 — Wait for Prometheus ready + verify collector remote write..."
+PROM_READY=false
+for i in $(seq 1 30); do
   prov=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
     --query "properties.provisioningState" -o tsv 2>/dev/null || echo "")
   run=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
     --query "properties.runningStatus" -o tsv 2>/dev/null || echo "")
-  if [[ "$prov" == "Succeeded" && "$run" == "Running" && -n "$PROM_FQDN" ]]; then
-    rw_body=$(mktemp)
-    code=$(curl -sk -o "$rw_body" -w '%{http_code}' -X POST \
-      "https://${PROM_FQDN}/api/v1/write" --max-time 15 2>/dev/null || echo "000")
-    if [[ "$code" != "404" && "$code" != "000" ]]; then
-      rm -f "$rw_body"
-      log "OK  Prometheus remote write receiver active (POST /api/v1/write → HTTP $code)"
-      echo ""
-      log "Done. Re-run: ./scripts/diagnose-grafana-azure.sh"
-      log "Collector prometheusremotewrite 404s should stop within 1–2 minutes."
-      exit 0
-    fi
-    if [[ "$code" == "404" && -s "$rw_body" ]]; then
-      (( i % 4 == 0 )) && log "  waiting ($i/24) — rw_http=$code body=$(tr -d '\n' < "$rw_body" | head -c 120)"
-    else
-      (( i % 4 == 0 )) && log "  waiting ($i/24) — prov=$prov run=$run rw_http=$code"
-    fi
-    rm -f "$rw_body"
+  prom_logs=$(prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 40)
+  if [[ "$prov" == "Succeeded" && "$run" == "Running" ]] && prometheus_server_ready "$prom_logs"; then
+    PROM_READY=true
+    log "OK  Prometheus server ready (revision running, entrypoint started)"
+    break
   fi
+  (( i % 4 == 0 )) && log "  waiting ($i/30) — prov=$prov run=$run"
   sleep 10
 done
 
-log "WARN: Could not confirm remote write receiver from this host."
-log "  Ensure container command is [\"/prometheus-entrypoint.sh\"] and args are empty."
-log "  If POST /api/v1/write still returns 404 internally, check prometheus console logs:"
-az containerapp logs show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --type console --tail 20 2>/dev/null || true
-exit 1
+if [[ "$PROM_READY" != "true" ]]; then
+  log "WARN: Prometheus did not report ready in console logs:"
+  prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 25 | sed 's/^/[fix-prometheus-rw]   /' || true
+  exit 1
+fi
+
+log "  (Cloud Shell cannot reliably POST to internal ACA ingress — checking collector instead)"
+log "  waiting 90s for collector to retry remote write..."
+sleep 90
+
+COLLECTOR_LOGS=$(az containerapp logs show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --type console --tail 40 2>/dev/null || true)
+if collector_prom_rw_failing "$COLLECTOR_LOGS"; then
+  log "WARN: Collector still reports Prometheus remote write 404:"
+  echo "$COLLECTOR_LOGS" | grep 'remote write returned HTTP status 404' | tail -3 | sed 's/^/[fix-prometheus-rw]   /'
+  log "  Prometheus is up with --web.enable-remote-write-receiver; check PROM_WRITE_ENDPOINT on collector."
+  exit 1
+fi
+
+echo ""
+log "SUCCESS — Prometheus redeployed; collector remote write 404s cleared."
+log "Re-run: ./scripts/diagnose-grafana-azure.sh"

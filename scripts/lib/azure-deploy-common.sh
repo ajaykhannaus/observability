@@ -211,3 +211,27 @@ prometheus_deploy_sandbox() {
       --output none
   fi
 }
+
+prometheus_console_logs() {
+  local prom_app=$1 rg=$2 tail=${3:-60}
+  az containerapp logs show --name "$prom_app" --resource-group "$rg" \
+    --type console --tail "$tail" 2>/dev/null || true
+}
+
+# True when Prometheus finished starting (console logs).
+prometheus_server_ready() {
+  local logs=$1
+  echo "$logs" | grep -qiE 'Server is ready to receive web requests|Listening on'
+}
+
+# True when an HTTP body is ACA's "Unavailable" page (not a Prometheus API 404).
+aca_unavailable_response() {
+  local body=$1
+  echo "$body" | grep -qi 'Azure Container App - Unavailable'
+}
+
+# True when collector logs still show Prometheus remote-write 404 errors.
+collector_prom_rw_failing() {
+  local logs=$1
+  echo "$logs" | grep -q 'remote write returned HTTP status 404'
+}

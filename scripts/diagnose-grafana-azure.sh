@@ -139,17 +139,25 @@ if [[ -n "$PROM_CMD" && "$PROM_CMD" != *prometheus-entrypoint* ]]; then
   fail "Prometheus container command overrides entrypoint — remote write flag may be missing"
   log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
 fi
+PROM_LOGS=$(prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 40)
+if prometheus_server_ready "$PROM_LOGS"; then
+  ok "Prometheus server ready (console logs)"
+else
+  fail "Prometheus not ready — check console logs"
+fi
 if [[ -n "$PROM_FQDN" ]]; then
-  PROM_RW_CODE=$(curl -sk -o /dev/null -w '%{http_code}' -X POST \
+  rw_body=$(mktemp)
+  PROM_RW_CODE=$(curl -sk -o "$rw_body" -w '%{http_code}' -X POST \
     "https://${PROM_FQDN}/api/v1/write" --max-time 15 2>/dev/null || echo "000")
-  if [[ "$PROM_RW_CODE" == "404" ]]; then
-    fail "Prometheus /api/v1/write returns 404 — remote write receiver not enabled"
+  if aca_unavailable_response "$(cat "$rw_body" 2>/dev/null || true)"; then
+    log "  (POST /api/v1/write from Cloud Shell hit ACA 'Unavailable' — normal for internal ingress during rollout)"
+  elif [[ "$PROM_RW_CODE" == "404" ]] && grep -q 'remote write receiver needs to be enabled' "$rw_body" 2>/dev/null; then
+    fail "Prometheus API rejects remote write — receiver flag not active"
     log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
-  elif [[ "$PROM_RW_CODE" == "000" ]]; then
-    log "  (could not probe https://${PROM_FQDN}/api/v1/write from this host)"
-  else
+  elif [[ "$PROM_RW_CODE" != "000" && "$PROM_RW_CODE" != "404" ]]; then
     ok "Prometheus remote write endpoint reachable (POST → HTTP $PROM_RW_CODE)"
   fi
+  rm -f "$rw_body"
 else
   fail "Prometheus has no ingress FQDN"
 fi
