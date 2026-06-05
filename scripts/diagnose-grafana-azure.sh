@@ -108,7 +108,7 @@ done
 echo ""
 log "=== Runner console — OTLP log exporter (last 80 lines) ==="
 RUNNER_LOGS=$(az containerapp logs show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --type console --tail 80 2>/dev/null || true)
+  --type console --tail 200 2>/dev/null || true)
 if echo "$RUNNER_LOGS" | grep -q "OTLP log exporter"; then
   ok "Runner initialized OTLP log exporter"
   echo "$RUNNER_LOGS" | grep "OTLP log exporter" | tail -1 | sed 's/^/[diagnose-grafana]   /'
@@ -204,10 +204,10 @@ if collector_prom_rw_failing_recent "$COLLECTOR_LOGS" 10; then
   echo "$COLLECTOR_LOGS" | grep 'remote write returned HTTP status 404' | tail -3 | sed 's/^/[diagnose-grafana]   /'
 elif collector_prom_rw_failing "$COLLECTOR_LOGS"; then
   ok "No recent Prometheus remote-write 404s (older errors still visible in log tail)"
-elif echo "$COLLECTOR_LOGS" | grep -Eiq 'otlphttp/loki|loki.*error|error.*loki|failed.*loki'; then
+elif echo "$COLLECTOR_LOGS" | grep -Eiq 'otlphttp/loki|loki.*error|error.*loki|failed.*loki|Exporting failed.*loki'; then
   fail "Collector → Loki export errors in recent logs"
-  log "  Fix: ./scripts/fix-loki-logs-azure.sh"
-  echo "$COLLECTOR_LOGS" | grep -Ei 'otlphttp/loki|loki|otlphttp' | grep -Ei 'error|failed|404|401|refused' | tail -5 | sed 's/^/[diagnose-grafana]   /'
+  log "  Fix: ./scripts/wire-loki-otlp-azure.sh  (or ./scripts/fix-loki-logs-azure.sh to rebuild)"
+  echo "$COLLECTOR_LOGS" | grep -Ei 'otlphttp/loki|loki|otlphttp' | grep -Ei 'error|failed|404|401|refused|Permanent' | tail -5 | sed 's/^/[diagnose-grafana]   /'
 elif echo "$COLLECTOR_LOGS" | grep -Eiq 'error|failed|refused|404|401|tls|handshake'; then
   echo "$COLLECTOR_LOGS" | grep -Ei 'error|failed|refused|404|401|tls|handshake|loki|otlphttp|prometheusremotewrite' | tail -8 | sed 's/^/[diagnose-grafana]   /'
 else
@@ -286,6 +286,7 @@ except Exception as exc:
 
 print("\n=== Loki queries (Live Telemetry Events panel) ===")
 loki_queries = [
+    ("any streams (15m)", 'sum(count_over_time({} [15m]))'),
     ("any service_name streams (15m)", 'sum(count_over_time({service_name=~".+"} [15m]))'),
     (
         "telemetry_event (15m)",
@@ -328,9 +329,12 @@ for label, logql in loki_queries:
         print(f"  {label}: {int(total)}")
         if label == "any service_name streams (15m)":
             loki_stream_count = int(total)
-        if total == 0 and label == "any service_name streams (15m)":
+        if total == 0 and label == "any streams (15m)":
             print("    WARN: no Loki streams — runner → collector → Loki pipeline is broken")
-            print("    Fix: ./scripts/fix-loki-logs-azure.sh")
+            print("    Fix: ./scripts/wire-loki-otlp-azure.sh  (no rebuild)")
+            print("    Or:  ./scripts/fix-loki-logs-azure.sh  (rebuild Loki/collector)")
+        elif total == 0 and label == "any service_name streams (15m)":
+            print("    WARN: streams exist but no service_name label — check OTEL_SERVICE_NAME on runner")
         elif (
             total == 0
             and "telemetry_event" in label
@@ -347,7 +351,8 @@ for d in req("GET", "/api/search?type=dash-db"):
 PY
 
 log "If Prometheus remote write 404: ./scripts/fix-prometheus-remote-write-azure.sh"
-log "If Prometheus OK but Loki empty: ./scripts/fix-loki-logs-azure.sh"
+log "If Prometheus OK but Loki empty: ./scripts/wire-loki-otlp-azure.sh"
+log "If Loki/collector images stale: ./scripts/fix-loki-logs-azure.sh"
 log "If runner missing OTLP log exporter line: ./scripts/fix-runner.sh --build --no-git-pull"
 log "If collector LOKI_OTLP_ENDPOINT wrong: export FORCE_CONTAINER_DEPLOY=true && ./scripts/deploy-observability-stack.sh --build --from otel"
 log "If dashboards missing, run: ./scripts/fix-grafana-datasources.sh"

@@ -89,10 +89,14 @@ runner_serving() {
 }
 
 runner_otlp_ok() {
-  local ep
+  local ep logs_ep expected_logs
   ep=$(az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
     --query "properties.template.containers[0].env[?name=='OTEL_EXPORTER_OTLP_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
-  [[ -n "$ep" && "$ep" != *localhost* && "$ep" != *127.0.0.1* ]]
+  logs_ep=$(az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+    --query "properties.template.containers[0].env[?name=='OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+  expected_logs="$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
+  [[ -n "$ep" && "$ep" != *localhost* && "$ep" != *127.0.0.1* \
+    && -n "$logs_ep" && "$logs_ep" == "$expected_logs" ]]
 }
 
 render_runner_yaml() {
@@ -247,7 +251,7 @@ if az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GRO
   az containerapp replica list --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" -o table 2>/dev/null \
     || log "  (no replicas)"
   if runner_serving && runner_otlp_ok; then
-    log "Runner already serving metrics with correct OTLP endpoint — nothing to do"
+    log "Runner already serving metrics with correct OTLP endpoints — nothing to do"
     echo "Metrics: https://$(runner_fqdn)/metrics"
     exit 0
   fi
