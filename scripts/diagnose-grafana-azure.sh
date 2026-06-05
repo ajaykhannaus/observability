@@ -123,11 +123,37 @@ else
 fi
 
 echo ""
-log "=== OTel Collector console — Loki export errors (last 80 lines) ==="
+log "=== Prometheus remote write receiver ==="
+PROM_FQDN=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+PROM_IMAGE=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+log "  image: ${PROM_IMAGE:-unknown}"
+if [[ -n "$PROM_FQDN" ]]; then
+  PROM_RW_CODE=$(curl -sk -o /dev/null -w '%{http_code}' -X POST \
+    "https://${PROM_FQDN}/api/v1/write" --max-time 15 2>/dev/null || echo "000")
+  if [[ "$PROM_RW_CODE" == "404" ]]; then
+    fail "Prometheus /api/v1/write returns 404 — remote write receiver not enabled"
+    log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
+  elif [[ "$PROM_RW_CODE" == "000" ]]; then
+    log "  (could not probe https://${PROM_FQDN}/api/v1/write from this host)"
+  else
+    ok "Prometheus remote write endpoint reachable (POST → HTTP $PROM_RW_CODE)"
+  fi
+else
+  fail "Prometheus has no ingress FQDN"
+fi
+
+echo ""
+log "=== OTel Collector console — export errors (last 80 lines) ==="
 COLLECTOR_LOGS=$(az containerapp logs show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
   --type console --tail 80 2>/dev/null || true)
-if echo "$COLLECTOR_LOGS" | grep -Eiq 'error|failed|refused|404|401|tls|handshake'; then
-  echo "$COLLECTOR_LOGS" | grep -Ei 'error|failed|refused|404|401|tls|handshake|loki|otlphttp' | tail -8 | sed 's/^/[diagnose-grafana]   /'
+if echo "$COLLECTOR_LOGS" | grep -q 'remote write returned HTTP status 404'; then
+  fail "Collector → Prometheus remote write still failing (404)"
+  log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
+  echo "$COLLECTOR_LOGS" | grep 'remote write returned HTTP status 404' | tail -3 | sed 's/^/[diagnose-grafana]   /'
+elif echo "$COLLECTOR_LOGS" | grep -Eiq 'error|failed|refused|404|401|tls|handshake'; then
+  echo "$COLLECTOR_LOGS" | grep -Ei 'error|failed|refused|404|401|tls|handshake|loki|otlphttp|prometheusremotewrite' | tail -8 | sed 's/^/[diagnose-grafana]   /'
 else
   log "  (no obvious export errors in recent collector logs)"
 fi
@@ -264,6 +290,7 @@ for d in req("GET", "/api/search?type=dash-db"):
     print(f"  {d.get('title')} uid={d.get('uid')} url={d.get('url')}")
 PY
 
+log "If Prometheus remote write 404: ./scripts/fix-prometheus-remote-write-azure.sh"
 log "If Prometheus OK but Loki empty: ./scripts/fix-loki-logs-azure.sh"
 log "If runner missing OTLP log exporter line: ./scripts/fix-runner.sh --build --no-git-pull"
 log "If collector LOKI_OTLP_ENDPOINT wrong: export FORCE_CONTAINER_DEPLOY=true && ./scripts/deploy-observability-stack.sh --build --from otel"

@@ -149,7 +149,8 @@ grafana_datasource_urls() {
 
 prometheus_deploy_sandbox() {
   local prom_app=$1 cae_name=$2 rg=$3 acr_name=$4 acr_login=$5 runner_fqdn=$6
-  local user pass
+  local image_ref=${7:-"${acr_login}/prometheus-scraper:latest"}
+  local user pass deploy_stamp
 
   if [[ -z "$runner_fqdn" ]]; then
     echo "[prometheus] ERROR: runner FQDN required" >&2
@@ -159,6 +160,7 @@ prometheus_deploy_sandbox() {
   acr_admin_credentials "$acr_name"
   user="$ACR_ADMIN_USER"
   pass="$ACR_ADMIN_PASS"
+  deploy_stamp=$(date +%s)
 
   bind_prometheus_acr_registry() {
     az containerapp registry set \
@@ -176,8 +178,10 @@ prometheus_deploy_sandbox() {
     az containerapp update \
       --name "$prom_app" \
       --resource-group "$rg" \
-      --image "${acr_login}/prometheus-scraper:latest" \
-      --set-env-vars "SCRAPE_TARGET=${runner_fqdn}" \
+      --image "$image_ref" \
+      --set-env-vars \
+        "SCRAPE_TARGET=${runner_fqdn}" \
+        "DEPLOY_STAMP=${deploy_stamp}" \
       --output none
   else
     echo "[prometheus] Creating $prom_app ..."
@@ -185,14 +189,16 @@ prometheus_deploy_sandbox() {
       --name "$prom_app" \
       --resource-group "$rg" \
       --environment "$cae_name" \
-      --image "${acr_login}/prometheus-scraper:latest" \
+      --image "$image_ref" \
       --registry-server "$acr_login" \
       --registry-username "$user" \
       --registry-password "$pass" \
       --ingress internal --target-port 9090 \
       --min-replicas 1 --max-replicas 1 \
       --cpu 0.25 --memory 0.5Gi \
-      --env-vars "SCRAPE_TARGET=${runner_fqdn}" \
+      --env-vars \
+        "SCRAPE_TARGET=${runner_fqdn}" \
+        "DEPLOY_STAMP=${deploy_stamp}" \
       --output none
   fi
 }
