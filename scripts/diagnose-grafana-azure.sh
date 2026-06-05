@@ -165,6 +165,22 @@ else
 fi
 
 echo ""
+log "=== OTel Collector → Loki wiring (env) ==="
+COLLECTOR_LOKI_EP=$(az containerapp show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].env[?name=='LOKI_OTLP_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+log "  LOKI_OTLP_ENDPOINT: ${COLLECTOR_LOKI_EP:-<unset>}"
+log "  expected:           ${EXPECTED_LOKI_OTLP:-unknown}"
+if [[ -z "$COLLECTOR_LOKI_EP" ]]; then
+  fail "Collector LOKI_OTLP_ENDPOINT not set"
+  log "  Fix: ./scripts/fix-loki-logs-azure.sh"
+elif [[ -n "$EXPECTED_LOKI_OTLP" && "$COLLECTOR_LOKI_EP" != "$EXPECTED_LOKI_OTLP" ]]; then
+  fail "Collector LOKI_OTLP_ENDPOINT mismatch"
+  log "  Fix: ./scripts/fix-loki-logs-azure.sh"
+else
+  ok "Collector LOKI_OTLP_ENDPOINT → Loki"
+fi
+
+echo ""
 log "=== OTel Collector → Prometheus wiring ==="
 EXPECTED_PROM_EP="$(resolve_azure_prom_write_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$PROM_APP_NAME" 2>/dev/null || echo "")"
 COLLECTOR_PROM_EP=$(az containerapp show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -188,6 +204,10 @@ if collector_prom_rw_failing_recent "$COLLECTOR_LOGS" 10; then
   echo "$COLLECTOR_LOGS" | grep 'remote write returned HTTP status 404' | tail -3 | sed 's/^/[diagnose-grafana]   /'
 elif collector_prom_rw_failing "$COLLECTOR_LOGS"; then
   ok "No recent Prometheus remote-write 404s (older errors still visible in log tail)"
+elif echo "$COLLECTOR_LOGS" | grep -Eiq 'otlphttp/loki|loki.*error|error.*loki|failed.*loki'; then
+  fail "Collector → Loki export errors in recent logs"
+  log "  Fix: ./scripts/fix-loki-logs-azure.sh"
+  echo "$COLLECTOR_LOGS" | grep -Ei 'otlphttp/loki|loki|otlphttp' | grep -Ei 'error|failed|404|401|refused' | tail -5 | sed 's/^/[diagnose-grafana]   /'
 elif echo "$COLLECTOR_LOGS" | grep -Eiq 'error|failed|refused|404|401|tls|handshake'; then
   echo "$COLLECTOR_LOGS" | grep -Ei 'error|failed|refused|404|401|tls|handshake|loki|otlphttp|prometheusremotewrite' | tail -8 | sed 's/^/[diagnose-grafana]   /'
 else

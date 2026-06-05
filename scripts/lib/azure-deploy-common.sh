@@ -307,3 +307,22 @@ restart_containerapp_revision() {
     --revision "$rev" \
     --output none
 }
+
+# Refresh OTel Collector backend env vars and force a new revision.
+refresh_collector_backends() {
+  local otel_app=$1 cae_name=$2 rg=$3 prom_app=${4:-prometheus-scraper-dev} \
+        loki_app=${5:-loki-telemetry-dev} tempo_app=${6:-tempo-telemetry-dev}
+  local tempo_ep loki_ep prom_ep
+  tempo_ep="http://${tempo_app}.internal.$(cae_default_domain "$cae_name" "$rg"):4317"
+  loki_ep="$(resolve_azure_loki_otlp_endpoint "$cae_name" "$rg" "$loki_app")"
+  prom_ep="$(resolve_azure_prom_write_endpoint "$cae_name" "$rg" "$prom_app")"
+  az containerapp update \
+    --name "$otel_app" \
+    --resource-group "$rg" \
+    --set-env-vars \
+      "TEMPO_ENDPOINT=${tempo_ep}" \
+      "LOKI_OTLP_ENDPOINT=${loki_ep}" \
+      "PROM_WRITE_ENDPOINT=${prom_ep}" \
+      "DEPLOY_STAMP=$(date +%s)" \
+    --output none
+}
