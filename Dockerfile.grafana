@@ -1,5 +1,7 @@
 # Grafana image with baked dashboards (survive container restarts) + datasource env vars.
 ARG PYTHON_BASE=python:3.12-alpine
+ARG GRAFANA_BASE=grafana/grafana:11.3.0
+
 FROM ${PYTHON_BASE} AS dashboard-baker
 
 WORKDIR /src
@@ -8,7 +10,6 @@ COPY scripts/bake_grafana_dashboards.py scripts/setup_grafana_local.py /src/scri
 
 RUN python3 /src/scripts/bake_grafana_dashboards.py /out
 
-ARG GRAFANA_BASE=grafana/grafana:11.3.0
 FROM ${GRAFANA_BASE}
 
 COPY dashboards/provisioning/datasources.yaml \

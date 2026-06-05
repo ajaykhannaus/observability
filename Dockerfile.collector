@@ -1,10 +1,11 @@
 # OpenTelemetry Collector image — Bucket 1.
 # Upstream contrib image is distroless (no shell, no root in passwd).
 # Use Alpine for entrypoint env substitution, copy the static otelcol binary.
+# ARGs used in FROM must be declared before the first FROM (Docker build-arg scoping).
 ARG OTEL_COLLECTOR_BASE=otel/opentelemetry-collector-contrib:0.111.0
-FROM ${OTEL_COLLECTOR_BASE} AS otel
-
 ARG ALPINE_BASE=alpine:3.20
+
+FROM ${OTEL_COLLECTOR_BASE} AS otel
 FROM ${ALPINE_BASE}
 
 RUN apk add --no-cache ca-certificates
