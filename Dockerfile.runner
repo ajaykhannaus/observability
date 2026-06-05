@@ -1,5 +1,6 @@
+ARG PYTHON_BASE=python:3.11-slim
 ARG CACHEBUST=1
-FROM mcr.microsoft.com/mirror/docker/library/python:3.11-slim
+FROM ${PYTHON_BASE}
 
 WORKDIR /app
 

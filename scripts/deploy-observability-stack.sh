@@ -108,8 +108,8 @@ build_if_needed() {
   local tag=$1 dockerfile=$2
   if [[ "$BUILD_IMAGES" == "true" ]] || ! acr_image_exists "$tag"; then
     log "Building $ACR_NAME/$tag ..."
-    az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-      --image "$tag" -f "$dockerfile" "$ROOT"
+    acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+      "$tag" "$dockerfile" "$ROOT"
   else
     log "Reuse ACR image $tag"
   fi

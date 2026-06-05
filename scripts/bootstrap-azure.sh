@@ -536,8 +536,8 @@ build_image_if_missing() {
     return 0
   fi
   log "building $ACR_NAME/$tag"
-  az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-    --image "$tag" -f "$dockerfile" "$ROOT"
+  acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+    "$tag" "$dockerfile" "$ROOT"
 }
 
 write_grafana_env() {
@@ -697,8 +697,8 @@ if [[ "$GRAFANA_ONLY" == "true" ]]; then
     if [[ "${FORCE_IMAGE_BUILD:-false}" == "true" ]] || [[ "${GRAFANA_RECREATE:-false}" == "true" ]] \
         || ! acr_image_exists "grafana:latest"; then
       log "building $ACR_NAME/grafana:latest"
-      az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-        --image "grafana:latest" -f "$ROOT/Dockerfile.grafana" "$ROOT"
+      acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+        "grafana:latest" "$ROOT/Dockerfile.grafana" "$ROOT"
     else
       build_image_if_missing "grafana:latest" "$ROOT/Dockerfile.grafana" "$GRAFANA_APP_NAME"
     fi

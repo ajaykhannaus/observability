@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/azure-deploy-common.sh
+source "$ROOT/scripts/lib/azure-deploy-common.sh"
 ENV_FILE="${ENV_FILE:-$ROOT/.env.azure}"
 
 log() { echo "[rebuild-grafana] $*"; }
@@ -24,9 +26,12 @@ az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 log "Regenerating dashboard JSON (per-dashboard filter sets) ..."
 python3 "$ROOT/dashboards/generate_dashboards.py"
 
+ACR_LOGIN_SERVER="${ACR_LOGIN_SERVER:-$(az acr show --name "$ACR_NAME" \
+  --resource-group "$AZURE_RESOURCE_GROUP" --query loginServer -o tsv)}"
+
 log "Building $ACR_NAME/grafana:latest (baked dashboard UIDs) ..."
-az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-  --image "grafana:latest" -f "$ROOT/Dockerfile.grafana" "$ROOT"
+acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+  "grafana:latest" "$ROOT/Dockerfile.grafana" "$ROOT"
 
 log "Redeploying Grafana Container App ..."
 export FORCE_CONTAINER_DEPLOY=true

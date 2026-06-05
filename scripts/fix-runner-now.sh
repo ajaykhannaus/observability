@@ -59,11 +59,8 @@ ACR_LOGIN_SERVER="${ACR_LOGIN_SERVER:-$(az acr show --name "$ACR_NAME" \
 log "3/5 — ACR build (cache-bust, ~5–12 min)"
 log "  registry: $ACR_NAME"
 log "  expect log lines: COPY observability/ and runner import ok"
-az acr build --registry "$ACR_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --platform linux/amd64 \
-  --build-arg "CACHEBUST=$(date +%s)" \
-  --image "${IMAGE_REPO}:latest" \
-  -f "$ROOT/Dockerfile.runner" "$ROOT"
+acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+  "${IMAGE_REPO}:latest" "$ROOT/Dockerfile.runner" "$ROOT"
 
 DIGEST=$(az acr repository show-manifests --name "$ACR_NAME" \
   --repository "$IMAGE_REPO" --orderby time_desc --top 1 \

@@ -342,6 +342,96 @@ wait_for_prometheus_app() {
   return 1
 }
 
+# Import a Docker Hub image into ACR (avoids build-time Hub rate limits).
+ensure_acr_hub_import() {
+  local acr=$1 source=$2 acr_tag=$3
+  if az acr repository show --name "$acr" --image "$acr_tag" >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "[acr-import] ${source} -> ${acr_tag}"
+  az acr import --name "$acr" \
+    --source "$source" \
+    --image "$acr_tag" \
+    --force \
+    --output none
+}
+
+# Import Dockerfile base layers into ACR before az acr build.
+prepare_acr_build_bases() {
+  local acr=$1 dockerfile=$2
+  local name
+  name=$(basename "$dockerfile")
+  case "$name" in
+    Dockerfile.loki)
+      ensure_acr_hub_import "$acr" "docker.io/grafana/loki:3.2.1" "imported/loki:3.2.1"
+      ;;
+    Dockerfile.tempo)
+      ensure_acr_hub_import "$acr" "docker.io/grafana/tempo:2.6.1" "imported/tempo:2.6.1"
+      ;;
+    Dockerfile.prometheus)
+      ensure_acr_hub_import "$acr" "docker.io/prom/prometheus:v2.54.1" "imported/prometheus:v2.54.1"
+      ;;
+    Dockerfile.collector)
+      ensure_acr_hub_import "$acr" "docker.io/otel/opentelemetry-collector-contrib:0.111.0" \
+        "imported/otel-collector-contrib:0.111.0"
+      ensure_acr_hub_import "$acr" "docker.io/library/alpine:3.20" "imported/alpine:3.20"
+      ;;
+    Dockerfile.runner)
+      ensure_acr_hub_import "$acr" "docker.io/library/python:3.11-slim" "imported/python:3.11-slim"
+      ;;
+    Dockerfile.grafana)
+      ensure_acr_hub_import "$acr" "docker.io/library/python:3.12-alpine" "imported/python:3.12-alpine"
+      ensure_acr_hub_import "$acr" "docker.io/grafana/grafana:11.3.0" "imported/grafana:11.3.0"
+      ;;
+  esac
+}
+
+# Build-arg overrides that point FROM lines at ACR-imported bases.
+acr_build_arg_overrides() {
+  local login=$1 dockerfile=$2
+  local name args=()
+  name=$(basename "$dockerfile")
+  case "$name" in
+    Dockerfile.loki)
+      args+=(--build-arg "LOKI_BASE=${login}/imported/loki:3.2.1") ;;
+    Dockerfile.tempo)
+      args+=(--build-arg "TEMPO_BASE=${login}/imported/tempo:2.6.1") ;;
+    Dockerfile.prometheus)
+      args+=(--build-arg "PROMETHEUS_BASE=${login}/imported/prometheus:v2.54.1") ;;
+    Dockerfile.collector)
+      args+=(
+        --build-arg "OTEL_COLLECTOR_BASE=${login}/imported/otel-collector-contrib:0.111.0"
+        --build-arg "ALPINE_BASE=${login}/imported/alpine:3.20"
+      ) ;;
+    Dockerfile.runner)
+      args+=(--build-arg "PYTHON_BASE=${login}/imported/python:3.11-slim") ;;
+    Dockerfile.grafana)
+      args+=(
+        --build-arg "PYTHON_BASE=${login}/imported/python:3.12-alpine"
+        --build-arg "GRAFANA_BASE=${login}/imported/grafana:11.3.0"
+      ) ;;
+  esac
+  printf '%s\n' "${args[@]}"
+}
+
+# Build and push an image via ACR Tasks using imported base layers.
+acr_build_image() {
+  local acr=$1 rg=$2 login=$3 tag=$4 dockerfile=$5 root=$6
+  shift 6 || true
+  local -a base_args=()
+  prepare_acr_build_bases "$acr" "$dockerfile"
+  while IFS= read -r arg; do
+    [[ -n "$arg" ]] && base_args+=("$arg")
+  done < <(acr_build_arg_overrides "$login" "$dockerfile")
+  az acr build --registry "$acr" --resource-group "$rg" \
+    --platform linux/amd64 \
+    --build-arg "CACHEBUST=$(date +%s)" \
+    "${base_args[@]}" \
+    --image "$tag" \
+    -f "$dockerfile" "$root" \
+    "$@"
+}
+
 # Refresh OTel Collector backend env vars and force a new revision.
 refresh_collector_backends() {
   local otel_app=$1 cae_name=$2 rg=$3 prom_app=${4:-prometheus-scraper-dev} \

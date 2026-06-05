@@ -1,5 +1,6 @@
 # Loki image with OTLP-ready config for Azure Container Apps.
-FROM mcr.microsoft.com/mirror/docker/grafana/loki:3.2.1
+ARG LOKI_BASE=grafana/loki:3.2.1
+FROM ${LOKI_BASE}
 
 COPY infra/loki-azure-config.yaml /etc/loki/config.yaml
 

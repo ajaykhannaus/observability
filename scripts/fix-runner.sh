@@ -236,9 +236,8 @@ if [[ "$BUILD_IMAGE" == "true" ]] || ! az acr repository show --name "$ACR_NAME"
   log "Building $ACR_NAME/ai-telemetry-runner:latest in ACR (~5–12 min on first run) ..."
   log "  (apt/debconf lines during build are normal — wait for 'Run ID' to finish)"
   log "  (expect steps: COPY observability/ then RUN python3 ... runner import ok)"
-  az acr build --registry "$ACR_NAME" --platform linux/amd64 \
-    --build-arg "CACHEBUST=$(date +%s)" \
-    --image "ai-telemetry-runner:latest" -f "$ROOT/Dockerfile.runner" "$ROOT"
+  acr_build_image "$ACR_NAME" "$AZURE_RESOURCE_GROUP" "$ACR_LOGIN_SERVER" \
+    "ai-telemetry-runner:latest" "$ROOT/Dockerfile.runner" "$ROOT"
 fi
 
 if az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
