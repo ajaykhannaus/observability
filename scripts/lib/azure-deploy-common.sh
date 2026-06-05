@@ -342,18 +342,38 @@ wait_for_prometheus_app() {
   return 1
 }
 
-# Import a Docker Hub image into ACR (avoids build-time Hub rate limits).
+# Import a container image into ACR (tries fallbacks; retries on Docker Hub 429).
 ensure_acr_hub_import() {
-  local acr=$1 source=$2 acr_tag=$3
+  local acr=$1 primary_source=$2 acr_tag=$3
+  shift 3
+  local -a sources=("$primary_source" "$@")
+  local src attempt out
+
   if az acr repository show --name "$acr" --image "$acr_tag" >/dev/null 2>&1; then
     return 0
   fi
-  echo "[acr-import] ${source} -> ${acr_tag}"
-  az acr import --name "$acr" \
-    --source "$source" \
-    --image "$acr_tag" \
-    --force \
-    --output none
+
+  for attempt in 1 2 3; do
+    for src in "${sources[@]}"; do
+      [[ -z "$src" ]] && continue
+      echo "[acr-import] ${src} -> ${acr_tag} (attempt ${attempt}/3)"
+      if out=$(az acr import --name "$acr" \
+          --source "$src" \
+          --image "$acr_tag" \
+          --force \
+          --output none 2>&1); then
+        return 0
+      fi
+      if echo "$out" | grep -qiE 'TOOMANYREQUESTS|Too Many Requests|429'; then
+        echo "[acr-import] WARN: rate limited on ${src}; waiting 90s before retry ..."
+        sleep 90
+        break
+      fi
+      echo "[acr-import] WARN: import failed for ${src}: ${out}"
+    done
+  done
+  echo "[acr-import] ERROR: could not import ${acr_tag}" >&2
+  return 1
 }
 
 # Import Dockerfile base layers into ACR before az acr build.
@@ -373,15 +393,21 @@ prepare_acr_build_bases() {
       ;;
     Dockerfile.collector)
       ensure_acr_hub_import "$acr" "docker.io/otel/opentelemetry-collector-contrib:0.111.0" \
-        "imported/otel-collector-contrib:0.111.0"
-      ensure_acr_hub_import "$acr" "docker.io/library/alpine:3.20" "imported/alpine:3.20"
+        "imported/otel-collector-contrib:0.111.0" \
+      && ensure_acr_hub_import "$acr" "mcr.microsoft.com/mirror/docker/library/alpine:3.20" \
+        "imported/alpine:3.20" "docker.io/library/alpine:3.20"
       ;;
     Dockerfile.runner)
-      ensure_acr_hub_import "$acr" "docker.io/library/python:3.11-slim" "imported/python:3.11-slim"
+      ensure_acr_hub_import "$acr" "mcr.microsoft.com/mirror/docker/library/python:3.11-slim" \
+        "imported/python:3.11-slim" "docker.io/library/python:3.11-slim"
       ;;
     Dockerfile.grafana)
-      ensure_acr_hub_import "$acr" "docker.io/library/python:3.12-alpine" "imported/python:3.12-alpine"
-      ensure_acr_hub_import "$acr" "docker.io/grafana/grafana:11.3.0" "imported/grafana:11.3.0"
+      ensure_acr_hub_import "$acr" "mcr.microsoft.com/mirror/docker/library/python:3.12-alpine" \
+        "imported/python:3.12-alpine" "docker.io/library/python:3.12-alpine" \
+      && ensure_acr_hub_import "$acr" "docker.io/grafana/grafana:11.3.0" "imported/grafana:11.3.0"
+      ;;
+    *)
+      return 0
       ;;
   esac
 }
@@ -419,7 +445,10 @@ acr_build_image() {
   local acr=$1 rg=$2 login=$3 tag=$4 dockerfile=$5 root=$6
   shift 6 || true
   local -a base_args=()
-  prepare_acr_build_bases "$acr" "$dockerfile"
+  if ! prepare_acr_build_bases "$acr" "$dockerfile"; then
+    echo "[acr-build] ERROR: base image import failed for $(basename "$dockerfile")" >&2
+    return 1
+  fi
   while IFS= read -r arg; do
     [[ -n "$arg" ]] && base_args+=("$arg")
   done < <(acr_build_arg_overrides "$login" "$dockerfile")

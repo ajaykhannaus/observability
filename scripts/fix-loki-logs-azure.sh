@@ -43,9 +43,10 @@ refresh_collector_backends "$OTEL_APP_NAME" "$CAE_NAME" "$AZURE_RESOURCE_GROUP" 
   "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME"
 restart_containerapp_revision "$OTEL_APP_NAME" "$AZURE_RESOURCE_GROUP" || true
 
-log "Step 3/5 — Rebuild runner + wire OTLP (HTTP logs on :4318)..."
+log "Step 3/5 — Wire runner OTLP (HTTP logs on :4318; skip image rebuild)..."
 "$ROOT/scripts/deploy-observability-stack.sh" --from otlp --no-git-pull
-"$ROOT/scripts/fix-runner.sh" --build --no-git-pull || true
+# Runner metrics already work — only refresh OTLP env, avoid Docker Hub pull during Loki fix.
+"$ROOT/scripts/fix-runner.sh" --no-git-pull || true
 
 OTEL_ENDPOINT="$(resolve_azure_otel_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
 OTEL_LOGS_ENDPOINT="$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
