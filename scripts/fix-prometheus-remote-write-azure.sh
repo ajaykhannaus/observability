@@ -70,7 +70,7 @@ AFTER_CMD=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZUR
   --query "properties.template.containers[0].{command:command,args:args}" -o json 2>/dev/null || echo "{}")
 log "  after:  $AFTER_CMD"
 
-log "Step 3/3 — Wait for Prometheus ready + verify collector remote write..."
+log "Step 3/4 — Wait for Prometheus ready..."
 PROM_READY=false
 for i in $(seq 1 30); do
   prov=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -93,19 +93,42 @@ if [[ "$PROM_READY" != "true" ]]; then
   exit 1
 fi
 
-log "  (Cloud Shell cannot reliably POST to internal ACA ingress — checking collector instead)"
-log "  waiting 90s for collector to retry remote write..."
+CAE_NAME="${CAE_NAME:-cae-telemetry-dev}"
+EXPECTED_PROM_EP="$(resolve_azure_prom_write_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$PROM_APP_NAME")"
+COLLECTOR_PROM_EP=$(az containerapp show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].env[?name=='PROM_WRITE_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+
+log "Step 4/4 — Refresh collector PROM_WRITE_ENDPOINT + restart (clears permanent exporter error)..."
+log "  expected PROM_WRITE_ENDPOINT: $EXPECTED_PROM_EP"
+log "  current PROM_WRITE_ENDPOINT:  ${COLLECTOR_PROM_EP:-<unset>}"
+if [[ -n "$EXPECTED_PROM_EP" && "$COLLECTOR_PROM_EP" != "$EXPECTED_PROM_EP" ]]; then
+  az containerapp update \
+    --name "$OTEL_APP_NAME" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --set-env-vars \
+      "PROM_WRITE_ENDPOINT=${EXPECTED_PROM_EP}" \
+      "DEPLOY_STAMP=$(date +%s)" \
+    --output none
+else
+  az containerapp update \
+    --name "$OTEL_APP_NAME" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --set-env-vars "DEPLOY_STAMP=$(date +%s)" \
+    --output none
+fi
+restart_containerapp_revision "$OTEL_APP_NAME" "$AZURE_RESOURCE_GROUP" || true
+
+log "  waiting 90s for collector to reconnect..."
 sleep 90
 
 COLLECTOR_LOGS=$(az containerapp logs show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
   --type console --tail 40 2>/dev/null || true)
-if collector_prom_rw_failing "$COLLECTOR_LOGS"; then
-  log "WARN: Collector still reports Prometheus remote write 404:"
+if collector_prom_rw_failing_recent "$COLLECTOR_LOGS" 10; then
+  log "WARN: Collector still reports recent Prometheus remote write 404:"
   echo "$COLLECTOR_LOGS" | grep 'remote write returned HTTP status 404' | tail -3 | sed 's/^/[fix-prometheus-rw]   /'
-  log "  Prometheus is up with --web.enable-remote-write-receiver; check PROM_WRITE_ENDPOINT on collector."
   exit 1
 fi
 
 echo ""
-log "SUCCESS — Prometheus redeployed; collector remote write 404s cleared."
+log "SUCCESS — Prometheus redeployed; collector restarted without recent remote-write 404s."
 log "Re-run: ./scripts/diagnose-grafana-azure.sh"

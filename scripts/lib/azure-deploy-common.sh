@@ -230,8 +230,71 @@ aca_unavailable_response() {
   echo "$body" | grep -qi 'Azure Container App - Unavailable'
 }
 
-# True when collector logs still show Prometheus remote-write 404 errors.
+# HTTPS Prometheus remote_write URL for OTel Collector (internal ACA ingress).
+resolve_azure_prom_write_endpoint() {
+  local cae_name=$1 rg=$2 prom_app=${3:-prometheus-scraper-dev}
+  local domain
+  domain=$(cae_default_domain "$cae_name" "$rg" 2>/dev/null || true)
+  [[ -n "$domain" ]] || return 1
+  echo "https://${prom_app}.internal.${domain}/api/v1/write"
+}
+
+# True when collector logs show Prometheus remote-write 404 errors.
 collector_prom_rw_failing() {
   local logs=$1
   echo "$logs" | grep -q 'remote write returned HTTP status 404'
+}
+
+# True when collector logs show Prometheus remote-write 404 within the last N minutes.
+collector_prom_rw_failing_recent() {
+  local logs=$1 minutes=${2:-10}
+  COLLECTOR_LOG_TEXT="$logs" RECENT_RW_MINUTES="$minutes" python3 - <<'PY'
+import json
+import os
+import re
+from datetime import datetime, timedelta, timezone
+
+text = os.environ.get("COLLECTOR_LOG_TEXT", "")
+minutes = int(os.environ.get("RECENT_RW_MINUTES", "10"))
+cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+needle = "remote write returned HTTP status 404"
+
+for line in text.splitlines():
+    if needle not in line:
+        continue
+    ts = None
+    try:
+        obj = json.loads(line)
+        raw = obj.get("TimeStamp") or obj.get("timestamp")
+        if raw:
+            ts = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        m = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)", line)
+        if m:
+            raw = m.group(1).replace("Z", "+00:00")
+            try:
+                ts = datetime.fromisoformat(raw)
+            except ValueError:
+                ts = None
+    if ts is None:
+        continue
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    if ts >= cutoff:
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
+restart_containerapp_revision() {
+  local app=$1 rg=$2
+  local rev
+  rev=$(az containerapp show --name "$app" --resource-group "$rg" \
+    --query "properties.latestRevisionName" -o tsv 2>/dev/null || true)
+  [[ -n "$rev" && "$rev" != "None" ]] || return 1
+  az containerapp revision restart \
+    --name "$app" \
+    --resource-group "$rg" \
+    --revision "$rev" \
+    --output none
 }
