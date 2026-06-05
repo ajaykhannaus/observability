@@ -22,5 +22,6 @@ exec /bin/prometheus \
   --storage.tsdb.retention.time=2h \
   --storage.tsdb.path=/prometheus \
   --web.listen-address=0.0.0.0:9090 \
+  --web.enable-remote-write-receiver \
   --log.level=warn \
   "$@"
