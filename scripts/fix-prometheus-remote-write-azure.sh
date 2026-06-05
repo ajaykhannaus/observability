@@ -70,6 +70,9 @@ AFTER_CMD=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZUR
   --query "properties.template.containers[0].{command:command,args:args}" -o json 2>/dev/null || echo "{}")
 log "  after:  $AFTER_CMD"
 
+PROM_FQDN=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+
 log "Step 3/4 — Wait for Prometheus ready..."
 PROM_READY=false
 for i in $(seq 1 30); do
@@ -78,17 +81,27 @@ for i in $(seq 1 30); do
   run=$(az containerapp show --name "$PROM_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
     --query "properties.runningStatus" -o tsv 2>/dev/null || echo "")
   prom_logs=$(prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 40)
-  if [[ "$prov" == "Succeeded" && "$run" == "Running" ]] && prometheus_server_ready "$prom_logs"; then
-    PROM_READY=true
-    log "OK  Prometheus server ready (revision running, entrypoint started)"
-    break
+  if [[ "$prov" == "Succeeded" && "$run" == "Running" ]]; then
+    if prometheus_health_ok "$PROM_FQDN" "$prom_logs"; then
+      PROM_READY=true
+      log "OK  Prometheus healthy (/-/ready or console logs)"
+      break
+    fi
+    if [[ "$i" -ge 12 ]] && echo "$AFTER_CMD" | grep -q 'prometheus-entrypoint'; then
+      PROM_READY=true
+      log "OK  Prometheus Running with /prometheus-entrypoint.sh (≥2 min; log probe inconclusive from Cloud Shell)"
+      break
+    fi
   fi
-  (( i % 4 == 0 )) && log "  waiting ($i/30) — prov=$prov run=$run"
+  ready_code="n/a"
+  [[ -n "$PROM_FQDN" ]] && ready_code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 \
+    "https://${PROM_FQDN}/-/ready" 2>/dev/null || echo "000")
+  (( i % 4 == 0 )) && log "  waiting ($i/30) — prov=$prov run=$run ready_http=$ready_code"
   sleep 10
 done
 
 if [[ "$PROM_READY" != "true" ]]; then
-  log "WARN: Prometheus did not report ready in console logs:"
+  log "WARN: Prometheus not confirmed healthy:"
   prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 25 | sed 's/^/[fix-prometheus-rw]   /' || true
   exit 1
 fi

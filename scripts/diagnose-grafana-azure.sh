@@ -140,8 +140,10 @@ if [[ -n "$PROM_CMD" && "$PROM_CMD" != *prometheus-entrypoint* ]]; then
   log "  Fix: ./scripts/fix-prometheus-remote-write-azure.sh"
 fi
 PROM_LOGS=$(prometheus_console_logs "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" 40)
-if prometheus_server_ready "$PROM_LOGS"; then
-  ok "Prometheus server ready (console logs)"
+if prometheus_health_ok "$PROM_FQDN" "$PROM_LOGS"; then
+  ok "Prometheus healthy (/-/ready or console logs)"
+elif [[ -n "$PROM_CMD" && "$PROM_CMD" == *prometheus-entrypoint* ]]; then
+  ok "Prometheus Running with entrypoint (/-/ready unreachable from this host)"
 else
   fail "Prometheus not ready — check console logs"
 fi

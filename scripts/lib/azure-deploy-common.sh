@@ -221,7 +221,16 @@ prometheus_console_logs() {
 # True when Prometheus finished starting (console logs).
 prometheus_server_ready() {
   local logs=$1
-  echo "$logs" | grep -qiE 'Server is ready to receive web requests|Listening on'
+  echo "$logs" | grep -qiE 'Server is ready to receive web requests|Listening on|Completed loading'
+}
+
+# True when Prometheus responds on /-/ready or logs confirm startup.
+prometheus_health_ok() {
+  local fqdn=${1:-} logs=${2:-}
+  if [[ -n "$fqdn" ]] && curl -sfk --max-time 12 "https://${fqdn}/-/ready" >/dev/null 2>&1; then
+    return 0
+  fi
+  [[ -n "$logs" ]] && prometheus_server_ready "$logs"
 }
 
 # True when an HTTP body is ACA's "Unavailable" page (not a Prometheus API 404).
