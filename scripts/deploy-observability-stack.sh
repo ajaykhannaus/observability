@@ -27,8 +27,9 @@ Usage: $0 [--build] [--no-git-pull] [--skip-runner-otlp] [--from STEP]
   Skips any component that already exists and passes its health check (no redeploy).
   Set FORCE_CONTAINER_DEPLOY=true to redeploy everything.
 
-  --from STEP   Resume from STEP: loki | tempo | prometheus | otel
+  --from STEP   Resume from STEP: loki | tempo | prometheus | otel | otlp
                 (skips earlier steps entirely — use after a partial run)
+                otlp = runner OTLP env wiring only (no redeploy)
 
   --build       Force rebuild tempo/collector/prometheus images in ACR
 EOF
@@ -182,9 +183,10 @@ step_enabled() {
     loki)       return 0 ;;
     tempo)      [[ "$step" != "loki" ]] ;;
     prometheus) [[ "$step" != "loki" && "$step" != "tempo" ]] ;;
-    otel)       [[ "$step" == "otel" || "$step" == "otlp" || "$step" == "env" ]] ;;
+    otel)       [[ "$step" == "otel" || "$step" == "otlp" ]] ;;
+    otlp)       [[ "$step" == "otlp" ]] ;;
     *)
-      log "ERROR: unknown --from step '$FROM_STEP' (use loki|tempo|prometheus|otel)"
+      log "ERROR: unknown --from step '$FROM_STEP' (use loki|tempo|prometheus|otel|otlp)"
       exit 1
       ;;
   esac

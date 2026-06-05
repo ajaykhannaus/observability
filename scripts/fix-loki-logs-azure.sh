@@ -25,7 +25,7 @@ log "Step 1/4 — Rebuild Loki (OTLP-ready) + OTel Collector (otlphttp/loki expo
 "$ROOT/scripts/deploy-observability-stack.sh" --build --from loki --no-git-pull
 
 log "Step 2/4 — Rebuild runner + wire OTLP (HTTP logs on :4318)..."
-"$ROOT/scripts/deploy-observability-stack.sh" --from otlp --no-git-pull || true
+"$ROOT/scripts/deploy-observability-stack.sh" --from otlp --no-git-pull
 "$ROOT/scripts/fix-runner.sh" --build --no-git-pull || true
 
 # Force a new runner revision so OTLP log exporter reconnects after collector redeploy.

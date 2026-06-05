@@ -214,6 +214,7 @@ loki_queries = [
         'sum(count_over_time({service_name=~".+"} | json | event_type="startup_config" [15m]))',
     ),
 ]
+loki_stream_count = None
 for label, logql in loki_queries:
     try:
         body = {
@@ -243,10 +244,17 @@ for label, logql in loki_queries:
                         except (TypeError, ValueError):
                             pass
         print(f"  {label}: {int(total)}")
+        if label == "any service_name streams (15m)":
+            loki_stream_count = int(total)
         if total == 0 and label == "any service_name streams (15m)":
             print("    WARN: no Loki streams — runner → collector → Loki pipeline is broken")
             print("    Fix: ./scripts/fix-loki-logs-azure.sh")
-        elif total == 0 and "telemetry_event" in label:
+        elif (
+            total == 0
+            and "telemetry_event" in label
+            and loki_stream_count is not None
+            and loki_stream_count > 0
+        ):
             print("    WARN: logs exist in Loki but no telemetry_event — check runner batches / LogQL")
     except Exception as exc:
         print(f"  {label}: ERROR {exc}")
