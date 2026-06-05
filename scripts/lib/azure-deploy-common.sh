@@ -308,6 +308,40 @@ restart_containerapp_revision() {
     --output none
 }
 
+# Wait for Prometheus on ACA (/-/ready often unreachable from Cloud Shell).
+wait_for_prometheus_app() {
+  local prom_app=$1 rg=$2
+  local fqdn i prov run prom_logs ready_code
+
+  fqdn=$(az containerapp show --name "$prom_app" --resource-group "$rg" \
+    --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+  echo "[prometheus] Waiting for $prom_app ..."
+  for i in $(seq 1 30); do
+    prov=$(az containerapp show --name "$prom_app" --resource-group "$rg" \
+      --query "properties.provisioningState" -o tsv 2>/dev/null || echo "")
+    run=$(az containerapp show --name "$prom_app" --resource-group "$rg" \
+      --query "properties.runningStatus" -o tsv 2>/dev/null || echo "")
+    prom_logs=$(prometheus_console_logs "$prom_app" "$rg" 40)
+    if [[ "$prov" == "Succeeded" && "$run" == "Running" ]]; then
+      if prometheus_health_ok "$fqdn" "$prom_logs"; then
+        echo "[prometheus] ready"
+        return 0
+      fi
+      if [[ "$i" -ge 6 ]]; then
+        echo "[prometheus] Running (ingress probe inconclusive from deploy host; continuing)"
+        return 0
+      fi
+    fi
+    ready_code="n/a"
+    [[ -n "$fqdn" ]] && ready_code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 \
+      "https://${fqdn}/-/ready" 2>/dev/null || echo "000")
+    (( i % 4 == 0 )) && echo "[prometheus]  still waiting ($i/30) — prov=$prov run=$run ready_http=$ready_code"
+    sleep 10
+  done
+  echo "[prometheus] WARN: not confirmed ready"
+  return 1
+}
+
 # Refresh OTel Collector backend env vars and force a new revision.
 refresh_collector_backends() {
   local otel_app=$1 cae_name=$2 rg=$3 prom_app=${4:-prometheus-scraper-dev} \

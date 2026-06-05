@@ -334,9 +334,7 @@ if step_enabled prometheus; then
     prometheus_deploy_sandbox "$PROM_APP_NAME" "$CAE_NAME" "$AZURE_RESOURCE_GROUP" \
       "$ACR_NAME" "$ACR_LOGIN_SERVER" "$RUNNER_FQDN"
     PROM_FQDN=$(app_fqdn "$PROM_APP_NAME")
-    wait_for_app "$PROM_APP_NAME" \
-      "curl -sf --max-time 10 \"https://${PROM_FQDN}/-/ready\" >/dev/null" \
-      "Prometheus" || true
+    wait_for_prometheus_app "$PROM_APP_NAME" "$AZURE_RESOURCE_GROUP" || true
   fi
 else
   log "SKIP Prometheus — --from $FROM_STEP"
