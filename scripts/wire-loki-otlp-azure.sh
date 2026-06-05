@@ -50,12 +50,32 @@ az containerapp update \
   --output none
 restart_containerapp_revision "$APP_NAME" "$AZURE_RESOURCE_GROUP" || true
 
-log "Step 3/3 — Wait 120s for batches, then diagnose..."
+log "Step 3/3 — Wait 120s for batches, then verify env + diagnose..."
 sleep 120
+
+RUNNER_LOGS_EP=$(az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].env[?name=='OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+COLLECTOR_LOKI_EP=$(az containerapp show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.template.containers[0].env[?name=='LOKI_OTLP_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+log "  runner OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=${RUNNER_LOGS_EP:-<unset>}"
+log "  collector LOKI_OTLP_ENDPOINT=${COLLECTOR_LOKI_EP:-<unset>}"
+
+RUNNER_LOGS=$(az containerapp logs show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --type console --tail 100 2>/dev/null || true)
+if echo "$RUNNER_LOGS" | grep -q "OTLP log exporter"; then
+  log "  OK  runner OTLP log exporter initialized"
+else
+  log "  WARN: no 'OTLP log exporter' in runner logs — check runner image / env"
+fi
+
+COLLECTOR_LOGS=$(az containerapp logs show --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --type console --tail 60 2>/dev/null || true)
+if echo "$COLLECTOR_LOGS" | grep -Eiq 'otlphttp/loki.*error|error.*loki|failed.*loki'; then
+  log "  WARN: collector Loki export errors:"
+  echo "$COLLECTOR_LOGS" | grep -Ei 'loki|otlphttp' | grep -Ei 'error|failed|404|401' | tail -3 | sed 's/^/[wire-loki-otlp]   /'
+fi
+
 "$ROOT/scripts/diagnose-grafana-azure.sh" || true
 
 echo ""
-log "If Loki still empty, check diagnose sections:"
-log "  - Runner console — OTLP log exporter"
-log "  - OTel Collector → Loki wiring"
-log "  - Collector export errors (loki/otlphttp)"
+log "If Loki still empty, paste wire-loki output + diagnose 'Runner OTLP' and 'Collector → Loki' sections."

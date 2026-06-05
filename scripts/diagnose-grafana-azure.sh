@@ -286,7 +286,6 @@ except Exception as exc:
 
 print("\n=== Loki queries (Live Telemetry Events panel) ===")
 loki_queries = [
-    ("any streams (15m)", 'sum(count_over_time({} [15m]))'),
     ("any service_name streams (15m)", 'sum(count_over_time({service_name=~".+"} [15m]))'),
     (
         "telemetry_event (15m)",
@@ -329,12 +328,10 @@ for label, logql in loki_queries:
         print(f"  {label}: {int(total)}")
         if label == "any service_name streams (15m)":
             loki_stream_count = int(total)
-        if total == 0 and label == "any streams (15m)":
+        if total == 0 and label == "any service_name streams (15m)":
             print("    WARN: no Loki streams — runner → collector → Loki pipeline is broken")
             print("    Fix: ./scripts/wire-loki-otlp-azure.sh  (no rebuild)")
             print("    Or:  ./scripts/fix-loki-logs-azure.sh  (rebuild Loki/collector)")
-        elif total == 0 and label == "any service_name streams (15m)":
-            print("    WARN: streams exist but no service_name label — check OTEL_SERVICE_NAME on runner")
         elif (
             total == 0
             and "telemetry_event" in label
