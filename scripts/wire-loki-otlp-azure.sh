@@ -28,6 +28,15 @@ az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 OTEL_ENDPOINT="$(resolve_azure_otel_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
 OTEL_LOGS_ENDPOINT="$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
 EXPECTED_LOKI="$(resolve_azure_loki_otlp_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$LOKI_APP_NAME")"
+ACR_LOGIN_SERVER="${ACR_LOGIN_SERVER:-$(az acr show --name "${ACR_NAME:-acrtelemetrydevaj}" \
+  --resource-group "$AZURE_RESOURCE_GROUP" --query loginServer -o tsv 2>/dev/null || true)}"
+
+log "Step 0/3 — Triage (env-only fix cannot rebuild stale images)..."
+if ! triage_loki_pipeline "$APP_NAME" "$OTEL_APP_NAME" "$LOKI_APP_NAME" \
+  "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "[wire-loki-otlp]"; then
+  log "Stale images or missing OTLP exporter — wire-loki may not be enough."
+  log "After this script finishes, run: ${LOKI_TRIAGE_FIX:-./scripts/fix-loki-pipeline-azure.sh}"
+fi
 
 log "Step 1/3 — Refresh collector backends (LOKI_OTLP_ENDPOINT=$EXPECTED_LOKI)..."
 refresh_collector_backends "$OTEL_APP_NAME" "$CAE_NAME" "$AZURE_RESOURCE_GROUP" \
@@ -78,4 +87,8 @@ fi
 "$ROOT/scripts/diagnose-grafana-azure.sh" || true
 
 echo ""
-log "If Loki still empty, paste wire-loki output + diagnose 'Runner OTLP' and 'Collector → Loki' sections."
+if [[ -n "${LOKI_TRIAGE_FIX:-}" && "$LOKI_TRIAGE_FIX" != "./scripts/wire-loki-otlp-azure.sh" ]]; then
+  log "Loki still empty → run: $LOKI_TRIAGE_FIX"
+else
+  log "If Loki still empty, paste triage + diagnose 'Runner OTLP' and 'Collector → Loki' sections."
+fi

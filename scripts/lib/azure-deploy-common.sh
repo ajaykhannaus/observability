@@ -461,6 +461,128 @@ acr_build_image() {
     "$@"
 }
 
+# Latest image digest in ACR (repo name without registry).
+acr_latest_digest() {
+  local acr=$1 repo=$2 digest
+  digest=$(az acr repository show-manifests --name "$acr" \
+    --repository "$repo" --orderby time_desc --top 1 \
+    --query "[0].digest" -o tsv 2>/dev/null || true)
+  [[ -n "$digest" && "$digest" != "None" ]] || return 1
+  echo "$digest"
+}
+
+# Read-only Loki pipeline triage. Sets LOKI_TRIAGE_FIX to recommended script (if any).
+triage_loki_pipeline() {
+  local runner_app=$1 otel_app=$2 loki_app=$3 cae_name=$4 rg=$5
+  local prefix=${6:-"[loki-triage]"}
+  local acr_login=${ACR_LOGIN_SERVER:-}
+  local runner_image collector_image loki_image
+  local runner_logs_ep collector_loki_ep expected_logs expected_loki
+  local runner_logs collector_logs
+  local -a issues=()
+
+  LOKI_TRIAGE_FIX=""
+
+  runner_image=$(az containerapp show --name "$runner_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+  collector_image=$(az containerapp show --name "$otel_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+  loki_image=$(az containerapp show --name "$loki_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+
+  runner_logs_ep=$(az containerapp show --name "$runner_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].env[?name=='OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+  collector_loki_ep=$(az containerapp show --name "$otel_app" --resource-group "$rg" \
+    --query "properties.template.containers[0].env[?name=='LOKI_OTLP_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+  expected_logs="$(resolve_azure_otel_logs_endpoint "$cae_name" "$rg" "$otel_app" 2>/dev/null || true)"
+  expected_loki="$(resolve_azure_loki_otlp_endpoint "$cae_name" "$rg" "$loki_app" 2>/dev/null || true)"
+
+  echo "$prefix === Loki pipeline triage ==="
+  echo "$prefix   runner image:     ${runner_image:-unknown}"
+  echo "$prefix   collector image:  ${collector_image:-unknown}"
+  echo "$prefix   loki image:       ${loki_image:-unknown}"
+  echo "$prefix   runner logs ep:   ${runner_logs_ep:-<unset>}"
+  echo "$prefix   expected logs ep: ${expected_logs:-unknown}"
+  echo "$prefix   collector loki:   ${collector_loki_ep:-<unset>}"
+  echo "$prefix   expected loki:    ${expected_loki:-unknown}"
+
+  if [[ -n "$loki_image" && "$loki_image" == grafana/loki:* ]]; then
+    issues+=("Loki uses stock grafana/loki (no baked OTLP config)")
+  elif [[ -n "$acr_login" && -n "$loki_image" && "$loki_image" != *"${acr_login}/loki"* ]]; then
+    issues+=("Loki image is not ACR loki:latest")
+  fi
+
+  if [[ -n "$collector_image" && "$collector_image" == otel/opentelemetry-collector-contrib:* ]]; then
+    issues+=("Collector uses stock image (no otlphttp/loki pipeline)")
+  elif [[ -n "$acr_login" && -n "$collector_image" && "$collector_image" != *"${acr_login}/otel-collector"* ]]; then
+    issues+=("Collector image is not ACR otel-collector:latest")
+  fi
+
+  if [[ -z "$runner_logs_ep" || ( -n "$expected_logs" && "$runner_logs_ep" != "$expected_logs" ) ]]; then
+    issues+=("Runner OTLP logs endpoint missing or wrong")
+  fi
+  if [[ -z "$collector_loki_ep" || ( -n "$expected_loki" && "$collector_loki_ep" != "$expected_loki" ) ]]; then
+    issues+=("Collector LOKI_OTLP_ENDPOINT missing or wrong")
+  fi
+
+  runner_logs=$(az containerapp logs show --name "$runner_app" --resource-group "$rg" \
+    --type console --tail 120 2>/dev/null || true)
+  if echo "$runner_logs" | grep -q "OTLP log exporter"; then
+    echo "$prefix   runner OTLP logs: OK (exporter initialized)"
+  elif echo "$runner_logs" | grep -qi "OTEL_EXPORTER_OTLP_ENDPOINT is not set"; then
+    issues+=("Runner started without OTLP endpoint")
+    echo "$prefix   runner OTLP logs: FAIL (no OTLP endpoint)"
+  elif echo "$runner_logs" | grep -qi "OTLP log exporter init failed"; then
+    issues+=("Runner OTLP log exporter failed to initialize")
+    echo "$prefix   runner OTLP logs: FAIL (init failed)"
+  else
+    issues+=("Runner logs lack 'OTLP log exporter' line (stale image?)")
+    echo "$prefix   runner OTLP logs: FAIL (no exporter line in console)"
+  fi
+
+  collector_logs=$(az containerapp logs show --name "$otel_app" --resource-group "$rg" \
+    --type console --tail 80 2>/dev/null || true)
+  if echo "$collector_logs" | grep -Eiq 'otlphttp/loki.*error|error.*loki|failed.*loki|Exporting failed.*loki'; then
+    issues+=("Collector → Loki export errors in recent logs")
+    echo "$prefix   collector → loki: FAIL (export errors)"
+    echo "$collector_logs" | grep -Ei 'loki|otlphttp' | grep -Ei 'error|failed|404|401|refused|Permanent' | tail -3 | sed "s/^/${prefix}     /"
+  else
+    echo "$prefix   collector → loki: no obvious export errors"
+  fi
+
+  if [[ ${#issues[@]} -eq 0 ]]; then
+    echo "$prefix   verdict: env/images look OK — wait for batches or check collector receives logs on :4318"
+    return 0
+  fi
+
+  echo "$prefix   issues:"
+  local issue
+  for issue in "${issues[@]}"; do
+    echo "$prefix     - $issue"
+  done
+
+  local need_rebuild=false need_runner=false
+  for issue in "${issues[@]}"; do
+    [[ "$issue" == *"Loki"* || "$issue" == *"Collector"* ]] && need_rebuild=true
+    [[ "$issue" == *"Runner"* ]] && need_runner=true
+  done
+
+  if [[ "$need_rebuild" == "true" ]]; then
+    LOKI_TRIAGE_FIX="./scripts/fix-loki-pipeline-azure.sh"
+    echo "$prefix   recommended: $LOKI_TRIAGE_FIX"
+    if [[ "$need_runner" == "true" ]]; then
+      echo "$prefix   also run:    ./scripts/fix-loki-pipeline-azure.sh --runner-build"
+    fi
+  elif [[ "$need_runner" == "true" ]]; then
+    LOKI_TRIAGE_FIX="./scripts/fix-loki-pipeline-azure.sh --runner-build"
+    echo "$prefix   recommended: $LOKI_TRIAGE_FIX"
+  else
+    LOKI_TRIAGE_FIX="./scripts/wire-loki-otlp-azure.sh"
+    echo "$prefix   recommended: $LOKI_TRIAGE_FIX"
+  fi
+  return 1
+}
+
 # Refresh OTel Collector backend env vars and force a new revision.
 refresh_collector_backends() {
   local otel_app=$1 cae_name=$2 rg=$3 prom_app=${4:-prometheus-scraper-dev} \
