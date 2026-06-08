@@ -1,36 +1,13 @@
-[ ~/observability ]$ RG=az03-al-titan-sandbox-rg
-RUNNER=ai-telemetry-runner-dev
-OTEL_HTTP=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
+jay [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
 
-az containerapp update -n "$RUNNER" -g "$RG" \
-  --set-env-vars \
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_HTTP" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf" \
-    "OTEL_EXPORTER_OTLP_INSECURE=true" \
-    "DEPLOY_STAMP=$(date +%s)" \
-  --output none
+echo "runner env:"
+az containerapp show -n ai-telemetry-runner-dev -g "$RG" --query "properties.environmentId" -o tsv
 
-echo "env updated — logs repointed to :4318 HTTP — new revision rolling out"
+echo "collector env:"
+az containerapp show -n otel-collector-dev -g "$RG" --query "properties.environmentId" -o tsv
+runner env:
 The behavior of this command has been altered by the following extension: containerapp
-env updated — logs repointed to :4318 HTTP — new revision rolling out
-ajay [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
-RUNNER=ai-telemetry-runner-dev
-REV=$(az containerapp show -n "$RUNNER" -g "$RG" --query properties.latestRevisionName -o tsv)
-az containerapp revision restart -n "$RUNNER" -g "$RG" --revision "$REV"
-
-# capture the FIRST ~45s of boot, keep only otel-logging lines, drop publisher noise
-timeout 45 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --follow 2>/dev/null \
-  | grep --line-buffered -iE "otel|otlp|log exporter|logger provider|endpoint" \
-  | grep --line-buffered -viE "publisher|kafka|undelivered|timed out" \
-  | head -10
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-"Restart succeeded"
-{"TimeStamp": "2026-06-08T20:30:32.1787738+00:00", "Log": "F 2026-06-08 20:30:32.178  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export traces to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
-{"TimeStamp": "2026-06-08T20:30:38.0660944+00:00", "Log": "F 2026-06-08 20:30:38.065  WARNING [opentelemetry.exporter.otlp.proto.grpc.exporter] Transient error StatusCode.UNAVAILABLE encountered while exporting traces to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, retrying in 1.07s."}
-{"TimeStamp": "2026-06-08T20:30:42.1821279+00:00", "Log": "F 2026-06-08 20:30:42.181  WARNING [opentelemetry.exporter.otlp.proto.grpc.exporter] Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, retrying in 0.97s."}
-{"TimeStamp": "2026-06-08T20:30:47.181615+00:00", "Log": "F 2026-06-08 20:30:47.181  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export traces to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
-{"TimeStamp": "2026-06-08T20:30:47.207999+00:00", "Log": "F 2026-06-08 20:30:47.207  ERROR [opentelemetry.exporter.otlp.proto.http._log_exporter] Failed to export logs batch due to timeout, max retries or shutdown."}
-{"TimeStamp": "2026-06-08T20:30:58.066518+00:00", "Log": "F 2026-06-08 20:30:58.066  WARNING [opentelemetry.exporter.otlp.proto.grpc.exporter] Transient error StatusCode.UNAVAILABLE encountered while exporting traces to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, retrying in 0.81s."}
-{"TimeStamp": "2026-06-08T20:31:02.1852115+00:00", "Log": "F 2026-06-08 20:31:02.184  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export traces to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
-Terminated
-ajay [ ~/observability ]$ 
+/subscriptions/216d62c8-0f0c-4e5c-9cda-cc553e7ab186/resourceGroups/az03-al-titan-sandbox-rg/providers/Microsoft.App/managedEnvironments/cae-telemetry-dev
+collector env:
+The behavior of this command has been altered by the following extension: containerapp
+/subscriptions/216d62c8-0f0c-4e5c-9cda-cc553e7ab186/resourceGroups/az03-al-titan-sandbox-rg/providers/Microsoft.App/managedEnvironments/cae-telemetry-dev
