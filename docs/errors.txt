@@ -1,43 +1,41 @@
-ajay [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
-OTEL=otel-collector-dev
-
-# running state + replica bounds (minReplicas:0 = it can scale to zero and go cold)
-az containerapp show -n "$OTEL" -g "$RG" \
-  --query "{running:properties.runningStatus, minReplicas:properties.template.scale.minReplicas, maxReplicas:properties.template.scale.maxReplicas, latestRev:properties.latestRevisionName}" -o table
-
-# per-revision replica counts + health
-az containerapp revision list -n "$OTEL" -g "$RG" \
-  --query "[].{rev:name, active:properties.active, replicas:properties.replicas, state:properties.runningState, created:properties.createdTime}" -o table
-
-# recent collector logs — crash-loop / bad-config?
-az containerapp logs show -n "$OTEL" -g "$RG" --type console --tail 60 2>/dev/null
+ajay [ ~/observability ]$ az containerapp show -n otel-collector-dev -g az03-al-titan-sandbox-rg \
+  --query "properties.configuration.ingress" -o json
 The behavior of this command has been altered by the following extension: containerapp
-Running    MinReplicas    MaxReplicas    LatestRev
----------  -------------  -------------  ---------------------------
-Running    1              2              otel-collector-dev--0000020
-Rev                          Active    Replicas    State    Created
----------------------------  --------  ----------  -------  -------------------------
-otel-collector-dev--0000020  True      1           Running  2026-06-08T19:07:24+00:00
-{"TimeStamp": "2026-06-08T20:17:24.80375", "Log": "Connecting to the container 'otel-collector'..."}
-{"TimeStamp": "2026-06-08T20:17:24.84695", "Log": "Successfully Connected to container: 'otel-collector' [Revision: 'otel-collector-dev--0000020', Replica: 'otel-collector-dev--0000020-6954bbb9b8-h2qs6']"}
-{"TimeStamp": "2026-06-08T19:07:53.0415762+00:00", "Log": "F 2026-06-08T19:07:53.041Z\tinfo\tservice@v0.111.0/service.go:136\tSetting up own telemetry..."}
-{"TimeStamp": "2026-06-08T19:07:53.041686+00:00", "Log": "F 2026-06-08T19:07:53.041Z\twarn\tservice@v0.111.0/service.go:191\tservice::telemetry::metrics::address is being deprecated in favor of service::telemetry::metrics::readers"}
-{"TimeStamp": "2026-06-08T19:07:53.0416936+00:00", "Log": "F 2026-06-08T19:07:53.041Z\tinfo\ttelemetry/metrics.go:70\tServing metrics\t{\"address\": \"0.0.0.0:8888\", \"metrics level\": \"Normal\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0418361+00:00", "Log": "F 2026-06-08T19:07:53.041Z\twarn\tprometheusremotewriteexporter@v0.111.0/factory.go:47\tCurrently, remote_write_queue.num_consumers doesn't have any effect due to incompatibilitywith Prometheus remote write API. The value will be ignored. Please see https://github.com/open-telemetry/opentelemetry-collector/issues/2949 for more information.\t{\"kind\": \"exporter\", \"data_type\": \"metrics\", \"name\": \"prometheusremotewrite\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0422464+00:00", "Log": "F 2026-06-08T19:07:53.042Z\tinfo\tmemorylimiter/memorylimiter.go:75\tMemory limiter configured\t{\"kind\": \"processor\", \"name\": \"memory_limiter\", \"pipeline\": \"logs\", \"limit_mib\": 400, \"spike_limit_mib\": 100, \"check_interval\": 1}"}
-{"TimeStamp": "2026-06-08T19:07:53.0430908+00:00", "Log": "F 2026-06-08T19:07:53.042Z\tinfo\tservice@v0.111.0/service.go:208\tStarting otelcol-contrib...\t{\"Version\": \"0.111.0\", \"NumCPU\": 4}"}
-{"TimeStamp": "2026-06-08T19:07:53.0431076+00:00", "Log": "F 2026-06-08T19:07:53.042Z\tinfo\textensions/extensions.go:39\tStarting extensions..."}
-{"TimeStamp": "2026-06-08T19:07:53.0431158+00:00", "Log": "F 2026-06-08T19:07:53.042Z\tinfo\textensions/extensions.go:42\tExtension is starting...\t{\"kind\": \"extension\", \"name\": \"health_check\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0432448+00:00", "Log": "F 2026-06-08T19:07:53.043Z\tinfo\thealthcheckextension@v0.111.0/healthcheckextension.go:33\tStarting health_check extension\t{\"kind\": \"extension\", \"name\": \"health_check\",\"config\": {\"Endpoint\":\"0.0.0.0:13133\",\"TLSSetting\":null,\"CORS\":null,\"Auth\":null,\"MaxRequestBodySize\":0,\"IncludeMetadata\":false,\"ResponseHeaders\":null,\"CompressionAlgorithms\":null,\"ReadTimeout\":0,\"ReadHeaderTimeout\":0,\"WriteTimeout\":0,\"IdleTimeout\":0,\"Path\":\"/\",\"ResponseBody\":null,\"CheckCollectorPipeline\":{\"Enabled\":false,\"Interval\":\"5m\",\"ExporterFailureThreshold\":5}}}"}
-{"TimeStamp": "2026-06-08T19:07:53.0433216+00:00", "Log": "F 2026-06-08T19:07:53.043Z\twarn\tinternal@v0.111.0/warning.go:40\tUsing the 0.0.0.0 address exposes this server to every network interface, which may facilitate Denial of Service attacks.\t{\"kind\": \"extension\", \"name\": \"health_check\", \"documentation\": \"https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#safeguards-against-denial-of-service-attacks\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0433605+00:00", "Log": "F 2026-06-08T19:07:53.043Z\tinfo\textensions/extensions.go:59\tExtension started.\t{\"kind\": \"extension\", \"name\": \"health_check\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0444789+00:00", "Log": "F 2026-06-08T19:07:53.044Z\tinfo\tprometheusreceiver@v0.111.0/metrics_receiver.go:118\tStarting discovery manager\t{\"kind\": \"receiver\", \"name\": \"prometheus/self\", \"data_type\": \"metrics\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0450037+00:00", "Log": "F 2026-06-08T19:07:53.044Z\tinfo\ttargetallocator/manager.go:179\tScrape job added\t{\"kind\": \"receiver\", \"name\": \"prometheus/self\", \"data_type\": \"metrics\", \"jobName\": \"otel-collector\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0451391+00:00", "Log": "F 2026-06-08T19:07:53.045Z\twarn\tinternal@v0.111.0/warning.go:40\tUsing the 0.0.0.0 address exposes this server to every network interface, which may facilitate Denial of Service attacks.\t{\"kind\": \"receiver\", \"name\": \"otlp\", \"data_type\": \"metrics\", \"documentation\": \"https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#safeguards-against-denial-of-service-attacks\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.045155+00:00", "Log": "F 2026-06-08T19:07:53.045Z\tinfo\totlpreceiver@v0.111.0/otlp.go:112\tStarting GRPC server\t{\"kind\": \"receiver\", \"name\": \"otlp\", \"data_type\": \"metrics\", \"endpoint\": \"0.0.0.0:4317\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0452395+00:00", "Log": "F 2026-06-08T19:07:53.045Z\tinfo\tprometheusreceiver@v0.111.0/metrics_receiver.go:187\tStarting scrape manager\t{\"kind\": \"receiver\", \"name\": \"prometheus/self\", \"data_type\": \"metrics\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0452562+00:00", "Log": "F 2026-06-08T19:07:53.045Z\twarn\tinternal@v0.111.0/warning.go:40\tUsing the 0.0.0.0 address exposes this server to every network interface, which may facilitate Denial of Service attacks.\t{\"kind\": \"receiver\", \"name\": \"otlp\", \"data_type\": \"metrics\", \"documentation\": \"https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/security-best-practices.md#safeguards-against-denial-of-service-attacks\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0453066+00:00", "Log": "F 2026-06-08T19:07:53.045Z\tinfo\totlpreceiver@v0.111.0/otlp.go:169\tStarting HTTP server\t{\"kind\": \"receiver\", \"name\": \"otlp\", \"data_type\": \"metrics\", \"endpoint\": \"0.0.0.0:4318\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0454116+00:00", "Log": "F 2026-06-08T19:07:53.045Z\tinfo\thealthcheck/handler.go:132\tHealth Check state change\t{\"kind\": \"extension\", \"name\": \"health_check\", \"status\": \"ready\"}"}
-{"TimeStamp": "2026-06-08T19:07:53.0454337+00:00", "Log": "F 2026-06-08T19:07:53.045Z\tinfo\tservice@v0.111.0/service.go:234\tEverything is ready. Begin running and processing data."}
+{
+  "additionalPortMappings": [
+    {
+      "exposedPort": 4318,
+      "external": false,
+      "targetPort": 4318
+    },
+    {
+      "exposedPort": 8888,
+      "external": false,
+      "targetPort": 8888
+    },
+    {
+      "exposedPort": 13133,
+      "external": false,
+      "targetPort": 13133
+    }
+  ],
+  "allowInsecure": false,
+  "clientCertificateMode": null,
+  "corsPolicy": null,
+  "customDomains": null,
+  "exposedPort": 0,
+  "external": false,
+  "fqdn": "otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io",
+  "ipSecurityRestrictions": null,
+  "stickySessions": null,
+  "targetPort": 4317,
+  "targetPortHttpScheme": null,
+  "traffic": [
+    {
+      "latestRevision": true,
+      "weight": 100
+    }
+  ],
+  "transport": "Http2"
+}
 ajay [ ~/observability ]$ 
