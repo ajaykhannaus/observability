@@ -4,35 +4,36 @@
 `Loki labels (0)` and `telemetry_event (15m): 0` — **nothing has ever reached Loki** —
 even though Prometheus metrics flow fine (90+ series).
 
-**Why:** Metrics export over **gRPC :4317** (proven working). Logs were the *only* signal
-using **HTTP :4318**. So the fix is to send logs over the same proven `:4317` gRPC channel.
-(The diagnose "no OTLP log exporter line" check reads only the last 80 log lines and is an
-unreliable false-negative — trust the collector self-telemetry counters in STEP 3, not that grep.)
+**Why (CONFIRMED via STEP 3e ingress read):** The collector's main HTTP/2 ingress is
+`targetPort: 4317, allowInsecure: false` — so `:4317` is reachable **only via 443 (TLS)**, NOT
+as a raw port at the internal FQDN. The runner pointed at raw `:4317` → every export failed with
+`UNAVAILABLE`/`DEADLINE_EXCEEDED`. Only **`:4318` (HTTP)** is an exposed raw TCP port
+(`additionalPortMappings exposedPort: 4318`). So the working fix is to send logs over **HTTP :4318**.
+(Metrics "flowing fine" in Grafana is the runner's own `:8000/metrics` scraped directly by
+Prometheus — that path never touches the collector, so it masked the collector being unreachable.)
 
-> NOTE: The lines below are real commands. The earlier "RG = ..." block was a reference
-> table, not commands — that's why you got `command not found`. Use the assignments here
-> (no spaces around `=`).
+> NOTE: The lines below are real commands. Use the assignments here (no spaces around `=`).
 
 ---
 
-## STEP 1 — Apply the fix (route logs over gRPC :4317)
+## STEP 1 — Apply the fix (route logs over HTTP :4318 — the only exposed OTLP port)
 
 Copy/paste this whole block:
 
 ```bash
 RG=az03-al-titan-sandbox-rg
 RUNNER=ai-telemetry-runner-dev
-OTEL_GRPC=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
+OTEL_HTTP=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
 
 az containerapp update -n "$RUNNER" -g "$RG" \
   --set-env-vars \
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_GRPC" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_HTTP" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf" \
     "OTEL_EXPORTER_OTLP_INSECURE=true" \
     "DEPLOY_STAMP=$(date +%s)" \
   --output none
 
-echo "env updated — new revision rolling out"
+echo "env updated — logs repointed to :4318 HTTP — new revision rolling out"
 ```
 
 ---
@@ -193,6 +194,12 @@ Interpret:
 
 After the fix, re-run STEP 3c (boot line should show successful export, no UNAVAILABLE) and
 STEP 3 query `sum(otelcol_receiver_accepted_log_records_total)` should climb above 0.
+
+> **RESOLVED for this env (2026-06-08):** ingress read showed `targetPort: 4317, transport: Http2,
+> allowInsecure: false` with `additionalPortMappings` exposing only 4318/8888/13133. So `:4317` is
+> NOT a raw exposed port (TLS-only on 443) and `:4318` HTTP IS. Fix = route logs over `:4318` HTTP
+> (see corrected STEP 1). gRPC `:4317` would require `https://...:443` + `INSECURE=false`, which
+> hits internal-cert-trust issues — avoid it; use `:4318`.
 
 ---
 
