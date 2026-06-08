@@ -38,9 +38,13 @@ DS_PROMETHEUS = {"type": "prometheus", "uid": PROM_UID}
 DS_LOKI       = {"type": "loki",       "uid": LOKI_UID}
 DS_TEMPO      = {"type": "tempo",      "uid": TEMPO_UID}
 
-# OTel Collector stores OTLP log records; with native Loki OTLP ingestion the log
-# line is the JSON body directly (single parse — no nested "body" field).
-_LOKI_STREAM = '{service_name=~".+"} | json |'
+# OTel Collector → Loki native OTLP ingestion: every log-record attribute
+# (event_type, model_name, latency_ms, cost_usd, user_id, …) becomes Loki
+# STRUCTURED METADATA, queryable directly as label filters / unwrap targets.
+# The log line (body) is just the message string ("telemetry_event"), NOT JSON —
+# so a `| json` stage throws JSONParserErr ("looks like object, can't find '}'")
+# and breaks every panel. Filter the structured metadata directly instead.
+_LOKI_STREAM = '{service_name=~".+"} |'
 
 
 def _loki_ratio(numerator: str, denominator: str, scale: float = 100) -> str:

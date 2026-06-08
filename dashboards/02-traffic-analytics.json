@@ -971,7 +971,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum by (routing_reason) (count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" [1h]))",
+          "expr": "sum by (routing_reason) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" [1h]))",
           "legendFormat": "{{routing_reason}}",
           "refId": "A",
           "instant": true,
@@ -1021,7 +1021,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "{service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" | line_format \"{{.timestamp}} [{{.model_name}}] {{.operation_name}} status={{.status}} lat={{.latency_ms}}ms dept={{.department}} routing={{.routing_reason}}\"",
+          "expr": "{service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" | line_format \"{{.timestamp}} [{{.model_name}}] {{.operation_name}} status={{.status}} lat={{.latency_ms}}ms dept={{.department}} routing={{.routing_reason}}\"",
           "refId": "A",
           "queryType": "range",
           "maxLines": 500,

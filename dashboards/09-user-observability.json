@@ -248,7 +248,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | json | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])) or vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -312,7 +312,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [24h])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [24h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -376,7 +376,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | json | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [30d])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [30d])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -448,7 +448,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "(sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) / (sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m])) - sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) or vector(1)) - 1) * 100",
+          "expr": "(sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) / (sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m])) - sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) or vector(1)) - 1) * 100",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -524,7 +524,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | json | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [5m])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [5m])) or vector(0)",
           "legendFormat": "Logins / 5m",
           "refId": "A",
           "queryType": "range"
@@ -587,7 +587,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | json | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -657,7 +657,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
+          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
           "legendFormat": "{{department}}",
           "refId": "A",
           "instant": true,
@@ -740,7 +740,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [24h])))",
+          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [24h])))",
           "legendFormat": "{{user_id}}",
           "refId": "A",
           "instant": true,
@@ -810,7 +810,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m])))",
+          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m])))",
           "legendFormat": "{{user_id}}",
           "refId": "A",
           "instant": true,
@@ -893,7 +893,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [6h])))",
+          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [6h])))",
           "legendFormat": "{{user_id}}",
           "refId": "A",
           "instant": true,
@@ -939,7 +939,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(50, sum by (user_id, department) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [6h])))",
+          "expr": "topk(50, sum by (user_id, department) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [6h])))",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -1023,7 +1023,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [5m])))",
+          "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [5m])))",
           "legendFormat": "{{user_id}}",
           "refId": "A",
           "instant": true,
@@ -1112,7 +1112,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m]))",
+          "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m]))",
           "legendFormat": "Tokens / 5m",
           "refId": "A",
           "queryType": "range"
@@ -1122,7 +1122,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [1h])) / 12",
+          "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [1h])) / 12",
           "legendFormat": "1h avg per 5m",
           "refId": "B",
           "queryType": "range"
@@ -1191,7 +1191,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "topk(10, (sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))) / (  sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m]))   - sum by (user_id) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))   or on(user_id) vector(1)))",
+          "expr": "topk(10, (sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))) / (  sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m]))   - sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))   or on(user_id) vector(1)))",
           "legendFormat": "{{user_id}}",
           "refId": "A",
           "instant": true,
@@ -1228,7 +1228,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "{service_name=~\".+\"} | json | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\"",
+          "expr": "{service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\"",
           "refId": "A",
           "queryType": "range",
           "maxLines": 500,

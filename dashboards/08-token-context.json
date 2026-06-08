@@ -390,7 +390,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -895,7 +895,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -964,7 +964,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sort_desc(avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m])))",
+          "expr": "sort_desc(avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m])))",
           "legendFormat": "{{model_name}}",
           "refId": "A",
           "instant": true,
@@ -1211,7 +1211,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | stream_response_ms > 0 | unwrap stream_response_ms [5m]))",
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | stream_response_ms > 0 | unwrap stream_response_ms [5m]))",
           "legendFormat": "{{model_name}}",
           "refId": "A",
           "queryType": "range"
@@ -1275,7 +1275,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sort_desc(avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m])))",
+          "expr": "sort_desc(avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m])))",
           "legendFormat": "{{model_name}}",
           "refId": "A",
           "instant": true,
@@ -1339,7 +1339,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
           "refId": "A",
           "queryType": "range",
           "instant": false,

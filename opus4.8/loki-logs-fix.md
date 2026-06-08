@@ -434,3 +434,34 @@ RG=az03-al-titan-sandbox-rg
 REV=$(az containerapp show -n ai-telemetry-runner-dev -g "$RG" --query properties.latestRevisionName -o tsv)
 az containerapp revision restart -n ai-telemetry-runner-dev -g "$RG" --revision "$REV"
 ```
+
+---
+
+# LOKI PANELS — "No data" + JSONParserErr on hover
+
+Symptom: hovering a Loki panel shows
+`pipeline error: 'JSONParserErr' … "Value looks like object, but can't find
+closing '}' symbol"` and the panel renders **No data**.
+
+Root cause: the panel LogQL used `{service_name=~".+"} | json | …`, but with
+Loki **native OTLP ingestion** every log attribute is already **structured
+metadata** (visible as labels: `event_type`, `model_name`, `latency_ms`,
+`user_id`, …) and the log *body* is just the message string ("telemetry_event"),
+NOT JSON. The `| json` stage tries to parse the body, throws JSONParserErr, and
+poisons every `count_over_time` / `unwrap` aggregation → No data.
+
+Fix (already in repo): `dashboards/generate_dashboards.py` `_LOKI_STREAM` dropped
+the `| json` stage — filter structured metadata directly
+(`{service_name=~".+"} | event_type="telemetry_event" | department=~"$department"`).
+Regenerate + redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py      # rewrites the 9 JSON files
+./scripts/fix-grafana-acr.sh                   # rebuild + redeploy baked dashboards
+```
+
+Verify in Grafana → Explore (Loki) that this no longer errors:
+
+```logql
+sum(count_over_time({service_name=~".+"} | event_type="telemetry_event" [5m]))
+```

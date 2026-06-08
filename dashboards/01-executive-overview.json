@@ -297,7 +297,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [5m])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [5m])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -361,7 +361,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (session_id) (count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | session_id != \"\" [5m])))",
+          "expr": "count(count by (session_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | session_id != \"\" [5m])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,

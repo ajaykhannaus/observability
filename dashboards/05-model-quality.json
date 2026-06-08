@@ -242,7 +242,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "(sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [1h])) / (sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) or on() vector(1))) * 100",
+          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [1h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) or on() vector(1))) * 100",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -314,7 +314,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -386,7 +386,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -458,7 +458,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -536,7 +536,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "(sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [5m])) / (sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
+          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
           "legendFormat": "Hallucination %",
           "refId": "A",
           "queryType": "range"
@@ -612,7 +612,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
           "legendFormat": "Factual accuracy %",
           "refId": "A",
           "queryType": "range"
@@ -688,7 +688,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
           "legendFormat": "Relevance (0\u201310)",
           "refId": "A",
           "queryType": "range"
@@ -698,7 +698,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
           "legendFormat": "{{model_name}}",
           "refId": "B",
           "queryType": "range"
@@ -774,7 +774,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
           "legendFormat": "Groundedness (0\u201310)",
           "refId": "A",
           "queryType": "range"
@@ -784,7 +784,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
           "legendFormat": "{{model_name}}",
           "refId": "B",
           "queryType": "range"
@@ -860,7 +860,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "(sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) / (sum(count_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) or on() vector(1))) * 100",
+          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) or on() vector(1))) * 100",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -932,7 +932,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" |~ \"mock_judge_timeout\" [24h])) or on() vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" |~ \"mock_judge_timeout\" [24h])) or on() vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -969,7 +969,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "{service_name=~\".+\"} | json | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5",
+          "expr": "{service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5",
           "refId": "A",
           "queryType": "range",
           "maxLines": 500,

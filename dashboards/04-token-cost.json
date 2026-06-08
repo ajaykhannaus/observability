@@ -246,7 +246,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
           "legendFormat": "Avg cost / request",
           "refId": "A",
           "queryType": "range"
@@ -256,7 +256,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
           "legendFormat": "{{model_name}}",
           "refId": "B",
           "queryType": "range"
@@ -630,7 +630,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cache_savings_usd [5m]))",
+          "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cache_savings_usd [5m]))",
           "legendFormat": "Cache savings USD",
           "refId": "A",
           "queryType": "range"
@@ -640,7 +640,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum by (model_name) (sum_over_time({service_name=~\".+\"} | json | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cache_savings_usd [5m]))",
+          "expr": "sum by (model_name) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cache_savings_usd [5m]))",
           "legendFormat": "{{model_name}}",
           "refId": "B",
           "queryType": "range"
