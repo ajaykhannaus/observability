@@ -1,5 +1,27 @@
-[ ~/observability ]$ 
-Use ctrl + D to exit.
 INFO: Connecting to the container 'ai-telemetry-runner-dev'...
 INFO: Successfully connected to container: 'ai-telemetry-runner-dev'. [ Revision: 'ai-telemetry-runner-dev--0000017', Replica: 'ai-telemetry-runner-dev--0000017-74865df76b-9b6xp'].
-$ 
+$ python3 <<'EOF'
+import socket
+h="otel-collector-dev.inte> > rnal.bravesand-913bfe11.eastus.azurecontainerapps.io"
+try:
+    print("DNS", so> cke> t.gethostbyname(h))
+except Exception as e> :
+    print("DNS FAIL", e)
+for p in (4317,4318,8888,13133,80,4> > 43):
+>     s=socket.socket(); s.settimeout(5)
+    try:
+        s.connect((h,p)); print("TCP OK", p)
+    excep> > > t Exception as e:
+ >        print("TCP FAIL", p, e)
+ >    finally:
+        s.clos> e()
+EOF> 
+DNS 100.100.0.206
+
+TCP FAIL 4317 timed out
+TCP FAIL 4318 timed out
+TCP FAIL 8888 timed out
+TCP FAIL 13133 timed out
+TCP OK 80
+TCP OK 443
+$ $ 
