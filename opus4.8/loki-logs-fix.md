@@ -72,9 +72,45 @@ sum(otelcol_exporter_send_failed_log_records_total{exporter="otlphttp/loki"})
 
 | accepted | sent | failed | Meaning | Next |
 |---|---|---|---|---|
-| **0** | 0 | 0 | Collector still not receiving logs from runner | STEP 1 didn't take / runner not emitting — paste STEP 2 output |
+| **0** | 0 | 0 | Collector still not receiving logs from runner | run the control queries below |
 | >0 | 0 | **>0** | Collector reaches Loki but Loki **rejects** | STEP 5 (rebuild Loki) |
 | >0 | >0 | 0 | Logs ARE in Loki — panel/query issue only | STEP 4 should pass |
+
+### STEP 3b — Control queries (run if the log query shows "No data")
+
+"No data" on the log counter is meaningful — a zero-series counter doesn't render. Confirm the
+collector self-telemetry is reaching Prometheus at all by running two metrics that MUST exist:
+
+```promql
+otelcol_receiver_accepted_metric_points_total
+```
+```promql
+otelcol_process_uptime_seconds
+```
+
+- **Control queries = data, log query = "No data"** → collector is alive and scraped, receiving
+  **metrics** but **zero logs**. The runner's OTLP log exporter never sends — problem is
+  **runner-side**, not the port or collector→Loki. Capture the runner boot line with STEP 3c.
+- **Control queries also "No data"** → collector self-metrics aren't in Prometheus; diagnose
+  separately (collector `prometheus/self` scrape / remote-write).
+
+### STEP 3c — Capture the runner's real boot line (no Kafka-publisher noise)
+
+```bash
+RG=az03-al-titan-sandbox-rg
+RUNNER=ai-telemetry-runner-dev
+REV=$(az containerapp show -n "$RUNNER" -g "$RG" --query properties.latestRevisionName -o tsv)
+az containerapp revision restart -n "$RUNNER" -g "$RG" --revision "$REV"
+
+# capture the FIRST ~45s of boot, keep only otel-logging lines, drop publisher noise
+timeout 45 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --follow 2>/dev/null \
+  | grep --line-buffered -iE "otel|otlp|log exporter|logger provider|endpoint" \
+  | grep --line-buffered -viE "publisher|kafka|undelivered|timed out" \
+  | head -10
+```
+
+- See `OTLP log exporter → ...:4317 (grpc...)` → exporter IS up; the break is collector→Loki.
+- See `init failed` / `is not set` / nothing → the exporter bailed early; runner code/runtime fix.
 
 ---
 
