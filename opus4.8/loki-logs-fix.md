@@ -241,24 +241,39 @@ Interpret:
 ### STEP 3g — Intra-env probe: DNS + raw TCP connect from inside the runner
 
 Same environment but every port times out → test name resolution and per-port TCP connect from
-*inside* the runner container (the runner image has `python3`):
+*inside* the runner container (the runner image has `python3`).
+
+> Do NOT pass a multi-line `python3 -c` via `--command` — `az exec` mangles the newlines
+> ("unterminated string literal"). Enter the shell first, then run a heredoc.
+
+**1) Open a shell in the runner:**
 
 ```bash
-az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --command "python3 -c '
+az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg
+```
+
+**2) Paste this heredoc at the container prompt (no quoting issues):**
+
+```bash
+python3 <<'EOF'
 import socket
-host=\"otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io\"
-short=\"otel-collector-dev\"
-for h in (host, short):
-    try: print(\"DNS\", h, \"->\", socket.gethostbyname(h))
-    except Exception as e: print(\"DNS FAIL\", h, e)
+h="otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io"
+try:
+    print("DNS", socket.gethostbyname(h))
+except Exception as e:
+    print("DNS FAIL", e)
 for p in (4317,4318,8888,13133,80,443):
     s=socket.socket(); s.settimeout(5)
-    try: s.connect((host,p)); print(\"TCP OK\", p)
-    except Exception as e: print(\"TCP FAIL\", p, e)
-    finally: s.close()
-'"
+    try:
+        s.connect((h,p)); print("TCP OK", p)
+    except Exception as e:
+        print("TCP FAIL", p, e)
+    finally:
+        s.close()
+EOF
 ```
+
+Then `exit` (or Ctrl-D) to leave the container.
 
 Interpret:
 - **`DNS FAIL`** → internal name resolution broken; the FQDN/domain is wrong or env DNS is down.
