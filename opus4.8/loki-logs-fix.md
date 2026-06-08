@@ -384,3 +384,53 @@ Then rebuild Loki + collector from current config:
 
 Common rejections: `404` on `/otlp/v1/logs` (Loki missing native-OTLP config) →
 rebuild fixes it; `connection refused` (Loki ingress not mapping 443→3100).
+
+---
+
+# METRICS — Prometheus panels show "No data"
+
+Same shape as the logs problem: runner app metrics (`ai_gateway_*`, `kube_*`)
+reach Prometheus via **OTLP from the runner → collector → prometheusremotewrite**
+(the collector has NO scrape job for the runner's :8000). If `otelcol_*` series
+render in Grafana but `ai_gateway_*` don't, the runner's OTLP *metrics* aren't
+landing. Code/config are correct: metric names, unit `ms`→`_milliseconds`, and
+labels (`department`, `region`, `model_name`, `model_provider`) all match the
+dashboards — so this is a live pipeline-state issue.
+
+## STEP M1 — localize in Grafana → Explore → Prometheus (range = Last 1h)
+
+```promql
+group by (__name__) ({__name__=~"ai_gateway.*"})                                  # runner app metrics present?
+group by (__name__) ({__name__=~"kube_.*"})                                       # pod-sim metrics present?
+sum(rate(otelcol_receiver_accepted_metric_points_total[5m]))                      # collector receiving?
+sum(rate(otelcol_exporter_sent_metric_points_total{exporter="prometheusremotewrite"}[5m]))  # forwarding?
+sum(rate(otelcol_exporter_send_failed_metric_points_total[5m]))                   # remote-write failures?
+```
+
+Read it:
+- M1/M2 return series → metrics ARE in Prom; dashboard "No data" = time range or
+  template vars. Set range Last 1h; set `$department/$region/$model` to **All**.
+- M1/M2 empty, receive+forward climbing → name mismatch; capture the series names.
+- receive flat (only self) → runner not exporting → restart runner (STEP M3).
+- forward ~0 / failed climbing → remote-write broken →
+  `./scripts/fix-prometheus-remote-write-azure.sh`.
+
+## STEP M2 — confirm runner is exporting (Azure terminal)
+
+```bash
+RG=az03-al-titan-sandbox-rg
+az containerapp logs show -n ai-telemetry-runner-dev -g "$RG" --tail 300 \
+  | grep -iE "OTLP metric exporter|Prometheus reader|OTel metrics ready|exporter init failed"
+az containerapp show -n ai-telemetry-runner-dev -g "$RG" \
+  --query "properties.template.containers[0].env[?starts_with(name,'OTEL_')]" -o table
+```
+
+Expect a boot line: `OTLP metric exporter (gRPC) → http://otel-collector-dev...:80`.
+
+## STEP M3 — restart runner + re-verify
+
+```bash
+RG=az03-al-titan-sandbox-rg
+REV=$(az containerapp show -n ai-telemetry-runner-dev -g "$RG" --query properties.latestRevisionName -o tsv)
+az containerapp revision restart -n ai-telemetry-runner-dev -g "$RG" --revision "$REV"
+```
