@@ -1,136 +1,23 @@
-# Loki "Live Telemetry Events" — No Logs: Diagnose + Fix
+# Loki "Live Telemetry Events" — No Logs: Fix + Diagnose
 
 **Symptom:** Grafana panel "Live Telemetry Events" is empty. `diagnose-grafana` shows
-`Loki labels (0)` and `telemetry_event (15m): 0` — i.e. **nothing has ever reached Loki**,
+`Loki labels (0)` and `telemetry_event (15m): 0` — **nothing has ever reached Loki** —
 even though Prometheus metrics flow fine (90+ series).
 
-**Root-cause logic:** Metrics export over **gRPC :4317** (works). Logs are the only signal
-using **HTTP :4318**. So the break is specific to the logs path. The triage's
-"no OTLP log exporter line" is a **false negative** — that line prints once at startup and
-scrolls past the `--tail 80` window. Trust **collector self-telemetry + 0 Loki streams**, not
-the grep.
+**Why:** Metrics export over **gRPC :4317** (proven working). Logs were the *only* signal
+using **HTTP :4318**. So the fix is to send logs over the same proven `:4317` gRPC channel.
+(The diagnose "no OTLP log exporter line" check reads only the last 80 log lines and is an
+unreliable false-negative — trust the collector self-telemetry counters in STEP 3, not that grep.)
 
-Environment values used below (from the deployed dev stack):
-
-```
-RG    = az03-al-titan-sandbox-rg
-RUNNER= ai-telemetry-runner-dev
-OTEL  = otel-collector-dev
-LOKI  = loki-telemetry-dev
-DOMAIN= bravesand-913bfe11.eastus.azurecontainerapps.io
-```
+> NOTE: The lines below are real commands. The earlier "RG = ..." block was a reference
+> table, not commands — that's why you got `command not found`. Use the assignments here
+> (no spaces around `=`).
 
 ---
 
-## STEP 1 — Localize the break with collector self-telemetry
+## STEP 1 — Apply the fix (route logs over gRPC :4317)
 
-Run these 3 queries in **Grafana → Explore → Prometheus datasource**:
-
-```promql
-sum(otelcol_receiver_accepted_log_records_total)
-```
-```promql
-sum(otelcol_exporter_sent_log_records_total{exporter="otlphttp/loki"})
-```
-```promql
-sum(otelcol_exporter_send_failed_log_records_total{exporter="otlphttp/loki"})
-```
-
-| accepted | sent | failed | Meaning | Go to |
-|---|---|---|---|---|
-| **0** | 0 | 0 | Runner not exporting logs to collector (`:4318`) | STEP 2 |
-| >0 | 0 | **>0** | Collector reaches Loki but Loki **rejects** | STEP 3 |
-| >0 | >0 | 0 | Logs ARE in Loki — panel/query issue, not pipeline | STEP 4 |
-
----
-
-## STEP 1b — Confirm the runner's real startup line (not tail-80)
-
-```bash
-az containerapp logs show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 500 2>/dev/null \
-  | grep -iE "OTLP log exporter|exporter init failed|OTLP_LOGS|is not set"
-```
-
-- See `OTLP log exporter → ...:4318 (http/protobuf)` → exporter is UP, break is downstream → STEP 3.
-- See `init failed` or nothing at all → runner export path is broken → STEP 2.
-
----
-
-## STEP 2 — Fix: route logs over the proven gRPC :4317 path
-
-Metrics already succeed over gRPC :4317. Send logs over the **same** port instead of the
-separate HTTP :4318. `otel_logging.py` auto-selects the gRPC exporter when the endpoint is
-NOT `:4318` and protocol is `grpc`.
-
-```bash
-az containerapp update -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --set-env-vars \
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
-    "OTEL_EXPORTER_OTLP_INSECURE=true" \
-    "DEPLOY_STAMP=$(date +%s)"
-```
-
-Force a fresh revision + wait:
-
-```bash
-az containerapp revision restart -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --revision $(az containerapp show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-      --query properties.latestRevisionName -o tsv)
-sleep 150
-```
-
-Re-check STEP 1 — `accepted` should now climb above 0, then verify in STEP 4.
-
----
-
-## STEP 3 — Fix: collector → Loki rejection (failed > 0)
-
-Get the actual Loki export error from the collector:
-
-```bash
-az containerapp logs show -n otel-collector-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 200 2>/dev/null \
-  | grep -iE "loki|otlphttp" | grep -iE "error|failed|refused|404|400|429|permanent"
-```
-
-Check Loki is actually serving the native OTLP endpoint:
-
-```bash
-az containerapp logs show -n loki-telemetry-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 100 2>/dev/null \
-  | grep -iE "otlp|push|error|level=warn|level=error"
-```
-
-Common causes:
-- **404 on /otlp/v1/logs** → Loki image lacks native-OTLP config (`allow_structured_metadata: true`,
-  schema v13). Rebuild Loki: `./scripts/fix-loki-logs-azure.sh`
-- **connection refused / 503** → Loki internal ingress not mapping 443→3100, or Loki restarting.
-- **400 / structured metadata** → schema mismatch; rebuild Loki with current config.
-
----
-
-## STEP 4 — Verify logs are landing
-
-Grafana → Explore → **Loki** datasource:
-
-```logql
-{service_name=~".+"} | json | event_type="telemetry_event"
-```
-
-Or re-run the full diagnose:
-
-```bash
-./scripts/diagnose-grafana-azure.sh
-```
-
-Expect `telemetry_event (15m)` to be **> 0** and `Loki labels` to be non-zero.
-Then the "Live Telemetry Events" panel populates.
-
----
-
-## Quick reference — copy/paste block (STEP 2 fix, the most likely one)
+Copy/paste this whole block:
 
 ```bash
 RG=az03-al-titan-sandbox-rg
@@ -142,12 +29,86 @@ az containerapp update -n "$RUNNER" -g "$RG" \
     "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_GRPC" \
     "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
     "OTEL_EXPORTER_OTLP_INSECURE=true" \
-    "DEPLOY_STAMP=$(date +%s)"
+    "DEPLOY_STAMP=$(date +%s)" \
+  --output none
 
-az containerapp revision restart -n "$RUNNER" -g "$RG" \
-  --revision $(az containerapp show -n "$RUNNER" -g "$RG" \
-      --query properties.latestRevisionName -o tsv)
+echo "env updated — new revision rolling out"
+```
 
-sleep 150
+---
+
+## STEP 2 — Confirm the exporter actually starts (reliable, catches startup)
+
+A restart was just triggered by STEP 1. Immediately stream the NEW container's logs —
+`--follow` catches the once-only startup line that `--tail` misses:
+
+```bash
+timeout 90 az containerapp logs show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
+  --type console --follow 2>/dev/null \
+  | grep --line-buffered -iE "OTLP log exporter|exporter init failed|is not set|mock mode|publisher" \
+  | head -8
+```
+
+- See `OTLP log exporter → ...:4317 (grpc...)` → exporter is UP. Wait ~2 min, go to STEP 4.
+- See `init failed` / `is not set` → paste that line back to me.
+- See nothing in 90s → go to STEP 3 (check the collector receives anything).
+
+---
+
+## STEP 3 — Localize precisely (collector self-telemetry)
+
+Run these 3 in **Grafana → Explore → Prometheus datasource** (the UI, not the terminal —
+the collector's :8888 is internal-only):
+
+```promql
+sum(otelcol_receiver_accepted_log_records_total)
+```
+```promql
+sum(otelcol_exporter_sent_log_records_total{exporter="otlphttp/loki"})
+```
+```promql
+sum(otelcol_exporter_send_failed_log_records_total{exporter="otlphttp/loki"})
+```
+
+| accepted | sent | failed | Meaning | Next |
+|---|---|---|---|---|
+| **0** | 0 | 0 | Collector still not receiving logs from runner | STEP 1 didn't take / runner not emitting — paste STEP 2 output |
+| >0 | 0 | **>0** | Collector reaches Loki but Loki **rejects** | STEP 5 (rebuild Loki) |
+| >0 | >0 | 0 | Logs ARE in Loki — panel/query issue only | STEP 4 should pass |
+
+---
+
+## STEP 4 — Verify logs landed
+
+```bash
 ./scripts/diagnose-grafana-azure.sh
 ```
+
+Expect `telemetry_event (15m)` **> 0** and `Loki labels` non-zero. In Grafana → Explore → Loki:
+
+```logql
+{service_name=~".+"} | json | event_type="telemetry_event"
+```
+
+Then the "Live Telemetry Events" panel populates.
+
+---
+
+## STEP 5 — Only if STEP 3 shows accepted>0 AND failed>0 (Loki rejecting)
+
+Get the real rejection reason:
+
+```bash
+az containerapp logs show -n otel-collector-dev -g az03-al-titan-sandbox-rg \
+  --type console --tail 200 2>/dev/null \
+  | grep -iE "loki|otlphttp" | grep -iE "error|failed|refused|404|400|429|permanent"
+```
+
+Then rebuild Loki + collector from current config:
+
+```bash
+./scripts/fix-loki-logs-azure.sh
+```
+
+Common rejections: `404` on `/otlp/v1/logs` (Loki missing native-OTLP config) →
+rebuild fixes it; `connection refused` (Loki ingress not mapping 443→3100).
