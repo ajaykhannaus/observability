@@ -1,28 +1,20 @@
- [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
+[ ~/observability ]$ RG=az03-al-titan-sandbox-rg
 RUNNER=ai-telemetry-runner-dev
-OTEL_GRPC=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
+REV=$(az containerapp show -n "$RUNNER" -g "$RG" --query properties.latestRevisionName -o tsv)
+az containerapp revision restart -n "$RUNNER" -g "$RG" --revision "$REV"
 
-az containerapp update -n "$RUNNER" -g "$RG" \
-  --set-env-vars \
-    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_GRPC" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
-    "OTEL_EXPORTER_OTLP_INSECURE=true" \
-    "DEPLOY_STAMP=$(date +%s)" \
-  --output none
-
-echo "env updated — new revision rolling out"
-The behavior of this command has been altered by the following extension: containerapp
-env updated — new revision rolling out
-ajay [ ~/observability ]$ timeout 90 az containerapp logs show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \ 
-  --type console --follow 2>/dev/null \
-  | grep --line-buffered -iE "OTLP log exporter|exporter init failed|is not set|mock mode|publisher" \
-  | head -8
-{"TimeStamp": "2026-06-08T19:55:28.2602662+00:00", "Log": "F 2026-06-08 19:55:28.259  WARNING [observability.publisher] 30 message(s) undelivered after flush"}
-{"TimeStamp": "2026-06-08T19:55:38.2916857+00:00", "Log": "F 2026-06-08 19:55:38.291  WARNING [observability.publisher] 60 message(s) undelivered after flush"}
-{"TimeStamp": "2026-06-08T19:55:48.3405684+00:00", "Log": "F 2026-06-08 19:55:48.340  WARNING [observability.publisher] 90 message(s) undelivered after flush"}
-{"TimeStamp": "2026-06-08T19:55:49.214582+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
-{"TimeStamp": "2026-06-08T19:55:49.21566+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
-{"TimeStamp": "2026-06-08T19:55:49.2156876+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
-{"TimeStamp": "2026-06-08T19:55:49.2157006+00:00", "Log": "F 2026-06-08 19:55:49.215  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
-{"TimeStamp": "2026-06-08T19:55:49.2157035+00:00", "Log": "F 2026-06-08 19:55:49.215  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
+# capture the FIRST ~45s of boot, keep only otel-logging lines, drop publisher noise
+timeout 45 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --follow 2>/dev/null \
+  | grep --line-buffered -iE "otel|otlp|log exporter|logger provider|endpoint" \
+  | grep --line-buffered -viE "publisher|kafka|undelivered|timed out" \
+  | head -10
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+"Restart succeeded"
+{"TimeStamp": "2026-06-08T20:09:12.7254982+00:00", "Log": "F 2026-06-08 20:09:12.725  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export logs to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
+{"TimeStamp": "2026-06-08T20:09:12.753296+00:00", "Log": "F 2026-06-08 20:09:12.753  WARNING [opentelemetry.exporter.otlp.proto.grpc.exporter] Transient error StatusCode.UNAVAILABLE encountered while exporting metrics to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, retrying in 0.82s."}
+{"TimeStamp": "2026-06-08T20:09:19.9862578+00:00", "Log": "F 2026-06-08 20:09:19.985  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export metrics to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.UNAVAILABLE"}
+{"TimeStamp": "2026-06-08T20:09:27.7287545+00:00", "Log": "F 2026-06-08 20:09:27.728  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export logs to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
+{"TimeStamp": "2026-06-08T20:09:33.7203015+00:00", "Log": "F 2026-06-08 20:09:33.719  WARNING [opentelemetry.exporter.otlp.proto.grpc.exporter] Transient error StatusCode.UNAVAILABLE encountered while exporting logs to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, retrying in 1.05s."}
+{"TimeStamp": "2026-06-08T20:09:42.7328129+00:00", "Log": "F 2026-06-08 20:09:42.732  ERROR [opentelemetry.exporter.otlp.proto.grpc.exporter] Failed to export logs to otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317, error code: StatusCode.DEADLINE_EXCEEDED"}
+Terminated
 ajay [ ~/observability ]$ 
