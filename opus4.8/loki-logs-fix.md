@@ -201,6 +201,50 @@ STEP 3 query `sum(otelcol_receiver_accepted_log_records_total)` should climb abo
 > (see corrected STEP 1). gRPC `:4317` would require `https://...:443` + `INSECURE=false`, which
 > hits internal-cert-trust issues — avoid it; use `:4318`.
 
+### STEP 3f — BOTH :4317 and :4318 time out → cross-environment reachability
+
+If after STEP 1 (logs on `:4318`) the boot line shows the **HTTP** exporter also failing:
+
+```
+ERROR [opentelemetry.exporter.otlp.proto.http._log_exporter] Failed to export logs batch due to timeout
+```
+
+…and `:4317` (traces/metrics) also times out, then EVERY port to a healthy collector is
+unreachable. That is **not** a port-exposure problem — it is **network reachability between the
+two Container Apps**. Most common cause: the runner and collector are in **different Container
+Apps Environments**, so the `.internal.` FQDN does not route (internal ingress only works within
+the same environment). Decisive check:
+
+```bash
+RG=az03-al-titan-sandbox-rg
+
+echo "runner env:"
+az containerapp show -n ai-telemetry-runner-dev -g "$RG" --query "properties.environmentId" -o tsv
+
+echo "collector env:"
+az containerapp show -n otel-collector-dev -g "$RG" --query "properties.environmentId" -o tsv
+```
+
+Interpret:
+- **`environmentId` values DIFFER** → root cause. Cross-environment internal ingress doesn't work.
+  Fix: move the runner into the collector's environment, OR give the collector **external** ingress
+  and point the runner at the public FQDN (still OTLP, just a routable host).
+- **Values are IDENTICAL** → intra-environment networking (DNS/policy). Probe directly from inside
+  the runner (health port 13133 is an exposed raw port):
+
+  ```bash
+  az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
+    --command "/bin/sh -c 'python3 - <<PY
+import socket
+s=socket.socket(); s.settimeout(5)
+try:
+    s.connect((\"otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io\",4318))
+    print(\"CONNECT OK :4318\")
+except Exception as e:
+    print(\"CONNECT FAIL :4318\", e)
+PY'"
+  ```
+
 ---
 
 ## STEP 4 — Verify logs landed
