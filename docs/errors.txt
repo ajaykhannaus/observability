@@ -1,144 +1,28 @@
-RG    = az03-al-titan-sandbox-rg
-RUNNER= ai-telemetry-runner-dev
-OTEL  = otel-collector-dev
-LOKI  = loki-telemetry-dev
-DOMAIN= bravesand-913bfe11.eastus.azurecontainerapps.io
-bash: RG: command not found
-bash: ai-telemetry-runner-dev: command not found
-bash: OTEL: command not found
-bash: LOKI: command not found
-bash: bravesand-913bfe11.eastus.azurecontainerapps.io: command not found
-ajay [ ~/observability ]$ DOMAIN= bravesand-913bfe11.eastus.azurecontainerapps.io
-bash: bravesand-913bfe11.eastus.azurecontainerapps.io: command not found
-ajay [ ~/observability ]$ az containerapp logs show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 500 2>/dev/null \
-  | grep -iE "OTLP log exporter|exporter init failed|OTLP_LOGS|is not set"
-ajay [ ~/observability ]$ az containerapp revision restart -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --revision $(az containerapp show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-      --query properties.latestRevisionName -o tsv)
-sleep 150
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-"Restart succeeded"
-ajay [ ~/observability ]$ az containerapp logs show -n otel-collector-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 200 2>/dev/null \
-  | grep -iE "loki|otlphttp" | grep -iE "error|failed|refused|404|400|429|permanent"
-ajay [ ~/observability ]$ az containerapp logs show -n loki-telemetry-dev -g az03-al-titan-sandbox-rg \
-  --type console --tail 100 2>/dev/null \
-  | grep -iE "otlp|push|error|level=warn|level=error"
-ajay [ ~/observability ]$ ./scripts/diagnose-grafana-azure.sh
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-[diagnose-grafana] Grafana: https://grafana-telemetry-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-[diagnose-grafana] Runner FQDN: ai-telemetry-runner-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
+ [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
+RUNNER=ai-telemetry-runner-dev
+OTEL_GRPC=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
 
-[diagnose-grafana] === Runner OTLP env (logs need this → OTel Collector → Loki) ===
-Name                              Value
---------------------------------  ---------------------------------------------------------------------------------------
-OTEL_SERVICE_NAME                 ai-telemetry-dev
-ALLOW_MOCK_MODE                   true
-OTEL_EXPORTER_OTLP_ENDPOINT       http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
-OTEL_EXPORTER_OTLP_LOGS_ENDPOINT  http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
-[diagnose-grafana] OK  Runner OTLP endpoint → collector
-[diagnose-grafana] OK  Runner OTLP logs endpoint → collector :4318 (HTTP)
+az containerapp update -n "$RUNNER" -g "$RG" \
+  --set-env-vars \
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_GRPC" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_INSECURE=true" \
+    "DEPLOY_STAMP=$(date +%s)" \
+  --output none
 
-ajay [ ~/observability ]$ ./scripts/diagnose-grafana-azure.sh
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-[diagnose-grafana] Grafana: https://grafana-telemetry-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
-WARNING: The behavior of this command has been altered by the following extension: containerapp
-[diagnose-grafana] Runner FQDN: ai-telemetry-runner-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
-
-[diagnose-grafana] === Runner OTLP env (logs need this → OTel Collector → Loki) ===
-Name                              Value
---------------------------------  ---------------------------------------------------------------------------------------
-OTEL_SERVICE_NAME                 ai-telemetry-dev
-ALLOW_MOCK_MODE                   true
-OTEL_EXPORTER_OTLP_ENDPOINT       http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
-OTEL_EXPORTER_OTLP_LOGS_ENDPOINT  http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
-[diagnose-grafana] OK  Runner OTLP endpoint → collector
-[diagnose-grafana] OK  Runner OTLP logs endpoint → collector :4318 (HTTP)
-
-[diagnose-grafana] === OTel Collector → Loki wiring ===
-[diagnose-grafana]   collector image: acrtelemetrydevaj.azurecr.io/otel-collector@sha256:90546ad5f2a0c670bbf13c9ff76ba27f8010b20f3aeef02ed7c579eb40fbc568
-[diagnose-grafana]   loki image:      acrtelemetrydevaj.azurecr.io/loki@sha256:e52dd18be1739f9a165c56c1659c6f8c032213c0f0c52db8e4c4512783b06c35
-[diagnose-grafana]   LOKI_OTLP_ENDPOINT: https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
-[diagnose-grafana]   expected:           https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
-[diagnose-grafana] OK  Collector Loki OTLP endpoint
-
-[diagnose-grafana] === Observability apps ===
-[diagnose-grafana]   loki-telemetry-dev: {
-  "prov": "Succeeded",
-  "replicas": 1,
-  "running": "Running"
-}
-[diagnose-grafana]   otel-collector-dev: {
-  "prov": "Succeeded",
-  "replicas": 1,
-  "running": "Running"
-}
-
-[diagnose-grafana] === Runner console — OTLP log exporter (last 80 lines) ===
-[diagnose-grafana] FAIL No 'OTLP log exporter' line in runner logs — runner may need redeploy
-[diagnose-grafana]   Fix: ./scripts/fix-runner.sh --build --no-git-pull
-
-[diagnose-grafana] === Prometheus remote write receiver ===
-[diagnose-grafana]   image: acrtelemetrydevaj.azurecr.io/prometheus-scraper:latest
-[diagnose-grafana]   command: /prometheus-entrypoint.sh
-[diagnose-grafana]   args:    <none>
-[diagnose-grafana] OK  Prometheus Running with entrypoint (/-/ready unreachable from this host)
-[diagnose-grafana]   (POST /api/v1/write from Cloud Shell hit ACA 'Unavailable' — normal for internal ingress during rollout)
-
-[diagnose-grafana] === OTel Collector → Loki wiring (env) ===
-[diagnose-grafana]   LOKI_OTLP_ENDPOINT: https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
-[diagnose-grafana]   expected:           https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
-[diagnose-grafana] OK  Collector LOKI_OTLP_ENDPOINT → Loki
-
-[diagnose-grafana] === OTel Collector → Prometheus wiring ===
-[diagnose-grafana]   PROM_WRITE_ENDPOINT: https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/api/v1/write
-[diagnose-grafana]   expected:            https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/api/v1/write
-[diagnose-grafana] OK  Collector PROM_WRITE_ENDPOINT → Prometheus
-
-[diagnose-grafana] === OTel Collector console — export errors (last 80 lines) ===
-[diagnose-grafana]   {"TimeStamp": "2026-06-08T19:07:53.0418361+00:00", "Log": "F 2026-06-08T19:07:53.041Z\twarn\tprometheusremotewriteexporter@v0.111.0/factory.go:47\tCurrently, remote_write_queue.num_consumers doesn't have any effect due to incompatibility with Prometheus remote write API. The value will be ignored. Please see https://github.com/open-telemetry/opentelemetry-collector/issues/2949 for more information.\t{\"kind\": \"exporter\", \"data_type\": \"metrics\", \"name\": \"prometheusremotewrite\"}"}
-[diagnose-grafana]   {"TimeStamp": "2026-06-08T19:07:53.0432448+00:00", "Log": "F 2026-06-08T19:07:53.043Z\tinfo\thealthcheckextension@v0.111.0/healthcheckextension.go:33\tStarting health_check extension\t{\"kind\": \"extension\", \"name\": \"health_check\", \"config\": {\"Endpoint\":\"0.0.0.0:13133\",\"TLSSetting\":null,\"CORS\":null,\"Auth\":null,\"MaxRequestBodySize\":0,\"IncludeMetadata\":false,\"ResponseHeaders\":null,\"CompressionAlgorithms\":null,\"ReadTimeout\":0,\"ReadHeaderTimeout\":0,\"WriteTimeout\":0,\"IdleTimeout\":0,\"Path\":\"/\",\"ResponseBody\":null,\"CheckCollectorPipeline\":{\"Enabled\":false,\"Interval\":\"5m\",\"ExporterFailureThreshold\":5}}}"}
-
-=== Datasources ===
-  Loki (loki-ds): https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
-    health: OK
-  Prometheus (prometheus-ds): https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
-    health: OK
-  Tempo (tempo-ds): https://tempo-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
-
-=== Prometheus queries (via Grafana proxy) ===
-  raw counter: 126 series/points
-  recording rule 6h SLI: 1 series/points
-  runner batch metric: 1 series/points
-
-=== Loki label names (via Grafana → Loki) ===
-  labels (0): 
-
-=== Loki queries (Live Telemetry Events panel) ===
-  any service_name streams (15m): 0
-    WARN: no Loki streams — runner → collector → Loki pipeline is broken
-    Fix: ./scripts/wire-loki-otlp-azure.sh  (no rebuild)
-    Or:  ./scripts/fix-loki-logs-azure.sh  (rebuild Loki/collector)
-  telemetry_event (15m): 0
-  startup_config (15m): 0
-
-=== Dashboards in Grafana ===
-  1. Request & Traffic Metrics uid=ai-telemetry-executive url=/d/ai-telemetry-executive/1-request-and-traffic-metrics
-  2. Traffic & Request Analytics uid=ai-telemetry-traffic url=/d/ai-telemetry-traffic/2-traffic-and-request-analytics
-  3. Latency & Performance Metrics uid=ai-telemetry-latency url=/d/ai-telemetry-latency/3-latency-and-performance-metrics
-  4. Cost & Usage Metrics uid=ai-telemetry-cost url=/d/ai-telemetry-cost/4-cost-and-usage-metrics
-  5. Model Quality Metrics uid=ai-telemetry-quality url=/d/ai-telemetry-quality/5-model-quality-metrics
-  6. Safety & Security Metrics uid=ai-telemetry-safety url=/d/ai-telemetry-safety/6-safety-and-security-metrics
-  7. Infrastructure Metrics uid=ai-telemetry-infra url=/d/ai-telemetry-infra/7-infrastructure-metrics
-  8. Token & Context Metrics uid=ai-telemetry-tokens url=/d/ai-telemetry-tokens/8-token-and-context-metrics
-  9. User-Level Observability uid=ai-telemetry-users url=/d/ai-telemetry-users/9-user-level-observability
-  AI Gateway Telemetry uid=ai-telemetry-001 url=/d/ai-telemetry-001/ai-gateway-telemetry
-[diagnose-grafana] If Prometheus remote write 404: ./scripts/fix-prometheus-remote-write-azure.sh
-[diagnose-grafana] If Prometheus OK but Loki empty: ./scripts/wire-loki-otlp-azure.sh
-[diagnose-grafana] If Loki/collector images stale: ./scripts/fix-loki-logs-azure.sh
-[diagnose-grafana] If runner missing OTLP log exporter line: ./scripts/fix-runner.sh --build --no-git-pull
-[diagnose-grafana] If collector LOKI_OTLP_ENDPOINT wrong: export FORCE_CONTAINER_DEPLOY=true && ./scripts/deploy-observability-stack.sh --build --from otel
-[diagnose-grafana] If dashboards missing, run: ./scripts/fix-grafana-datasources.sh
+echo "env updated — new revision rolling out"
+The behavior of this command has been altered by the following extension: containerapp
+env updated — new revision rolling out
+ajay [ ~/observability ]$ timeout 90 az containerapp logs show -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \ 
+  --type console --follow 2>/dev/null \
+  | grep --line-buffered -iE "OTLP log exporter|exporter init failed|is not set|mock mode|publisher" \
+  | head -8
+{"TimeStamp": "2026-06-08T19:55:28.2602662+00:00", "Log": "F 2026-06-08 19:55:28.259  WARNING [observability.publisher] 30 message(s) undelivered after flush"}
+{"TimeStamp": "2026-06-08T19:55:38.2916857+00:00", "Log": "F 2026-06-08 19:55:38.291  WARNING [observability.publisher] 60 message(s) undelivered after flush"}
+{"TimeStamp": "2026-06-08T19:55:48.3405684+00:00", "Log": "F 2026-06-08 19:55:48.340  WARNING [observability.publisher] 90 message(s) undelivered after flush"}
+{"TimeStamp": "2026-06-08T19:55:49.214582+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
+{"TimeStamp": "2026-06-08T19:55:49.21566+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
+{"TimeStamp": "2026-06-08T19:55:49.2156876+00:00", "Log": "F 2026-06-08 19:55:49.214  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
+{"TimeStamp": "2026-06-08T19:55:49.2157006+00:00", "Log": "F 2026-06-08 19:55:49.215  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
+{"TimeStamp": "2026-06-08T19:55:49.2157035+00:00", "Log": "F 2026-06-08 19:55:49.215  ERROR [observability.publisher] Delivery failed [ai-telemetry-events]: KafkaError{code=_MSG_TIMED_OUT,val=-192,str=\"Local: Message timed out\"}"}
 ajay [ ~/observability ]$ 
