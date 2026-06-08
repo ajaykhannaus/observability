@@ -1,4 +1,4 @@
-jay [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
+ajay [ ~/observability ]$ RG=az03-al-titan-sandbox-rg
 
 echo "runner env:"
 az containerapp show -n ai-telemetry-runner-dev -g "$RG" --query "properties.environmentId" -o tsv
