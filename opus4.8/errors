@@ -1,0 +1,39 @@
+ opus4.8/loki-logs-fix.md | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+ajay [ ~/observability ]$ ./scripts/bootstrap-azure.sh --grafana-only
+
+Azure bootstrap
+  subscription : az-uc-analytics-sandbox-eastus
+  tenant       : dafe49bc-5ac3-4310-97b4-3e44a28cbf18
+  rg           : az03-al-titan-sandbox-rg
+  acr          : acrtelemetrydevaj
+  cae          : cae-telemetry-dev
+  eventhub     : evhns-telemetry-devaj
+  output       : /home/ajay/observability/.env.azure
+  mode         : apply
+
+[bootstrap-azure] reuse grafana-telemetry-dev — skipping grafana:latest build
+[bootstrap-azure] self-hosted grafana (grafana-only)
+[bootstrap-azure] grafana: reuse grafana-telemetry-dev — already serving traffic
+
+Grafana: https://grafana-telemetry-dev.bravesand-913bfe11.eastus.azurecontainerapps.io  (login: admin / admin)
+ajay [ ~/observability ]$ FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+
+Azure bootstrap
+  subscription : az-uc-analytics-sandbox-eastus
+  tenant       : dafe49bc-5ac3-4310-97b4-3e44a28cbf18
+  rg           : az03-al-titan-sandbox-rg
+  acr          : acrtelemetrydevaj
+  cae          : cae-telemetry-dev
+  eventhub     : evhns-telemetry-devaj
+  output       : /home/ajay/observability/.env.azure
+  mode         : apply
+
+[bootstrap-azure] building acrtelemetrydevaj/grafana:latest
+[acr-import] mcr.microsoft.com/mirror/docker/library/python:3.12-alpine -> imported/python:3.12-alpine (attempt 1/3)
+[acr-import] WARN: import failed for mcr.microsoft.com/mirror/docker/library/python:3.12-alpine: ERROR: (InvalidParameters) Operation registries-c4e7f39e-6383-11f1-8aaf-00155d3cd4d4 failed. Resource /subscriptions/216d62c8-0f0c-4e5c-9cda-cc553e7ab186/resourceGroups/az03-al-titan-sandbox-rg/providers/Microsoft.ContainerRegistry/registries/acrtelemetrydevaj An error occurred when getting manifest. StatusCode: 404, Reason: Not Found, Details: {"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest tagged by \"3.12-alpine\" is not found","detail":{"Tag":"3.12-alpine"}}]}
+
+Code: InvalidParameters
+Message: Operation registries-c4e7f39e-6383-11f1-8aaf-00155d3cd4d4 failed. Resource /subscriptions/216d62c8-0f0c-4e5c-9cda-cc553e7ab186/resourceGroups/az03-al-titan-sandbox-rg/providers/Microsoft.ContainerRegistry/registries/acrtelemetrydevaj An error occurred when getting manifest. StatusCode: 404, Reason: Not Found, Details: {"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest tagged by \"3.12-alpine\" is not found","detail":{"Tag":"3.12-alpine"}}]}
+[acr-import] docker.io/library/python:3.12-alpine -> imported/python:3.12-alpine (attempt 1/3)
+[acr-import] docker.io/grafana/grafana:11.3.0 -> imported/grafana:11.3.0 (attempt 1/3)
