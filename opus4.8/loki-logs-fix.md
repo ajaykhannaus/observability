@@ -232,18 +232,44 @@ Interpret:
 - **Values are IDENTICAL** → intra-environment networking (DNS/policy). Probe directly from inside
   the runner (health port 13133 is an exposed raw port):
 
-  ```bash
-  az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-    --command "/bin/sh -c 'python3 - <<PY
+  Go to STEP 3g for the full probe.
+
+> **RESULT for this env (2026-06-08):** both IDs are identical
+> (`.../managedEnvironments/cae-telemetry-dev`). NOT cross-environment → intra-environment
+> networking. Proceed to STEP 3g.
+
+### STEP 3g — Intra-env probe: DNS + raw TCP connect from inside the runner
+
+Same environment but every port times out → test name resolution and per-port TCP connect from
+*inside* the runner container (the runner image has `python3`):
+
+```bash
+az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
+  --command "python3 -c '
 import socket
-s=socket.socket(); s.settimeout(5)
-try:
-    s.connect((\"otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io\",4318))
-    print(\"CONNECT OK :4318\")
-except Exception as e:
-    print(\"CONNECT FAIL :4318\", e)
-PY'"
-  ```
+host=\"otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io\"
+short=\"otel-collector-dev\"
+for h in (host, short):
+    try: print(\"DNS\", h, \"->\", socket.gethostbyname(h))
+    except Exception as e: print(\"DNS FAIL\", h, e)
+for p in (4317,4318,8888,13133,80,443):
+    s=socket.socket(); s.settimeout(5)
+    try: s.connect((host,p)); print(\"TCP OK\", p)
+    except Exception as e: print(\"TCP FAIL\", p, e)
+    finally: s.close()
+'"
+```
+
+Interpret:
+- **`DNS FAIL`** → internal name resolution broken; the FQDN/domain is wrong or env DNS is down.
+- **DNS OK but ALL `TCP FAIL`** → connectivity blocked at the env (the `.internal.` host resolves
+  to the env LB but nothing accepts) — likely the collector ingress isn't really publishing these
+  ports to peers. Workaround: give the collector **external** ingress and point the runner there,
+  or co-locate via the short name.
+- **`TCP OK 4318` (or 80/443) but the HTTP export still times out** → TCP path is fine; the
+  collector's OTLP HTTP receiver isn't answering — check collector logs (STEP 5).
+- **`TCP OK 80`/`443` only** → the OTLP receivers are reachable only behind the http2 ingress;
+  use the gRPC-over-443-TLS path (`https://...:443`, `INSECURE=false`).
 
 ---
 
