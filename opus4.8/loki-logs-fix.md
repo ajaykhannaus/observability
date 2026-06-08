@@ -483,3 +483,64 @@ Verify in Grafana → Explore (Loki) that this no longer errors:
 ```logql
 sum(count_over_time({service_name=~".+"} | event_type="telemetry_event" [5m]))
 ```
+
+---
+
+## LOKI PANELS: "No data" AFTER the `| json` removal (the real root cause)
+
+Symptom: JSONParserErr is gone, but every Loki panel ("Live Telemetry Events",
+"Total Requests by Routing Reason", login dashboards) still shows **No data**,
+while all Prometheus panels and the template dropdowns work fine.
+
+Root cause (deeper than the `| json` issue): the runner's OTLP log handler
+(`generator/otel_logging.py` `_OTLPJSONHandler.emit`) shipped each record with
+**`body=<json string>` but NO `attributes`**. So in Loki the per-event fields
+(`event_type`, `model_name`, `latency_ms`, `department`, …) lived **only inside
+the JSON body** — they were NOT structured metadata. The dashboards were already
+changed to drop `| json` and filter structured metadata directly
+(`| event_type="telemetry_event"`), so those filters matched **nothing** → No data.
+(The fields the dropdowns use come from Prometheus, which is why dropdowns worked.)
+
+Fix (in repo): `generator/otel_logging.py` now promotes every caller `extra=`
+field to an OTLP log **attribute** via `_record_attributes(record)` and passes
+`attributes=…` to `_OTEL_LOGGER.emit()`. Loki's native OTLP ingestion stores
+those attributes as structured metadata → the existing dashboard queries
+(filter + `unwrap latency_ms`, no `| json`) light up. The logs pipeline
+processors are `[memory_limiter, resource, batch]` (no attribute dropping), and
+the exporter targets Loki's `/otlp` endpoint, so attributes pass through intact.
+
+This requires rebuilding + redeploying the **RUNNER** image (not Grafana):
+
+```bash
+# rebuild ai-telemetry-runner:latest in ACR AND force the new revision live
+./scripts/fix-runner.sh --build
+```
+
+`fix-runner.sh` had the SAME two traps Grafana had — both now fixed:
+  1. After `--build` it hit "Runner already serving … nothing to do" and
+     `exit 0`, so the freshly built image never deployed. Now the early-return
+     is skipped when `--build` is set (always redeploys).
+  2. `render_runner_yaml` referenced `ai-telemetry-runner:latest`; ACA dedupes
+     revisions by image-string, so an unchanged `:latest` triggered no re-pull.
+     Now pinned by `@sha256` digest (`acr_latest_digest`), which changes every
+     rebuild → guaranteed new revision + pull.
+
+Verify in Grafana → Explore (Loki) — these should now return data within ~2 min
+of the new runner revision becoming ready:
+
+```logql
+{service_name=~".+"} | event_type="telemetry_event"
+sum(count_over_time({service_name=~".+"} | event_type="telemetry_event" [5m]))
+avg_over_time({service_name=~".+"} | event_type="telemetry_event" | unwrap latency_ms [5m])
+```
+
+If still empty, confirm the runner revision actually rolled (digest pin) and is
+emitting logs:
+
+```bash
+RG=az03-al-titan-sandbox-rg
+az containerapp revision list -n ai-telemetry-runner-dev -g $RG \
+  --query "[?properties.active].{rev:name,created:properties.createdTime,image:properties.template.containers[0].image}" -o table
+az containerapp logs show -n ai-telemetry-runner-dev -g $RG --tail 40 \
+  | grep -E "OTLP log exporter|telemetry_event"
+```

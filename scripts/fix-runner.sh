@@ -100,7 +100,7 @@ runner_otlp_ok() {
 }
 
 render_runner_yaml() {
-  local dest=$1 env_id user pass eh_conn otel_ep domain eh_name
+  local dest=$1 env_id user pass eh_conn otel_ep domain eh_name runner_digest runner_image
   env_id=$(az containerapp env show --name "$CAE_NAME" --resource-group "$AZURE_RESOURCE_GROUP" --query id -o tsv)
   acr_admin_credentials "$ACR_NAME"
   user="$ACR_ADMIN_USER"
@@ -111,12 +111,20 @@ render_runner_yaml() {
   otel_logs_ep="$(awk_escape "$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")")"
   user="$(awk_escape "$user")"
   pass="$(awk_escape "$pass")"
+  # Pin by digest: ACA dedupes revisions by image-reference STRING, so re-applying
+  # ":latest" (unchanged) creates NO new revision and NO re-pull — a freshly built
+  # image would never go live. The digest changes on every rebuild → forces a pull.
+  if runner_digest=$(acr_latest_digest "$ACR_NAME" "ai-telemetry-runner" 2>/dev/null); then
+    runner_image="${ACR_LOGIN_SERVER}/ai-telemetry-runner@${runner_digest}"
+  else
+    runner_image="${ACR_LOGIN_SERVER}/ai-telemetry-runner:latest"
+  fi
   awk -v loc="$AZURE_LOCATION" \
       -v env_id="$env_id" \
       -v acr_server="$ACR_LOGIN_SERVER" \
       -v acr_user="$user" \
       -v acr_pass="$pass" \
-      -v image="${ACR_LOGIN_SERVER}/ai-telemetry-runner:latest" \
+      -v image="$runner_image" \
       -v eh_ns="$EVENTHUB_NAMESPACE" \
       -v eh_conn="$eh_conn" \
       -v eh_name="$eh_name" \
@@ -250,10 +258,13 @@ if az containerapp show --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GRO
   log "Replicas:"
   az containerapp replica list --name "$APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" -o table 2>/dev/null \
     || log "  (no replicas)"
-  if runner_serving && runner_otlp_ok; then
+  if runner_serving && runner_otlp_ok && [[ "$BUILD_IMAGE" != "true" ]]; then
     log "Runner already serving metrics with correct OTLP endpoints — nothing to do"
     echo "Metrics: https://$(runner_fqdn)/metrics"
     exit 0
+  fi
+  if [[ "$BUILD_IMAGE" == "true" ]]; then
+    log "Rebuilt image (--build) — forcing redeploy so the new revision goes live"
   fi
   if runner_serving && ! runner_otlp_ok; then
     log "Runner serving metrics but OTLP endpoint is wrong (localhost?) — redeploying env"

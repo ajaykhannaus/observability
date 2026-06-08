@@ -1,8 +1,11 @@
 """OpenTelemetry log export — ships structured JSON logs to Loki via the OTel Collector.
 
 Pairs with :mod:`generator.azure_logger` which formats each line as JSON.
-The OTLP log *body* is the raw JSON string so Grafana Loki panels can use
-``| json | event_type = "telemetry_event"``.
+The OTLP log *body* carries the raw JSON string (human-readable), while each
+``extra=`` field is also sent as an OTLP log *attribute*. Loki's native OTLP
+ingestion stores those attributes as structured metadata, so Grafana panels
+filter/unwrap them directly — e.g. ``{service_name=~".+"} | event_type="telemetry_event"``
+and ``... | unwrap latency_ms`` — WITHOUT a ``| json`` parser stage.
 """
 from __future__ import annotations
 
@@ -55,6 +58,34 @@ _LEVEL_TO_SEVERITY = {
     logging.CRITICAL: SeverityNumber.FATAL,
 }
 
+# Standard LogRecord attributes — excluded so only caller ``extra=`` fields are
+# promoted to OTLP log attributes (→ Loki structured metadata).
+_LOG_RECORD_STD_KEYS = frozenset({
+    "args", "asctime", "created", "exc_info", "exc_text", "filename",
+    "funcName", "levelname", "levelno", "lineno", "module", "msecs",
+    "message", "msg", "name", "pathname", "process", "processName",
+    "relativeCreated", "stack_info", "thread", "threadName", "taskName",
+})
+
+
+def _record_attributes(record: logging.LogRecord) -> dict[str, Any]:
+    """Promote caller ``extra=`` fields to OTLP log attributes.
+
+    Loki's native OTLP ingestion maps log-record attributes to *structured
+    metadata*, which dashboards query directly (``| event_type="telemetry_event"``,
+    ``unwrap latency_ms``) WITHOUT a ``| json`` parser stage. ``None`` values are
+    dropped (OTLP forbids null) and non-primitives are stringified.
+    """
+    attrs: dict[str, Any] = {
+        "level":  record.levelname,
+        "logger": record.name,
+    }
+    for key, val in record.__dict__.items():
+        if key in _LOG_RECORD_STD_KEYS or val is None:
+            continue
+        attrs[key] = val if isinstance(val, (str, bool, int, float)) else str(val)
+    return attrs
+
 
 def _normalize_http_logs_endpoint(endpoint: str) -> str:
     endpoint = endpoint.rstrip("/")
@@ -79,6 +110,9 @@ class _OTLPJSONHandler(logging.Handler):
                     record.levelno, SeverityNumber.INFO,
                 ),
                 severity_text=record.levelname,
+                # Promote extra= fields to structured metadata so Loki panels can
+                # filter/unwrap them WITHOUT a `| json` parser stage.
+                attributes=_record_attributes(record),
             )
         except Exception:
             self.handleError(record)
