@@ -38,8 +38,14 @@ function_app/local.settings.json
 # Rendered Container App YAML (substituted at deploy time, may contain secrets)
 infra/*.rendered.yaml
 
-# IDE
+# IDE / local tooling
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
+
+# Screenshots / scratch captures (don't belong in the repo)
+ScreenShot*.png
+Screenshot*.png
+docs/errors.txt
