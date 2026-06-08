@@ -1,0 +1,125 @@
+}
+[fix-loki-pipeline]   OK  OTel Collector Running
+[fix-loki-pipeline] Step 3/6 — Refresh collector backends + restart...
+The behavior of this command has been altered by the following extension: containerapp
+[fix-loki-pipeline] Step 4/6 — Wire runner OTLP log export (:4318 HTTP)...
+The behavior of this command has been altered by the following extension: containerapp
+[fix-loki-pipeline] Step 5/6 — Wait 150s for OTLP logs...
+[fix-loki-pipeline] Step 6/6 — Triage + diagnose...
+[fix-loki-pipeline] === Loki pipeline triage ===
+[fix-loki-pipeline]   runner image:     acrtelemetrydevaj.azurecr.io/ai-telemetry-runner@sha256:59de23612bf45a56252c72cb78645b300bdde09ec2c4ba914cfabc77f53493a7
+[fix-loki-pipeline]   collector image:  acrtelemetrydevaj.azurecr.io/otel-collector@sha256:c5c6bb402c70d9fe2820c8bc529f911b215474297f5d571578392b1fa8a4d7cf
+[fix-loki-pipeline]   loki image:       acrtelemetrydevaj.azurecr.io/loki@sha256:01d91bce64550c195132adc648c45ad6826d71cf21dcfbf28efe508ba229192a
+[fix-loki-pipeline]   runner logs ep:   http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
+[fix-loki-pipeline]   expected logs ep: http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
+[fix-loki-pipeline]   collector loki:   https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[fix-loki-pipeline]   expected loki:    https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[fix-loki-pipeline]   runner OTLP logs: FAIL (no exporter line in console)
+[fix-loki-pipeline]   collector → loki: no obvious export errors
+[fix-loki-pipeline]   issues:
+[fix-loki-pipeline]     - Runner logs lack 'OTLP log exporter' line (stale image?)
+[fix-loki-pipeline]   recommended: ./scripts/fix-loki-pipeline-azure.sh --runner-build
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+[diagnose-grafana] Grafana: https://grafana-telemetry-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+[diagnose-grafana] Runner FQDN: ai-telemetry-runner-dev.bravesand-913bfe11.eastus.azurecontainerapps.io
+
+[diagnose-grafana] === Runner OTLP env (logs need this → OTel Collector → Loki) ===
+Name                              Value
+--------------------------------  ---------------------------------------------------------------------------------------
+OTEL_SERVICE_NAME                 ai-telemetry-runner-dev
+ALLOW_MOCK_MODE                   true
+OTEL_EXPORTER_OTLP_ENDPOINT       http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4317
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT  http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:4318
+[diagnose-grafana] OK  Runner OTLP endpoint → collector
+[diagnose-grafana] OK  Runner OTLP logs endpoint → collector :4318 (HTTP)
+
+[diagnose-grafana] === OTel Collector → Loki wiring ===
+[diagnose-grafana]   collector image: acrtelemetrydevaj.azurecr.io/otel-collector@sha256:c5c6bb402c70d9fe2820c8bc529f911b215474297f5d571578392b1fa8a4d7cf
+[diagnose-grafana]   loki image:      acrtelemetrydevaj.azurecr.io/loki@sha256:01d91bce64550c195132adc648c45ad6826d71cf21dcfbf28efe508ba229192a
+[diagnose-grafana]   LOKI_OTLP_ENDPOINT: https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[diagnose-grafana]   expected:           https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[diagnose-grafana] OK  Collector Loki OTLP endpoint
+
+[diagnose-grafana] === Observability apps ===
+[diagnose-grafana]   loki-telemetry-dev: {
+  "prov": "Succeeded",
+  "replicas": 1,
+  "running": "Running"
+}
+[diagnose-grafana]   otel-collector-dev: {
+  "prov": "Succeeded",
+  "replicas": 1,
+  "running": "Running"
+}
+
+[diagnose-grafana] === Runner console — OTLP log exporter (last 80 lines) ===
+[diagnose-grafana] FAIL No 'OTLP log exporter' line in runner logs — runner may need redeploy
+[diagnose-grafana]   Fix: ./scripts/fix-runner.sh --build --no-git-pull
+
+[diagnose-grafana] === Prometheus remote write receiver ===
+[diagnose-grafana]   image: acrtelemetrydevaj.azurecr.io/prometheus-scraper:latest
+[diagnose-grafana]   command: /prometheus-entrypoint.sh
+[diagnose-grafana]   args:    <none>
+[diagnose-grafana] OK  Prometheus Running with entrypoint (/-/ready unreachable from this host)
+[diagnose-grafana]   (POST /api/v1/write from Cloud Shell hit ACA 'Unavailable' — normal for internal ingress during rollout)
+
+[diagnose-grafana] === OTel Collector → Loki wiring (env) ===
+[diagnose-grafana]   LOKI_OTLP_ENDPOINT: https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[diagnose-grafana]   expected:           https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/otlp
+[diagnose-grafana] OK  Collector LOKI_OTLP_ENDPOINT → Loki
+
+[diagnose-grafana] === OTel Collector → Prometheus wiring ===
+[diagnose-grafana]   PROM_WRITE_ENDPOINT: https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/api/v1/write
+[diagnose-grafana]   expected:            https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io/api/v1/write
+[diagnose-grafana] OK  Collector PROM_WRITE_ENDPOINT → Prometheus
+
+[diagnose-grafana] === OTel Collector console — export errors (last 80 lines) ===
+[diagnose-grafana]   {"TimeStamp": "2026-06-08T18:41:46.9007391+00:00", "Log": "F 2026-06-08T18:41:46.900Z\twarn\tprometheusremotewriteexporter@v0.111.0/factory.go:47\tCurrently, remote_write_queue.num_consumers doesn't have any effect due to incompatibility with Prometheus remote write API. The value will be ignored. Please see https://github.com/open-telemetry/opentelemetry-collector/issues/2949 for more information.\t{\"kind\": \"exporter\", \"data_type\": \"metrics\", \"name\": \"prometheusremotewrite\"}"}
+[diagnose-grafana]   {"TimeStamp": "2026-06-08T18:41:46.9019793+00:00", "Log": "F 2026-06-08T18:41:46.901Z\tinfo\thealthcheckextension@v0.111.0/healthcheckextension.go:33\tStarting health_check extension\t{\"kind\": \"extension\", \"name\": \"health_check\", \"config\": {\"Endpoint\":\"0.0.0.0:13133\",\"TLSSetting\":null,\"CORS\":null,\"Auth\":null,\"MaxRequestBodySize\":0,\"IncludeMetadata\":false,\"ResponseHeaders\":null,\"CompressionAlgorithms\":null,\"ReadTimeout\":0,\"ReadHeaderTimeout\":0,\"WriteTimeout\":0,\"IdleTimeout\":0,\"Path\":\"/\",\"ResponseBody\":null,\"CheckCollectorPipeline\":{\"Enabled\":false,\"Interval\":\"5m\",\"ExporterFailureThreshold\":5}}}"}
+
+=== Datasources ===
+  Loki (loki-ds): https://loki-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
+    health: OK
+  Prometheus (prometheus-ds): https://prometheus-scraper-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
+    health: OK
+  Tempo (tempo-ds): https://tempo-telemetry-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
+
+=== Prometheus queries (via Grafana proxy) ===
+  raw counter: 95 series/points
+  recording rule 6h SLI: 1 series/points
+  runner batch metric: 1 series/points
+
+=== Loki label names (via Grafana → Loki) ===
+  labels (0): 
+
+=== Loki queries (Live Telemetry Events panel) ===
+  any service_name streams (15m): 0
+    WARN: no Loki streams — runner → collector → Loki pipeline is broken
+    Fix: ./scripts/wire-loki-otlp-azure.sh  (no rebuild)
+    Or:  ./scripts/fix-loki-logs-azure.sh  (rebuild Loki/collector)
+  telemetry_event (15m): 0
+  startup_config (15m): 0
+
+=== Dashboards in Grafana ===
+  1. Request & Traffic Metrics uid=ai-telemetry-executive url=/d/ai-telemetry-executive/1-request-and-traffic-metrics
+  2. Traffic & Request Analytics uid=ai-telemetry-traffic url=/d/ai-telemetry-traffic/2-traffic-and-request-analytics
+  3. Latency & Performance Metrics uid=ai-telemetry-latency url=/d/ai-telemetry-latency/3-latency-and-performance-metrics
+  4. Cost & Usage Metrics uid=ai-telemetry-cost url=/d/ai-telemetry-cost/4-cost-and-usage-metrics
+  5. Model Quality Metrics uid=ai-telemetry-quality url=/d/ai-telemetry-quality/5-model-quality-metrics
+  6. Safety & Security Metrics uid=ai-telemetry-safety url=/d/ai-telemetry-safety/6-safety-and-security-metrics
+  7. Infrastructure Metrics uid=ai-telemetry-infra url=/d/ai-telemetry-infra/7-infrastructure-metrics
+  8. Token & Context Metrics uid=ai-telemetry-tokens url=/d/ai-telemetry-tokens/8-token-and-context-metrics
+  9. User-Level Observability uid=ai-telemetry-users url=/d/ai-telemetry-users/9-user-level-observability
+  AI Gateway Telemetry uid=ai-telemetry-001 url=/d/ai-telemetry-001/ai-gateway-telemetry
+[diagnose-grafana] If Prometheus remote write 404: ./scripts/fix-prometheus-remote-write-azure.sh
+[diagnose-grafana] If Prometheus OK but Loki empty: ./scripts/wire-loki-otlp-azure.sh
+[diagnose-grafana] If Loki/collector images stale: ./scripts/fix-loki-logs-azure.sh
+[diagnose-grafana] If runner missing OTLP log exporter line: ./scripts/fix-runner.sh --build --no-git-pull
+[diagnose-grafana] If collector LOKI_OTLP_ENDPOINT wrong: export FORCE_CONTAINER_DEPLOY=true && ./scripts/deploy-observability-stack.sh --build --from otel
+[diagnose-grafana] If dashboards missing, run: ./scripts/fix-grafana-datasources.sh
+
+[fix-loki-pipeline] Done. In Grafana Explore (Loki):
+[fix-loki-pipeline]   {service_name=~".+"} | json | event_type="telemetry_event"
+[fix-loki-pipeline] If still 0 streams, re-run with: ./scripts/fix-loki-pipeline-azure.sh --runner-build
+ajay [ ~/observability ]$ 
