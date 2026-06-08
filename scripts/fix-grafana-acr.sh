@@ -90,8 +90,8 @@ unstick_containerapp() {
 }
 
 brief_wait_for_idle() {
-  local i state max=$GRAFANA_ACR_WAIT_MAX
-  for i in $(seq 1 max); do
+  local i state="Unknown" max=$GRAFANA_ACR_WAIT_MAX
+  for i in $(seq 1 "$max"); do
     state=$(containerapp_provisioning_state)
     case "$state" in
       Succeeded|Failed) return 0 ;;
