@@ -284,7 +284,62 @@ Interpret:
 - **`TCP OK 4318` (or 80/443) but the HTTP export still times out** → TCP path is fine; the
   collector's OTLP HTTP receiver isn't answering — check collector logs (STEP 5).
 - **`TCP OK 80`/`443` only** → the OTLP receivers are reachable only behind the http2 ingress;
-  use the gRPC-over-443-TLS path (`https://...:443`, `INSECURE=false`).
+  use OTLP **gRPC** through the ingress — apply STEP 3h.
+
+> **RESULT for this env (2026-06-08):** `DNS ... -> 100.100.0.206` (resolves), but
+> `TCP FAIL 4317/4318/8888/13133` and `TCP OK 80`, `TCP OK 443`. Only the ingress ports 80/443
+> are reachable app-to-app — raw OTLP ports and `additionalPortMappings` ports are NOT routable
+> between apps in this (Consumption) environment. Only viable path = **OTLP gRPC through the
+> ingress** (forwards to container `targetPort: 4317`). HTTP OTLP on `:4318` can never work here.
+
+### STEP 3h — Fix: route OTLP gRPC through the ingress (port 80 h2c)
+
+Only 80/443 are reachable and the ingress forwards to the gRPC receiver (`targetPort 4317`), so
+send OTLP **gRPC** through the ingress. Port 80 plaintext h2c avoids internal-TLS-cert trust
+issues — but `allowInsecure` must be on.
+
+**1) Enable plaintext h2c on the collector ingress:**
+
+```bash
+az containerapp ingress update -n otel-collector-dev -g az03-al-titan-sandbox-rg \
+  --allow-insecure
+```
+
+**2) Point the runner at the collector over port 80, gRPC, insecure:**
+
+```bash
+RG=az03-al-titan-sandbox-rg
+RUNNER=ai-telemetry-runner-dev
+OTEL_80=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:80
+
+az containerapp update -n "$RUNNER" -g "$RG" \
+  --set-env-vars \
+    "OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_80" \
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_80" \
+    "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_INSECURE=true" \
+    "DEPLOY_STAMP=$(date +%s)" \
+  --output none
+```
+
+Re-run STEP 3c. Success = boot line `OTLP log exporter → http://...:80 (grpc insecure=true)` and
+NO more `UNAVAILABLE`/`DEADLINE_EXCEEDED`. Then STEP 3 `accepted_log_records` climbs > 0.
+
+**Alternative (no collector change): gRPC over TLS on 443** — may fail on internal-cert trust:
+
+```bash
+OTEL_443=https://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io:443
+az containerapp update -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
+  --set-env-vars \
+    "OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_443" \
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_443" \
+    "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_INSECURE=false" \
+    "DEPLOY_STAMP=$(date +%s)" \
+  --output none
+```
 
 ---
 
