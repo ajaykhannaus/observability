@@ -457,7 +457,10 @@ Regenerate + redeploy Grafana:
 
 ```bash
 python3 dashboards/generate_dashboards.py      # rewrites the 9 JSON files
-./scripts/fix-grafana-acr.sh                   # rebuild + redeploy baked dashboards
+# IMPORTANT: dashboards are BAKED into the Grafana image (Dockerfile.grafana).
+# fix-grafana-acr.sh only fixes ACR auth + pulls the EXISTING image — it does
+# NOT rebuild dashboards. To pick up changed JSON you must rebuild the image:
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
 
 Verify in Grafana → Explore (Loki) that this no longer errors:
