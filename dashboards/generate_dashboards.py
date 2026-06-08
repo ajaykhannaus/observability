@@ -1261,17 +1261,21 @@ def build_d4() -> dict:
         timeseries_panel(
             "Cost per request",
             [
-                _loki_target(
-                    f'avg(avg_over_time({_tele} | unwrap cost_usd [5m]))',
+                # Prometheus (not Loki unwrap): cost ÷ request count is an exact
+                # aggregate over the metrics pipeline — no sampling, no
+                # structured-metadata string parsing. Matches "Cost per user/session".
+                _prom_target(
+                    f'sum(increase(ai_gateway_request_cost_USD_total{_f}[5m])) '
+                    f'/ clamp_min(sum(increase(ai_gateway_request_count_total{_f}[5m])), 1e-9)',
                     "Avg cost / request", "A",
                 ),
-                _loki_target(
-                    f'avg by (model_name) (avg_over_time({_tele} | unwrap cost_usd [5m]))',
+                _prom_target(
+                    f'sum by (model_name)(increase(ai_gateway_request_cost_USD_total{_f}[5m])) '
+                    f'/ clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{_f}[5m])), 1e-9)',
                     "{{model_name}}", "B",
                 ),
             ],
             unit="currencyUSD", grid=_grid(0, 0, 12, 8),
-            datasource=DS_LOKI,
         ),
         timeseries_panel(
             "Cost per user/session",

@@ -544,3 +544,29 @@ az containerapp revision list -n ai-telemetry-runner-dev -g $RG \
 az containerapp logs show -n ai-telemetry-runner-dev -g $RG --tail 40 \
   | grep -E "OTLP log exporter|telemetry_event"
 ```
+
+---
+
+## "Cost per request" → Prometheus (was Loki `unwrap cost_usd`, showed No data)
+
+Dashboard 04 "Cost per request" used a Loki query
+(`avg(avg_over_time(... | unwrap cost_usd [5m]))`), so it depended on the OTLP
+structured-metadata fix AND on Loki unwrap parsing tiny float strings. Its three
+sibling cost panels were already Prometheus. Switched it to the same Prometheus
+pattern as "Cost per user/session":
+
+```promql
+sum(increase(ai_gateway_request_cost_USD_total{…}[5m]))
+  / clamp_min(sum(increase(ai_gateway_request_count_total{…}[5m])), 1e-9)
+# per-model series: same with `sum by (model_name)(…)` on both sides
+```
+
+This is an exact aggregate over the metrics pipeline — no sampling, no
+structured-metadata string parsing — and populates immediately from metrics
+that already flow (no runner rebuild needed). Edit is in
+`dashboards/generate_dashboards.py` `build_d4()`; regenerate + redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

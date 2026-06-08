@@ -184,8 +184,8 @@
       "type": "timeseries",
       "title": "Cost per request",
       "datasource": {
-        "type": "loki",
-        "uid": "loki-ds"
+        "type": "prometheus",
+        "uid": "prometheus-ds"
       },
       "fieldConfig": {
         "defaults": {
@@ -243,23 +243,25 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
+            "type": "prometheus",
+            "uid": "prometheus-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",environment=~\"$environment\"}[5m])), 1e-9)",
           "legendFormat": "Avg cost / request",
           "refId": "A",
-          "queryType": "range"
+          "format": "time_series",
+          "range": true
         },
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
+            "type": "prometheus",
+            "uid": "prometheus-ds"
           },
-          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [5m]))",
+          "expr": "sum by (model_name)(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",environment=~\"$environment\"}[5m])), 1e-9)",
           "legendFormat": "{{model_name}}",
           "refId": "B",
-          "queryType": "range"
+          "format": "time_series",
+          "range": true
         }
       ],
       "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
