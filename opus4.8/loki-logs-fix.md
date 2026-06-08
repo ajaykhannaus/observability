@@ -150,7 +150,49 @@ az containerapp logs show -n "$OTEL" -g "$RG" --type console --tail 60 2>/dev/nu
 - `runningState: Failed` or repeating error lines in logs → crash-looping on config; capture the
   error and rebuild: `./scripts/fix-loki-logs-azure.sh`
 - Collector healthy with replicas ≥ 1 but runner still times out → internal ingress/DNS for
-  `:4317` — confirm the collector ingress exposes `targetPort: 4317` (transport http2).
+  `:4317` — go to **STEP 3e** to read the actual exposed ports.
+
+### STEP 3e — Collector is UP but runner can't reach :4317 → ingress port mismatch
+
+If STEP 3d shows the collector `Running` with `Everything is ready` in its logs AND its startup
+shows `Starting GRPC server ... endpoint: 0.0.0.0:4317`, the collector process is fine. The
+runner's `UNAVAILABLE`/`DEADLINE_EXCEEDED` then means **Azure Container Apps ingress is not
+exposing port 4317 at the internal FQDN**.
+
+ACA gotcha: an HTTP/2 (gRPC) ingress is reachable at the FQDN over **80/443**, NOT on the
+container's `targetPort`. Raw ports like 4317/4318 are reachable only if declared as
+`exposedPort` inside `additionalPortMappings`. Read the truth:
+
+```bash
+az containerapp show -n otel-collector-dev -g az03-al-titan-sandbox-rg \
+  --query "properties.configuration.ingress" -o json
+```
+
+Interpret:
+- **`additionalPortMappings` exposes `4317` (exposedPort:4317)** → endpoint is correct; problem is
+  `transport`/TLS. For h2c plaintext use `http://...:4317` + `OTEL_EXPORTER_OTLP_INSECURE=true`.
+- **Only ingress is http2 on `targetPort:4317`, no exposed 4317** → the FQDN listens on 80/443,
+  not 4317. Point the runner at the FQDN **without** the `:4317` suffix:
+
+  ```bash
+  RG=az03-al-titan-sandbox-rg
+  RUNNER=ai-telemetry-runner-dev
+  # internal http2 ingress → plaintext h2c on :80
+  OTEL_EP=http://otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io
+
+  az containerapp update -n "$RUNNER" -g "$RG" \
+    --set-env-vars \
+      "OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EP" \
+      "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_EP" \
+      "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+      "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
+      "OTEL_EXPORTER_OTLP_INSECURE=true" \
+      "DEPLOY_STAMP=$(date +%s)" \
+    --output none
+  ```
+
+After the fix, re-run STEP 3c (boot line should show successful export, no UNAVAILABLE) and
+STEP 3 query `sum(otelcol_receiver_accepted_log_records_total)` should climb above 0.
 
 ---
 
