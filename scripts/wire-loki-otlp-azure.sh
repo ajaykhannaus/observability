@@ -43,16 +43,21 @@ refresh_collector_backends "$OTEL_APP_NAME" "$CAE_NAME" "$AZURE_RESOURCE_GROUP" 
   "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME"
 restart_containerapp_revision "$OTEL_APP_NAME" "$AZURE_RESOURCE_GROUP" || true
 
-log "Step 2/3 — Refresh runner OTLP log export (:4318 HTTP)..."
+log "Step 2/3 — Refresh runner OTLP export (gRPC via :80 ingress — only routable path on ACA)..."
 log "  OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_ENDPOINT"
 log "  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_LOGS_ENDPOINT"
+# Ensure the collector ingress serves plaintext h2c on :80 (raw 4317/4318 are unreachable
+# app-to-app in ACA Consumption; only the ingress on 80/443 routes). Idempotent.
+az containerapp ingress update --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --allow-insecure --output none 2>/dev/null || true
 az containerapp update \
   --name "$APP_NAME" \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --set-env-vars \
     "OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT}" \
     "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=${OTEL_LOGS_ENDPOINT}" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf" \
+    "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
     "OTEL_EXPORTER_OTLP_INSECURE=true" \
     "OTEL_SERVICE_NAME=${APP_NAME}" \
     "DEPLOY_STAMP=$(date +%s)" \

@@ -875,7 +875,8 @@ fi
   if az containerapp env show --name "$CAE_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
     cae_domain=$(az containerapp env show --name "$CAE_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
       --query properties.defaultDomain -o tsv 2>/dev/null || true)
-    [[ -n "$cae_domain" ]] && otel_ep="http://${OTEL_APP_NAME}.internal.${cae_domain}:4317"
+    # :80 (ingress h2c), not :4317 — raw OTLP ports are unreachable app-to-app on ACA Consumption.
+    [[ -n "$cae_domain" ]] && otel_ep="http://${OTEL_APP_NAME}.internal.${cae_domain}:80"
   fi
   [[ -n "$otel_ep" ]] && echo "OTEL_EXPORTER_OTLP_ENDPOINT=$otel_ep"
   echo "OTEL_SERVICE_NAME=$APP_NAME"

@@ -10,6 +10,12 @@ awk_escape() {
 }
 
 # OTLP gRPC endpoint for Container Apps (never localhost on Azure).
+#
+# IMPORTANT (ACA Consumption env): raw container ports (4317/4318) and additionalPortMappings
+# are NOT routable app-to-app — only the ingress on 80/443 is. So we send OTLP gRPC through the
+# ingress on :80 (h2c). The ingress (transport: http2) forwards to the collector's targetPort
+# 4317 gRPC receiver. The collector ingress must have allowInsecure: true for plaintext h2c, and
+# the runner must set OTEL_EXPORTER_OTLP_PROTOCOL=grpc + OTEL_EXPORTER_OTLP_INSECURE=true.
 resolve_azure_otel_endpoint() {
   local cae_name=$1 rg=$2 otel_app=${3:-otel-collector-dev}
   local env_ep=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
@@ -18,14 +24,15 @@ resolve_azure_otel_endpoint() {
     domain=$(az containerapp env show --name "$cae_name" --resource-group "$rg" \
       --query properties.defaultDomain -o tsv 2>/dev/null || true)
     if [[ -n "$domain" ]]; then
-      echo "http://${otel_app}.internal.${domain}:4317"
+      echo "http://${otel_app}.internal.${domain}:80"
       return 0
     fi
   fi
   [[ -n "$env_ep" ]] && echo "$env_ep" || echo ""
 }
 
-# OTLP HTTP endpoint for logs (port 4318 — more reliable than gRPC on ACA internal ingress).
+# OTLP endpoint for logs — same :80 gRPC ingress path as metrics (see resolve_azure_otel_endpoint).
+# NOTE: do NOT use :4318 HTTP here — that raw port is unreachable app-to-app in ACA Consumption.
 resolve_azure_otel_logs_endpoint() {
   local cae_name=$1 rg=$2 otel_app=${3:-otel-collector-dev}
   local env_ep=${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:-}
@@ -34,7 +41,7 @@ resolve_azure_otel_logs_endpoint() {
     domain=$(az containerapp env show --name "$cae_name" --resource-group "$rg" \
       --query properties.defaultDomain -o tsv 2>/dev/null || true)
     if [[ -n "$domain" ]]; then
-      echo "http://${otel_app}.internal.${domain}:4318"
+      echo "http://${otel_app}.internal.${domain}:80"
       return 0
     fi
   fi
@@ -551,7 +558,7 @@ triage_loki_pipeline() {
   fi
 
   if [[ ${#issues[@]} -eq 0 ]]; then
-    echo "$prefix   verdict: env/images look OK — wait for batches or check collector receives logs on :4318"
+    echo "$prefix   verdict: env/images look OK — wait for batches or check collector accepted_log_records (OTLP gRPC via :80 ingress)"
     return 0
   fi
 

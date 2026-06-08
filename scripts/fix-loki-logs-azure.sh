@@ -43,7 +43,7 @@ refresh_collector_backends "$OTEL_APP_NAME" "$CAE_NAME" "$AZURE_RESOURCE_GROUP" 
   "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME"
 restart_containerapp_revision "$OTEL_APP_NAME" "$AZURE_RESOURCE_GROUP" || true
 
-log "Step 3/5 — Wire runner OTLP (HTTP logs on :4318; skip image rebuild)..."
+log "Step 3/5 — Wire runner OTLP (gRPC via :80 ingress; skip image rebuild)..."
 "$ROOT/scripts/deploy-observability-stack.sh" --from otlp --no-git-pull
 # Runner metrics already work — only refresh OTLP env, avoid Docker Hub pull during Loki fix.
 "$ROOT/scripts/fix-runner.sh" --no-git-pull || true
@@ -51,13 +51,18 @@ log "Step 3/5 — Wire runner OTLP (HTTP logs on :4318; skip image rebuild)..."
 OTEL_ENDPOINT="$(resolve_azure_otel_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
 OTEL_LOGS_ENDPOINT="$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
 log "Step 3b — Force runner OTLP env refresh: $OTEL_ENDPOINT (logs: $OTEL_LOGS_ENDPOINT)"
+# ACA Consumption: only the ingress (80/443) routes app-to-app; raw 4317/4318 are unreachable.
+# Serve plaintext h2c on the collector, send OTLP gRPC over :80 insecure.
+az containerapp ingress update --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --allow-insecure --output none 2>/dev/null || true
 az containerapp update \
   --name "$APP_NAME" \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --set-env-vars \
     "OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT}" \
     "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=${OTEL_LOGS_ENDPOINT}" \
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf" \
+    "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
     "OTEL_EXPORTER_OTLP_INSECURE=true" \
     "DEPLOY_STAMP=$(date +%s)" \
   --output none

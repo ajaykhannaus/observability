@@ -6,7 +6,10 @@ properties:
     activeRevisionsMode: Single
     ingress:
       external: false
-      allowInsecure: false
+      # allowInsecure: true → serve plaintext h2c on :80. Required because ACA Consumption only
+      # routes app-to-app traffic via the ingress on 80/443 (raw 4317/4318 are unreachable), so
+      # the runner sends OTLP gRPC to http://otel-collector-dev.internal.<domain>:80 (insecure).
+      allowInsecure: true
       targetPort: 4317
       transport: http2
       additionalPortMappings:

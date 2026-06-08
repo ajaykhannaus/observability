@@ -52,6 +52,11 @@ properties:
             value: "plain"
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: __OTEL_ENDPOINT__
+          # gRPC over the :80 ingress (h2c) — raw 4317/4318 are unreachable app-to-app on ACA.
+          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+            value: "grpc"
+          - name: OTEL_EXPORTER_OTLP_LOGS_PROTOCOL
+            value: "grpc"
           - name: OTEL_EXPORTER_OTLP_INSECURE
             value: "true"
         probes:

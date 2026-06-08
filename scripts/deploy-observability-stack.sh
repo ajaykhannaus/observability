@@ -238,7 +238,7 @@ write_datasource_env() {
   local prom_url loki_url tempo_url otel_endpoint
   read -r prom_url loki_url tempo_url < <(grafana_datasource_urls \
     "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME")
-  otel_endpoint="http://$(internal_host "$OTEL_APP_NAME"):4317"
+  otel_endpoint="http://$(internal_host "$OTEL_APP_NAME"):80"
 
   log "Datasource URLs:"
   log "  PROMETHEUS_URL=$prom_url"
@@ -400,17 +400,22 @@ fi
 
 if step_enabled otlp && [[ "$SKIP_RUNNER_OTLP" != "true" ]]; then
   log "=== Runner OTLP wiring ==="
-  OTEL_ENDPOINT="http://$(internal_host "$OTEL_APP_NAME"):4317"
+  OTEL_ENDPOINT="http://$(internal_host "$OTEL_APP_NAME"):80"
   OTEL_LOGS_ENDPOINT="$(resolve_azure_otel_logs_endpoint "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$OTEL_APP_NAME")"
   log "Setting OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_ENDPOINT on $APP_NAME"
-  log "Setting OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_LOGS_ENDPOINT (HTTP :4318)"
+  log "Setting OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=$OTEL_LOGS_ENDPOINT (gRPC via :80 ingress)"
+  # ACA Consumption only routes app-to-app via the ingress on 80/443; raw 4317/4318 are
+  # unreachable. Serve plaintext h2c on the collector and send OTLP gRPC over :80 (insecure).
+  az containerapp ingress update --name "$OTEL_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+    --allow-insecure --output none 2>/dev/null || true
   az containerapp update \
     --name "$APP_NAME" \
     --resource-group "$AZURE_RESOURCE_GROUP" \
     --set-env-vars \
       "OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_ENDPOINT}" \
       "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=${OTEL_LOGS_ENDPOINT}" \
-      "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf" \
+      "OTEL_EXPORTER_OTLP_PROTOCOL=grpc" \
+      "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=grpc" \
       "OTEL_EXPORTER_OTLP_INSECURE=true" \
     --output none
 fi
@@ -424,7 +429,7 @@ echo "============================================================"
 echo "  Loki:        https://$(app_fqdn "$LOKI_APP_NAME")"
 echo "  Tempo:       https://$(app_fqdn "$TEMPO_APP_NAME")"
 echo "  Prometheus:  https://${PROM_FQDN}"
-echo "  Collector:   http://$(internal_host "$OTEL_APP_NAME"):4317 (OTLP gRPC)"
+echo "  Collector:   http://$(internal_host "$OTEL_APP_NAME"):80 (OTLP gRPC via ingress)"
 echo ""
 echo "  Next: redeploy Grafana with datasource URLs:"
 echo "    export FORCE_CONTAINER_DEPLOY=true"
