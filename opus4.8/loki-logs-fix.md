@@ -463,6 +463,21 @@ python3 dashboards/generate_dashboards.py      # rewrites the 9 JSON files
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
 
+`deploy_grafana` now pins the image by @sha256 digest and always redeploys when
+FORCE_IMAGE_BUILD=true (the old code reused the running app and the `:latest`
+tag string never changed → ACA created no new revision → stale dashboards).
+
+If the live app is STILL on the old image (panels unchanged), force a fresh
+revision by digest manually:
+
+```bash
+RG=az03-al-titan-sandbox-rg ; ACR=acrtelemetrydevaj
+LOGIN=$(az acr show -n $ACR --query loginServer -o tsv)
+DIGEST=$(az acr repository show -n $ACR --image grafana:latest --query digest -o tsv)
+az containerapp update -n grafana-telemetry-dev -g $RG --image ${LOGIN}/grafana@${DIGEST}
+```
+Then hard-refresh the browser (Ctrl+Shift+R) — Grafana caches dashboard JSON.
+
 Verify in Grafana → Explore (Loki) that this no longer errors:
 
 ```logql

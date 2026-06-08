@@ -616,16 +616,28 @@ resolve_grafana_datasource_urls() {
 }
 
 deploy_grafana() {
-  local grafana_image="$ACR_LOGIN_SERVER/grafana:latest"
+  # Pin the image by DIGEST, not :latest. ACA dedupes by image-ref string, so
+  # re-applying the same :latest tag will NOT create a new revision or re-pull —
+  # a rebuilt grafana:latest (e.g. new baked dashboards) would never go live.
+  # Resolving @sha256 forces a fresh revision whenever the image content changes.
+  local grafana_digest grafana_image
+  if grafana_digest=$(acr_latest_digest "$ACR_NAME" "grafana" 2>/dev/null); then
+    grafana_image="$ACR_LOGIN_SERVER/grafana@${grafana_digest}"
+  else
+    grafana_image="$ACR_LOGIN_SERVER/grafana:latest"
+  fi
   local admin_pass="${GRAFANA_ADMIN_PASSWORD:-admin}"
 
   if [[ "${GRAFANA_SKIP_DELETE:-false}" != "true" ]]; then
     delete_grafana_app
   fi
 
+  # A just-rebuilt image (FORCE_IMAGE_BUILD) must always redeploy, otherwise the
+  # "already serving" shortcut leaves the old dashboards baked into the live app.
   if containerapp_exists "$GRAFANA_APP_NAME" \
       && containerapp_serving "$GRAFANA_APP_NAME" \
-      && [[ "${FORCE_CONTAINER_DEPLOY:-false}" != "true" ]]; then
+      && [[ "${FORCE_CONTAINER_DEPLOY:-false}" != "true" ]] \
+      && [[ "${FORCE_IMAGE_BUILD:-false}" != "true" ]]; then
     log "grafana: reuse $GRAFANA_APP_NAME — already serving traffic"
     GRAFANA_URL="https://$(containerapp_fqdn "$GRAFANA_APP_NAME")"
     write_grafana_env
