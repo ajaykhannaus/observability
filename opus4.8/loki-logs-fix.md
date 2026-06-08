@@ -103,15 +103,22 @@ RUNNER=ai-telemetry-runner-dev
 REV=$(az containerapp show -n "$RUNNER" -g "$RG" --query properties.latestRevisionName -o tsv)
 az containerapp revision restart -n "$RUNNER" -g "$RG" --revision "$REV"
 
-# capture the FIRST ~45s of boot, keep only otel-logging lines, drop publisher noise
-timeout 45 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --follow 2>/dev/null \
-  | grep --line-buffered -iE "otel|otlp|log exporter|logger provider|endpoint" \
-  | grep --line-buffered -viE "publisher|kafka|undelivered|timed out" \
-  | head -10
+# capture boot; show exporter status AND export errors (do NOT filter "timed out" — that hides
+# the very log-export timeout we need to see)
+timeout 60 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --follow 2>/dev/null \
+  | grep --line-buffered -iE "OTLP log exporter|Failed to export|StatusCode|is not set|exporter init" \
+  | head -15
 ```
 
-- See `OTLP log exporter → ...:4317 (grpc...)` → exporter IS up; the break is collector→Loki.
-- See `init failed` / `is not set` / nothing → the exporter bailed early; runner code/runtime fix.
+- See `OTLP log exporter → ...:80 (grpc...)` with NO `StatusCode`/`Failed to export` → exporter UP
+  and sending; the break (if any) is collector→Loki.
+- See `StatusCode.UNAVAILABLE/DEADLINE_EXCEEDED` / `Failed to export` → still unreachable; switch
+  to the 443-TLS alternative in STEP 3h.
+- See `init failed` / `is not set` / nothing → exporter bailed early; paste it back.
+
+> NOTE: an EMPTY capture (only "Restart succeeded") is inconclusive — the once-only success line
+> can scroll past before `--follow` attaches. Confirm via the collector counter instead:
+> STEP 3 `sum(otelcol_receiver_accepted_log_records_total)` should now be > 0.
 
 #### If STEP 3c shows `UNAVAILABLE` / `DEADLINE_EXCEEDED` on :4317 → collector is DOWN
 
