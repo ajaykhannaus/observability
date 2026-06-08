@@ -112,6 +112,46 @@ timeout 45 az containerapp logs show -n "$RUNNER" -g "$RG" --type console --foll
 - See `OTLP log exporter → ...:4317 (grpc...)` → exporter IS up; the break is collector→Loki.
 - See `init failed` / `is not set` / nothing → the exporter bailed early; runner code/runtime fix.
 
+#### If STEP 3c shows `UNAVAILABLE` / `DEADLINE_EXCEEDED` on :4317 → collector is DOWN
+
+```
+ERROR ...exporter Failed to export logs to ...:4317, error code: StatusCode.DEADLINE_EXCEEDED
+ERROR ...exporter Failed to export metrics to ...:4317, error code: StatusCode.UNAVAILABLE
+```
+
+This is the real root cause when Loki is empty **and** `otelcol_process_uptime_seconds` shows
+"No data": the runner exporter works, but the **OTel Collector is unreachable** — `UNAVAILABLE`
+= can't connect, `DEADLINE_EXCEEDED` = connects but never responds. (The "metrics flow fine"
+you see in Grafana is the runner's own `:8000/metrics` scraped **directly** by Prometheus —
+that path never touches the collector, so it stays green while the collector is down.)
+
+Go to **STEP 3d** to confirm whether the collector is scaled-to-zero or crash-looping.
+
+### STEP 3d — Check the collector is actually running
+
+```bash
+RG=az03-al-titan-sandbox-rg
+OTEL=otel-collector-dev
+
+# running state + replica bounds (minReplicas:0 = it can scale to zero and go cold)
+az containerapp show -n "$OTEL" -g "$RG" \
+  --query "{running:properties.runningStatus, minReplicas:properties.template.scale.minReplicas, maxReplicas:properties.template.scale.maxReplicas, latestRev:properties.latestRevisionName}" -o table
+
+# per-revision replica counts + health
+az containerapp revision list -n "$OTEL" -g "$RG" \
+  --query "[].{rev:name, active:properties.active, replicas:properties.replicas, state:properties.runningState, created:properties.createdTime}" -o table
+
+# recent collector logs — crash-loop / bad-config?
+az containerapp logs show -n "$OTEL" -g "$RG" --type console --tail 60 2>/dev/null
+```
+
+- `replicas: 0` / `minReplicas: 0` → collector scaled to zero (OTLP push doesn't keep it warm).
+  Pin it always-on: `az containerapp update -n "$OTEL" -g "$RG" --min-replicas 1`
+- `runningState: Failed` or repeating error lines in logs → crash-looping on config; capture the
+  error and rebuild: `./scripts/fix-loki-logs-azure.sh`
+- Collector healthy with replicas ≥ 1 but runner still times out → internal ingress/DNS for
+  `:4317` — confirm the collector ingress exposes `targetPort: 4317` (transport http2).
+
 ---
 
 ## STEP 4 — Verify logs landed
