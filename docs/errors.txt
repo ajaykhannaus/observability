@@ -1,25 +1,5 @@
-agedEnvironments/cae-telemetry-dev
-ajay [ ~/observability ]$ az containerapp exec -n ai-telemetry-runner-dev -g az03-al-titan-sandbox-rg \
-  --command "python3 -c '
-import socket
-host=\"otel-collector-dev.internal.bravesand-913bfe11.eastus.azurecontainerapps.io\"
-short=\"otel-collector-dev\"
-for h in (host, short):
-    try: print(\"DNS\", h, \"->\", socket.gethostbyname(h))
-    except Exception as e: print(\"DNS FAIL\", h, e)
-for p in (4317,4318,8888,13133,80,443):
-    s=socket.socket(); s.settimeout(5)
-    try: s.connect((host,p)); print(\"TCP OK\", p)
-    except Exception as e: print(\"TCP FAIL\", p, e)
-    finally: s.close()
-'"
-INFO: Connecting to the container 'ai-telemetry-runner-dev'...
+[ ~/observability ]$ 
 Use ctrl + D to exit.
+INFO: Connecting to the container 'ai-telemetry-runner-dev'...
 INFO: Successfully connected to container: 'ai-telemetry-runner-dev'. [ Revision: 'ai-telemetry-runner-dev--0000017', Replica: 'ai-telemetry-runner-dev--0000017-74865df76b-9b6xp'].
-  File "<string>", line 1
-    '
-    ^
-SyntaxError: unterminated string literal (detected at line 1)
-INFO: received success status from cluster
-Disconnecting...
-ajay [ ~/observability ]$ 
+$ 
