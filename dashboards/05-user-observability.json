@@ -930,12 +930,157 @@
             }
           ],
           "description": "Instant bar chart \u2014 top 10 users by tokens consumed in the last 5m."
+        },
+        {
+          "id": 15,
+          "type": "barchart",
+          "title": "Top 10 users \u2014 cost (24h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [24h])))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Heaviest spenders by USD cost over 24h (`cost_usd`)."
+        },
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "Tokens per session (5m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m])) / (count(count by (session_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | session_id != \"\" [5m]))) or vector(1))",
+              "legendFormat": "Tokens / session",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "Total tokens divided by active sessions \u2014 per-session token intensity."
         }
       ],
-      "description": "Heaviest token consumers by user"
+      "description": "Heaviest token consumers and per-session token intensity"
     },
     {
-      "id": 15,
+      "id": 17,
       "type": "row",
       "title": "Session-level usage",
       "collapsed": true,
@@ -947,7 +1092,7 @@
       },
       "panels": [
         {
-          "id": 16,
+          "id": 18,
           "type": "barchart",
           "title": "Top 10 users \u2014 session time (6h)",
           "datasource": {
@@ -1017,7 +1162,7 @@
           "description": "Users ranked by summed `session_time_ms` \u2014 wall-clock time spent in sessions (reading, typing, waiting), not per-request API latency."
         },
         {
-          "id": 17,
+          "id": 19,
           "type": "table",
           "title": "Top users by tokens (6h)",
           "datasource": {
@@ -1077,7 +1222,7 @@
           "description": "Table of top 50 users by total tokens in 6h, with department."
         },
         {
-          "id": 18,
+          "id": 20,
           "type": "barchart",
           "title": "Session time by user (top 10, 5m)",
           "datasource": {
@@ -1145,12 +1290,151 @@
             }
           ],
           "description": "Instant bar chart \u2014 top 10 users by summed `session_time_ms` in the last 5m."
+        },
+        {
+          "id": 21,
+          "type": "stat",
+          "title": "Avg turns per session (1h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 1,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "textMode": "auto",
+            "wideLayout": true,
+            "showPercentChange": false,
+            "percentChangeColorMode": "standard",
+            "text": {}
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 16,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg(max_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap turn_number [1h]))",
+              "refId": "A",
+              "queryType": "range",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "description": "Average maximum turn number per session \u2014 conversation depth."
+        },
+        {
+          "id": 22,
+          "type": "timeseries",
+          "title": "Session duration p95",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 16,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "max(quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [5m]))",
+              "legendFormat": "p95 session time",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "95th-percentile wall-clock session time (`session_time_ms`)."
         }
       ],
-      "description": "Session duration and per-user token tables"
+      "description": "Session duration, turn depth, and per-user token tables"
     },
     {
-      "id": 19,
+      "id": 23,
       "type": "row",
       "title": "Usage spikes",
       "collapsed": true,
@@ -1162,7 +1446,7 @@
       },
       "panels": [
         {
-          "id": 20,
+          "id": 24,
           "type": "timeseries",
           "title": "Token volume \u2014 spike detector (5m buckets)",
           "datasource": {
@@ -1247,7 +1531,7 @@
           "description": "Total token volume per 5m vs 1h average per 5m bucket \u2014 visual spike detection for LLM usage."
         },
         {
-          "id": 21,
+          "id": 25,
           "type": "barchart",
           "title": "Top 10 users \u2014 spike ratio (15m vs prev 15m)",
           "datasource": {
@@ -1317,7 +1601,7 @@
           "description": "Per-user ratio: tokens in last 15m \u00f7 tokens in the previous 15m (30m window minus last 15m). Values above ~1.5 mean usage in the last 15m exceeds the prior 15m baseline."
         },
         {
-          "id": 22,
+          "id": 26,
           "type": "logs",
           "title": "Recent login events",
           "datasource": {

@@ -398,4 +398,62 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Safety incidents (injection, jailbreak, compliance)": (
         "Log lines where any safety flag fired — combined injection, jailbreak, or compliance events."
     ),
+
+    # ── New enrichment panels (added across all dashboards) ──────────────
+    # 1 — Infrastructure
+    "Scaling Pressure (desired − current)": (
+        "HPA desired minus current replicas — positive means a scale-up is pending."
+    ),
+    "Current Replicas": "Current HPA replica count for the gateway deployment.",
+    "Node memory used %": (
+        "Node memory utilisation: `(1 − MemAvailable/MemTotal) × 100`."
+    ),
+    "Node filesystem used %": (
+        "Root filesystem utilisation: `(1 − avail/size) × 100`."
+    ),
+    "Node load (1m avg)": "Node 1-minute load average (`node_load1`).",
+    "Node CPU busy %": (
+        "Non-idle CPU fraction across all modes: `rate(node_cpu_seconds_total{mode!=idle}) / rate(total) × 100`."
+    ),
+    # 2 — Network / latency
+    "Latency distribution heatmap": (
+        "Request-duration histogram buckets over time (`ai_gateway_request_duration_milliseconds_bucket`)."
+    ),
+    "Latency phase breakdown": (
+        "Stacked average of queue wait, model inference, and stream-response phases (ms)."
+    ),
+    "Queue wait p95": "95th-percentile queue wait time (`queue_wait_ms`).",
+    "Time to first token": "Average and p95 time-to-first-token (`first_token_ms`).",
+    "SLA breaches by tier (5m)": (
+        "Count of requests breaching their SLA target, grouped by `sla_tier`."
+    ),
+    "Latency vs SLA target": "Average request latency compared with the average SLA target (ms).",
+    # 3 — Model quality
+    "Evaluation latency (judge)": (
+        "Average and p95 latency of the OpenAI-as-judge evaluation calls (`eval_latency_ms`)."
+    ),
+    "Eval pass-rate (faithfulness ≥ 5)": (
+        "Share of judged responses scoring faithfulness ≥ 5 (non-hallucinating)."
+    ),
+    "Factual accuracy by model": "Per-model faithfulness score (0–10) scaled to a 0–100% accuracy.",
+    # 4 — Executive
+    "SLA attainment %": "100 − error rate: share of requests served successfully.",
+    "Error budget burn (5m)": "Current error rate over 5m — how fast the error budget is burning.",
+    "Top models by traffic (1h)": "Top 6 models by request volume over the last hour.",
+    # 5 — User
+    "Top 10 users — cost (24h)": "Heaviest spenders by USD cost over 24h (`cost_usd`).",
+    "Tokens per session (5m)": "Total tokens divided by active sessions — per-session token intensity.",
+    "Avg turns per session (1h)": "Average maximum turn number per session — conversation depth.",
+    "Session duration p95": "95th-percentile wall-clock session time (`session_time_ms`).",
+    # 6 — Cost
+    "Cache hit rate (5m)": "Share of requests served with prompt-cache reads (`cache_hit`).",
+    "Cumulative cache savings (24h)": "Total USD saved from cache hits over 24h (`cache_savings_usd`).",
+    "Streaming tokens/sec — avg & p95": "Average and p95 streaming output throughput (`tokens_per_second`).",
+    "Streaming share of requests (5m)": "Percentage of requests served via streaming responses.",
+    # 7 — Safety
+    "Guardrail actions (1h)": (
+        "Distribution of guardrail outcomes — allow / redact / block (`guardrail_action`)."
+    ),
+    "Injection vs jailbreak (per min)": "Prompt-injection and jailbreak detections per minute.",
+    "Toxicity p95 by department": "95th-percentile toxicity score per department (0–100%).",
 }

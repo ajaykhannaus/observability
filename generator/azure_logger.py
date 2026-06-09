@@ -115,6 +115,20 @@ def setup_structured_logging() -> None:
     otel_logging.setup_otel_logging(json_formatter=JSONFormatter())
 
 
+def _guardrail_action(event: dict[str, Any]) -> str:
+    """Derive the guardrail outcome for safety dashboards.
+
+    block  — prompt injection / jailbreak detected → request stopped
+    redact — sensitive content or compliance violation → response sanitised
+    allow  — clean request, passed through untouched
+    """
+    if event.get("jailbreak_attempt") or event.get("prompt_injection_detected"):
+        return "block"
+    if event.get("compliance_violation") or event.get("data_classification") in ("phi", "pii"):
+        return "redact"
+    return "allow"
+
+
 def log_event(event: dict[str, Any]) -> None:
     """Emit one structured JSON log line per LLM event.
 
@@ -176,6 +190,8 @@ def log_event(event: dict[str, Any]) -> None:
             "cache_savings_usd":   event.get("cache_savings_usd"),
             "daily_spend_usd":     event.get("daily_spend_usd"),
             "budget_exhausted":    event.get("budget_exhausted"),
+            # cache_hit: any prompt-cache read tokens billed at cache price.
+            "cache_hit":           (float(event.get("cache_read_tokens") or 0) > 0),
 
             # ── Outcome ──────────────────────────────────────────────────
             "status":              event.get("status"),
@@ -190,6 +206,7 @@ def log_event(event: dict[str, Any]) -> None:
             "prompt_injection_detected":   event.get("prompt_injection_detected"),
             "jailbreak_attempt":           event.get("jailbreak_attempt"),
             "compliance_violation":        event.get("compliance_violation"),
+            "guardrail_action":            _guardrail_action(event),
     }
     logging.getLogger("generator.telemetry_event").info("telemetry_event", extra=extra)
     if stdout_format() == "plain":

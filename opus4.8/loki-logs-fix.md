@@ -667,3 +667,57 @@ now resolves to `https://loki-telemetry-dev.internal.<domain>`. Re-run:
 ```bash
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Dashboard enrichment: new panels for thin/sparse sections (all 7 dashboards)
+
+After the datasource fix the dashboards rendered, but several sections were
+single-panel or near-empty (`02-latency` had only 3 panels). Enriched **all 7**
+dashboards by appending NEW panels to thin sections, backed mostly by
+already-produced metrics/Loki fields plus a small set of new synthetic fields.
+
+Per-dashboard additions (panel counts after:
+01=37, 02=13, 03=26, 04=31, 05=26, 06=31, 07=28):
+
+- **01-infra** (`build_d7`): HPA "Scaling Pressure (desired − current)" +
+  "Current Replicas"; new **Node Pressure** section (node memory %, filesystem %,
+  1m load, CPU busy %).
+- **02-latency** (`build_d3`): Latency heatmap + "Latency phase breakdown";
+  "Queue wait p95" + "Time to first token"; new **SLA** section (breaches by
+  tier, latency vs SLA target).
+- **03-quality** (`build_d5`): "Evaluation latency (judge)" + "Eval pass-rate";
+  "Factual accuracy by model".
+- **04-executive** (`build_d1`): "SLA attainment %" gauge; "Error budget burn" +
+  "Top models by traffic".
+- **05-user** (`build_d9`): "Top 10 users — cost" + "Tokens per session";
+  "Avg turns per session" + "Session duration p95".
+- **06-cost** (`build_d4`): "Cache hit rate" + "Cumulative cache savings";
+  "Streaming tokens/sec" + "Streaming share of requests".
+- **07-safety** (`build_d6`): "Guardrail actions" donut + "Injection vs
+  jailbreak"; "Toxicity p95 by department".
+
+New synthetic fields (require a runner rebuild before their panels populate):
+
+- `eval_latency_ms` — alias of evaluator judge latency
+  (`generator/evaluator.py::EvalResult.to_dict`).
+- `guardrail_action` (allow|redact|block) and `cache_hit` (bool) — derived in
+  `generator/azure_logger.py::log_event`.
+- `node_load1`, `node_filesystem_avail_bytes`, `node_filesystem_size_bytes` —
+  added to `generator/pod_metrics_simulator.py`.
+
+Dashboards are GENERATED — edit `build_dN()` in
+`dashboards/generate_dashboards.py` + tooltips in
+`dashboards/metric_definitions.py`, then regenerate. Panels reusing existing
+data populate on Grafana redeploy; the new-field panels populate after the
+runner rebuild.
+
+```bash
+# 1. Regenerate dashboard JSON artifacts + sanity-parse
+python3 dashboards/generate_dashboards.py
+python3 -c "import json,glob; [json.load(open(f)) for f in glob.glob('dashboards/*.json')]"
+
+# 2. Rebuild + redeploy runner so Loki/Prometheus get the new fields
+./scripts/fix-runner.sh --build
+
+# 3. Redeploy Grafana so it picks up the regenerated dashboards
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

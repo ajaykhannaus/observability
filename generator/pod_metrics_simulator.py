@@ -139,6 +139,23 @@ node_memory_MemTotal_bytes = Gauge(
     "Memory information field MemTotal_bytes.",
 )
 
+node_load1 = Gauge(
+    "node_load1",
+    "1m load average of the node.",
+)
+
+node_filesystem_avail_bytes = Gauge(
+    "node_filesystem_avail_bytes",
+    "Filesystem space available to non-root users in bytes.",
+    ["mountpoint"],
+)
+
+node_filesystem_size_bytes = Gauge(
+    "node_filesystem_size_bytes",
+    "Filesystem size in bytes.",
+    ["mountpoint"],
+)
+
 # ── cAdvisor ─────────────────────────────────────────────────────────────
 container_memory_rss = Gauge(
     "container_memory_rss",
@@ -190,6 +207,9 @@ def _init_static_metrics() -> None:
     kube_hpa_spec_min_replicas.labels(namespace=NAMESPACE, hpa=HPA_NAME).set(HPA_MIN)
     kube_hpa_spec_max_replicas.labels(namespace=NAMESPACE, hpa=HPA_NAME).set(HPA_MAX)
     node_memory_MemTotal_bytes.set(8 * 1024 ** 3)
+    node_filesystem_size_bytes.labels(mountpoint="/").set(100 * 1024 ** 3)
+    node_filesystem_avail_bytes.labels(mountpoint="/").set(62 * 1024 ** 3)
+    node_load1.set(1.0)
 
     for condition in ("Ready", "DiskPressure", "MemoryPressure", "PIDPressure"):
         healthy = 1.0 if condition == "Ready" else 0.0
@@ -401,6 +421,13 @@ def _tick_body(tick: int) -> None:
 
     mem_available = random.uniform(1_800_000_000, 4_200_000_000)
     node_memory_MemAvailable_bytes.set(mem_available)
+
+    # Load average tracks request pressure across the running replicas; disk
+    # fills slowly with a little jitter so the Node Pressure panels move.
+    node_load1.set(round(max(0.05, rps / max(1, cur) * 0.9 + random.uniform(-0.2, 0.4)), 3))
+    node_filesystem_avail_bytes.labels(mountpoint="/").set(
+        random.uniform(48, 72) * 1024 ** 3
+    )
 
     node_cpu_seconds_total.labels(cpu="0", mode="user").inc(
         random.uniform(0.05, 0.15)

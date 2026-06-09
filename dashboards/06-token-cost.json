@@ -965,12 +965,153 @@
             }
           ],
           "description": "USD saved via prompt cache hits (`cache_savings_usd` in logs). Higher values mean caching is reducing billable prompt tokens."
+        },
+        {
+          "id": 15,
+          "type": "timeseries",
+          "title": "Cache hit rate (5m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "axisSoftMax": 100
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | cache_hit=\"true\" [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
+              "legendFormat": "Cache hit %",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "Share of requests served with prompt-cache reads (`cache_hit`)."
+        },
+        {
+          "id": 16,
+          "type": "stat",
+          "title": "Cumulative cache savings (24h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "decimals": 2,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "textMode": "auto",
+            "wideLayout": true,
+            "showPercentChange": false,
+            "percentChangeColorMode": "standard",
+            "text": {}
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [24h]))",
+              "refId": "A",
+              "queryType": "range",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "description": "Total USD saved from cache hits over 24h (`cache_savings_usd`)."
         }
       ],
-      "description": "USD saved from cache hits"
+      "description": "USD saved from cache hits and cache hit rate"
     },
     {
-      "id": 15,
+      "id": 17,
       "type": "row",
       "title": "Output throughput",
       "collapsed": false,
@@ -982,7 +1123,7 @@
       },
       "panels": [
         {
-          "id": 16,
+          "id": 18,
           "type": "timeseries",
           "title": "Output Token Count",
           "datasource": {
@@ -1063,7 +1204,7 @@
           "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
         },
         {
-          "id": 17,
+          "id": 19,
           "type": "bargauge",
           "title": "Output tokens by model (now)",
           "datasource": {
@@ -1117,7 +1258,7 @@
       "description": "Token generation rate by model"
     },
     {
-      "id": 18,
+      "id": 20,
       "type": "row",
       "title": "Request composition",
       "collapsed": true,
@@ -1129,7 +1270,7 @@
       },
       "panels": [
         {
-          "id": 19,
+          "id": 21,
           "type": "piechart",
           "title": "Token type mix",
           "datasource": {
@@ -1196,7 +1337,7 @@
           "description": "Donut chart of prompt vs completion vs cache_read tokens in the last hour."
         },
         {
-          "id": 20,
+          "id": 22,
           "type": "timeseries",
           "title": "Total tokens per request",
           "datasource": {
@@ -1273,7 +1414,7 @@
           "description": "Average total tokens per request over time (single aggregate trend line)."
         },
         {
-          "id": 21,
+          "id": 23,
           "type": "bargauge",
           "title": "Prompt size by model",
           "datasource": {
@@ -1327,7 +1468,7 @@
       "description": "Prompt vs completion token mix"
     },
     {
-      "id": 22,
+      "id": 24,
       "type": "row",
       "title": "Context window",
       "collapsed": true,
@@ -1339,7 +1480,7 @@
       },
       "panels": [
         {
-          "id": 23,
+          "id": 25,
           "type": "gauge",
           "title": "Context Window Utilization (%)",
           "datasource": {
@@ -1407,7 +1548,7 @@
           "description": "Dial gauge of average context window fill \u2014 high values risk truncation."
         },
         {
-          "id": 24,
+          "id": 26,
           "type": "bargauge",
           "title": "Context fill by model",
           "datasource": {
@@ -1476,7 +1617,7 @@
           "description": "Context window utilization % ranked by model."
         },
         {
-          "id": 25,
+          "id": 27,
           "type": "timeseries",
           "title": "Prompt size trend",
           "datasource": {
@@ -1556,7 +1697,7 @@
       "description": "Context window fill and prompt size trends"
     },
     {
-      "id": 26,
+      "id": 28,
       "type": "row",
       "title": "Streaming throughput & errors",
       "collapsed": true,
@@ -1568,7 +1709,7 @@
       },
       "panels": [
         {
-          "id": 27,
+          "id": 29,
           "type": "barchart",
           "title": "Errors by type (5m)",
           "datasource": {
@@ -1636,9 +1777,172 @@
             }
           ],
           "description": "Bar chart of exceptions in the last 5m broken down by `error_type`."
+        },
+        {
+          "id": 30,
+          "type": "timeseries",
+          "title": "Streaming tokens/sec \u2014 avg & p95",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
+              "legendFormat": "Avg tokens/s",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "max(quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
+              "legendFormat": "p95 tokens/s",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "Average and p95 streaming output throughput (`tokens_per_second`)."
+        },
+        {
+          "id": 31,
+          "type": "timeseries",
+          "title": "Streaming share of requests (5m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "axisSoftMax": 100
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | streaming=\"true\" [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
+              "legendFormat": "Streaming %",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "Percentage of requests served via streaming responses."
         }
       ],
-      "description": "Error spikes during token streaming"
+      "description": "Error spikes, streaming throughput, and streaming share"
     }
   ],
   "links": [

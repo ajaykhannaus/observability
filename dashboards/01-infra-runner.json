@@ -1245,14 +1245,153 @@
             }
           ],
           "description": "Container restart rate per pod \u2014 elevated values suggest crash loops."
+        },
+        {
+          "id": 18,
+          "type": "timeseries",
+          "title": "Scaling Pressure (desired \u2212 current)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"ai-gateway-ns\"} - kube_horizontalpodautoscaler_status_current_replicas{namespace=\"ai-gateway-ns\"}",
+              "legendFormat": "desired \u2212 current",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "HPA desired minus current replicas \u2014 positive means a scale-up is pending."
+        },
+        {
+          "id": 19,
+          "type": "stat",
+          "title": "Current Replicas",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "textMode": "auto",
+            "wideLayout": true,
+            "showPercentChange": false,
+            "percentChangeColorMode": "standard",
+            "text": {}
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "max(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"ai-gateway-ns\"})",
+              "refId": "A",
+              "range": true,
+              "instant": false
+            }
+          ],
+          "description": "Current HPA replica count for the gateway deployment."
         }
       ],
-      "description": "Replica counts and pod restart activity"
+      "description": "Replica counts, scaling pressure, and pod restart activity"
     },
     {
-      "id": 18,
+      "id": 20,
       "type": "row",
-      "title": "Container Resources",
+      "title": "Node Pressure",
       "collapsed": true,
       "gridPos": {
         "x": 0,
@@ -1262,7 +1401,310 @@
       },
       "panels": [
         {
-          "id": 19,
+          "id": 21,
+          "type": "gauge",
+          "title": "Node memory used %",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 70
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "orientation": "auto",
+            "sizing": "auto"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "(1 - node_memory_MemAvailable_bytes / clamp_min(node_memory_MemTotal_bytes, 1)) * 100",
+              "refId": "A",
+              "range": true,
+              "instant": false
+            }
+          ],
+          "description": "Node memory utilisation: `(1 \u2212 MemAvailable/MemTotal) \u00d7 100`."
+        },
+        {
+          "id": 22,
+          "type": "gauge",
+          "title": "Node filesystem used %",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 75
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "orientation": "auto",
+            "sizing": "auto"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 0,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "(1 - node_filesystem_avail_bytes / clamp_min(node_filesystem_size_bytes, 1)) * 100",
+              "refId": "A",
+              "range": true,
+              "instant": false
+            }
+          ],
+          "description": "Root filesystem utilisation: `(1 \u2212 avail/size) \u00d7 100`."
+        },
+        {
+          "id": 23,
+          "type": "timeseries",
+          "title": "Node load (1m avg)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 2,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "node_load1",
+              "legendFormat": "load1",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Node 1-minute load average (`node_load1`)."
+        },
+        {
+          "id": 24,
+          "type": "timeseries",
+          "title": "Node CPU busy %",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) / clamp_min(sum(rate(node_cpu_seconds_total[5m])), 1e-9) * 100",
+              "legendFormat": "CPU busy %",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Non-idle CPU fraction across all modes: `rate(node_cpu_seconds_total{mode!=idle}) / rate(total) \u00d7 100`."
+        }
+      ],
+      "description": "Node-level memory, disk, load, and CPU saturation"
+    },
+    {
+      "id": 25,
+      "type": "row",
+      "title": "Container Resources",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 26,
           "type": "timeseries",
           "title": "Container Memory RSS by Pod",
           "datasource": {
@@ -1338,7 +1780,7 @@
           "description": "Resident memory (`container_memory_rss`) per ai-gateway pod."
         },
         {
-          "id": 20,
+          "id": 27,
           "type": "timeseries",
           "title": "Container CPU Usage by Pod",
           "datasource": {
@@ -1414,7 +1856,7 @@
           "description": "CPU cores used per pod (`rate(container_cpu_usage_seconds_total)`)."
         },
         {
-          "id": 21,
+          "id": 28,
           "type": "timeseries",
           "title": "Node Memory Available Over Time",
           "datasource": {
@@ -1501,7 +1943,7 @@
           "description": "Cluster node memory available vs total \u2014 capacity headroom."
         },
         {
-          "id": 22,
+          "id": 29,
           "type": "timeseries",
           "title": "Node CPU Usage (user mode)",
           "datasource": {
@@ -1580,19 +2022,19 @@
       "description": "Per-pod and node-level resource usage"
     },
     {
-      "id": 23,
+      "id": 30,
       "type": "row",
       "title": "Runner Self-Observability",
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 11,
         "w": 24,
         "h": 1
       },
       "panels": [
         {
-          "id": 24,
+          "id": 31,
           "type": "heatmap",
           "title": "Batch Duration Heatmap",
           "datasource": {
@@ -1639,7 +2081,7 @@
           "description": "Distribution of synthetic telemetry runner batch processing times (`ai_telemetry_runner_batch_duration_seconds`)."
         },
         {
-          "id": 25,
+          "id": 32,
           "type": "timeseries",
           "title": "Kafka Queue Depth",
           "datasource": {
@@ -1715,7 +2157,7 @@
           "description": "Current depth of the runner publish queue (`ai_telemetry_runner_kafka_queue_depth` gauge)."
         },
         {
-          "id": 26,
+          "id": 33,
           "type": "timeseries",
           "title": "Runner Event Publish Rate",
           "datasource": {
@@ -1791,7 +2233,7 @@
           "description": "Events published per second (`ai_gateway_request_count_total`) plus publish failures by `reason` when present (`ai_telemetry_runner_publish_errors_total`)."
         },
         {
-          "id": 27,
+          "id": 34,
           "type": "timeseries",
           "title": "Batch Duration p99",
           "datasource": {
@@ -1870,19 +2312,19 @@
       "description": "Telemetry runner batching and Kafka queue depth"
     },
     {
-      "id": 28,
+      "id": 35,
       "type": "row",
       "title": "OTel Collector",
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 12,
         "w": 24,
         "h": 1
       },
       "panels": [
         {
-          "id": 29,
+          "id": 36,
           "type": "timeseries",
           "title": "Collector Exporter Queue Size",
           "datasource": {
@@ -1991,7 +2433,7 @@
           "description": "OTel Collector exporter queue depth (Tempo, Loki) plus export throughput (spans/s, logs/s) \u2014 backpressure and pipeline activity."
         },
         {
-          "id": 30,
+          "id": 37,
           "type": "timeseries",
           "title": "Collector Export Throughput & Failures",
           "datasource": {

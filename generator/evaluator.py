@@ -154,6 +154,9 @@ class EvalResult:
             "model":         self.model,
             "tokens_used":   self.tokens_used,
             "latency_ms":    self.latency_ms,
+            # Explicit alias so dashboards can unwrap eval-judge latency without
+            # colliding with the request-level ``latency_ms`` field.
+            "eval_latency_ms": self.latency_ms,
             "error":         self.error,
         }
 

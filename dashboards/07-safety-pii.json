@@ -1416,6 +1416,159 @@
       "panels": [
         {
           "id": 22,
+          "type": "piechart",
+          "title": "Guardrail actions (1h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum by (guardrail_action) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | guardrail_action != \"\" [1h]))",
+              "legendFormat": "{{guardrail_action}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Distribution of guardrail outcomes \u2014 allow / redact / block (`guardrail_action`)."
+        },
+        {
+          "id": 23,
+          "type": "timeseries",
+          "title": "Injection vs jailbreak (per min)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 0,
+            "w": 16,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | prompt_injection_detected=\"true\" [1m])) or vector(0)",
+              "legendFormat": "Injections/min",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | jailbreak_attempt=\"true\" [1m])) or vector(0)",
+              "legendFormat": "Jailbreaks/min",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "Prompt-injection and jailbreak detections per minute."
+        },
+        {
+          "id": 24,
           "type": "logs",
           "title": "Prompt Log Events (PII-scrubbed)",
           "datasource": {
@@ -1432,7 +1585,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 0,
+            "y": 8,
             "w": 24,
             "h": 10
           },
@@ -1452,10 +1605,10 @@
           "description": "Audit stream of `prompt_log_event` entries \u2014 content is scrubbed; use for security review."
         }
       ],
-      "description": "PII-scrubbed prompt audit stream"
+      "description": "Guardrail outcomes, attack trend, and PII-scrubbed audit stream"
     },
     {
-      "id": 23,
+      "id": 25,
       "type": "row",
       "title": "High-Risk Request Table",
       "collapsed": true,
@@ -1467,7 +1620,7 @@
       },
       "panels": [
         {
-          "id": 24,
+          "id": 26,
           "type": "table",
           "title": "PHI / PII Requests with Trace Links",
           "datasource": {
@@ -1524,7 +1677,7 @@
           "description": "Table of sensitive requests with `request_id`, department, model, and `trace_id` for Tempo drill-down."
         },
         {
-          "id": 25,
+          "id": 27,
           "type": "logs",
           "title": "Safety incidents (injection, jailbreak, compliance)",
           "datasource": {
@@ -1559,9 +1712,86 @@
             }
           ],
           "description": "Log lines where any safety flag fired \u2014 combined injection, jailbreak, or compliance events."
+        },
+        {
+          "id": 28,
+          "type": "timeseries",
+          "title": "Toxicity p95 by department",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "axisSoftMax": 100
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 16,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "max by (department) (quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap toxicity_score [5m])) * 100",
+              "legendFormat": "{{department}}",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "95th-percentile toxicity score per department (0\u2013100%)."
         }
       ],
-      "description": "High-risk PHI/PII requests and safety incidents"
+      "description": "High-risk PHI/PII requests, safety incidents, and toxicity by department"
     }
   ],
   "links": [

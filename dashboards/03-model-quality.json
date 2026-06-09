@@ -953,12 +953,88 @@
             }
           ],
           "description": "Mean judge `groundedness` (0\u201310): are claims supported by provided context/sources?"
+        },
+        {
+          "id": 14,
+          "type": "timeseries",
+          "title": "Factual accuracy by model",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 16,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "Per-model faithfulness score (0\u201310) scaled to a 0\u2013100% accuracy."
         }
       ],
-      "description": "Judge score trends over time"
+      "description": "Judge score trends over time and per-model quality"
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "row",
       "title": "Evaluation Ops",
       "collapsed": true,
@@ -970,7 +1046,7 @@
       },
       "panels": [
         {
-          "id": 15,
+          "id": 16,
           "type": "stat",
           "title": "Evaluation Coverage",
           "datasource": {
@@ -1034,7 +1110,7 @@
           "description": "% of telemetry events that also have an `eval_result` log \u2014 how much traffic is quality-judged."
         },
         {
-          "id": 16,
+          "id": 17,
           "type": "stat",
           "title": "Evaluator Errors (24h)",
           "datasource": {
@@ -1106,7 +1182,7 @@
           "description": "Count of eval runs that failed (e.g. judge timeout) in 24h. Non-zero means quality pipeline is unhealthy."
         },
         {
-          "id": 17,
+          "id": 18,
           "type": "logs",
           "title": "Low-Quality Responses (hallucination flagged)",
           "datasource": {
@@ -1141,12 +1217,169 @@
             }
           ],
           "description": "Raw `eval_result` logs where faithfulness failed \u2014 drill-down for bad responses."
+        },
+        {
+          "id": 19,
+          "type": "timeseries",
+          "title": "Evaluation latency (judge)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap eval_latency_ms [5m]))",
+              "legendFormat": "Avg eval latency",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "max(quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap eval_latency_ms [5m]))",
+              "legendFormat": "p95 eval latency",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "Average and p95 latency of the OpenAI-as-judge evaluation calls (`eval_latency_ms`)."
+        },
+        {
+          "id": 20,
+          "type": "stat",
+          "title": "Eval pass-rate (faithfulness \u2265 5)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 1,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 80
+                  },
+                  {
+                    "color": "green",
+                    "value": 90
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "textMode": "auto",
+            "wideLayout": true,
+            "showPercentChange": false,
+            "percentChangeColorMode": "standard",
+            "text": {}
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness >= 5 [1h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [1h])) or on() vector(1))) * 100",
+              "refId": "A",
+              "queryType": "range",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "description": "Share of judged responses scoring faithfulness \u2265 5 (non-hallucinating)."
         }
       ],
-      "description": "Coverage, evaluator health, and flagged responses"
+      "description": "Coverage, evaluator health, judge latency, and flagged responses"
     },
     {
-      "id": 18,
+      "id": 21,
       "type": "row",
       "title": "Streaming performance",
       "collapsed": true,
@@ -1158,7 +1391,7 @@
       },
       "panels": [
         {
-          "id": 19,
+          "id": 22,
           "type": "timeseries",
           "title": "Live token generation rate",
           "datasource": {
@@ -1238,7 +1471,7 @@
           "description": "1-minute stacked completion-token rate by model \u2014 near-real-time output."
         },
         {
-          "id": 20,
+          "id": 23,
           "type": "timeseries",
           "title": "Streaming response latency",
           "datasource": {
@@ -1317,7 +1550,7 @@
       "description": "Live token generation and streaming response latency"
     },
     {
-      "id": 21,
+      "id": 24,
       "type": "row",
       "title": "Streaming throughput",
       "collapsed": true,
@@ -1329,7 +1562,7 @@
       },
       "panels": [
         {
-          "id": 22,
+          "id": 25,
           "type": "bargauge",
           "title": "Streaming tokens/sec",
           "datasource": {
@@ -1381,7 +1614,7 @@
           "description": "Observed streaming `tokens_per_second` ranked by model."
         },
         {
-          "id": 23,
+          "id": 26,
           "type": "stat",
           "title": "Avg stream tokens/s",
           "datasource": {
