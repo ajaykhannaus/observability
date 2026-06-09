@@ -602,3 +602,36 @@ attributes → structured metadata):
 ```bash
 ./scripts/fix-runner.sh --build
 ```
+
+---
+
+## Grafana redeploy: `ContainerAppRegistriesPasswordSecretRefNotFound`
+
+`FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only` failed when
+updating an **existing** grafana app:
+
+```
+ERROR: (ContainerAppRegistriesPasswordSecretRefNotFound) PasswordSecretRef
+'acrtelemetrydevajazurecrio-acrtelemetrydevaj' defined for registry server
+'acrtelemetrydevaj.azurecr.io' not found.
+```
+
+Root cause: `apply_grafana_yaml()` stripped the `registries:` block from the
+rendered YAML whenever `GRAFANA_REGISTRY_MODE=admin`. But the **admin template**
+(`infra/grafana-acr-admin.template.yaml`, the default `GRAFANA_ACR_USE_ADMIN=true`
+path) is self-consistent — it declares `passwordSecretRef: acr-admin-password`
+**and** the matching `acr-admin-password` secret. Stripping its registry block on
+an existing app left Azure's *old* auto-generated registry secret reference in
+place while the update replaced the secrets array, so the old secret vanished →
+the dangling `passwordSecretRef` failed validation.
+
+Fix (`scripts/bootstrap-azure.sh`): only strip the registries block when ACR auth
+was configured **out-of-band** (managed-identity / `az containerapp registry set`,
+standard template). A new `GRAFANA_YAML_HAS_REGISTRY` flag — set `true` by
+`render_grafana_acr_admin_yaml`, `false` by `render_grafana_standard_yaml` —
+gates the strip so the self-contained admin YAML applies as-is (registry +
+matching secret stay in sync). Re-run:
+
+```bash
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

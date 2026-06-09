@@ -366,7 +366,12 @@ ensure_grafana_acr_pull() {
 apply_grafana_yaml() {
   local rendered=$1 yaml_to_apply=$rendered
   local stripped
-  if [[ "${GRAFANA_REGISTRY_MODE:-mi}" == "admin" ]]; then
+  # Strip the registries block ONLY when ACR auth was configured out-of-band
+  # (managed-identity / `az containerapp registry set`) and the YAML still carries
+  # the now-conflicting MI registry block. When the YAML already declares a
+  # self-consistent admin registry + matching secret (GRAFANA_YAML_HAS_REGISTRY),
+  # apply it AS-IS so the registry and its passwordSecretRef stay in sync.
+  if [[ "${GRAFANA_REGISTRY_MODE:-mi}" == "admin" && "${GRAFANA_YAML_HAS_REGISTRY:-false}" != "true" ]]; then
     stripped="${rendered}.no-registries"
     strip_registries_from_yaml "$rendered" "$stripped"
     yaml_to_apply=$stripped
@@ -586,6 +591,11 @@ render_grafana_acr_admin_yaml() {
       }' "$ROOT/infra/grafana-acr-admin.template.yaml" > "$dest"
   validate_grafana_yaml "$dest"
   GRAFANA_REGISTRY_MODE=admin
+  # This template carries a self-consistent registry block (passwordSecretRef:
+  # acr-admin-password) AND the matching secret, so the registries block must NOT
+  # be stripped on apply — stripping leaves a stale registry on an existing app
+  # pointing at a secret the update then deletes (PasswordSecretRefNotFound).
+  GRAFANA_YAML_HAS_REGISTRY=true
   return 0
 }
 
@@ -602,6 +612,10 @@ render_grafana_standard_yaml() {
     -e "s|__GRAFANA_ADMIN_PASSWORD__|${grafana_pass}|g" \
     "$ROOT/infra/grafana.template.yaml" > "$dest"
   validate_grafana_yaml "$dest"
+  # Standard template uses a managed-identity registry block (identity: system).
+  # When ACR admin is later configured out-of-band via `az containerapp registry
+  # set`, that MI block must be stripped on apply to avoid a 401 conflict.
+  GRAFANA_YAML_HAS_REGISTRY=false
 }
 
 resolve_grafana_datasource_urls() {
