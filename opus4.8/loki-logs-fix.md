@@ -746,3 +746,32 @@ Regenerate to apply, then redeploy Grafana:
 python3 dashboards/generate_dashboards.py
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Loki query timeout: "net/http: timeout awaiting response headers"
+
+Symptom: on `7. Safety and security` the **Toxicity score** / **PII detection
+rate** headline stats errored with
+`net/http: timeout awaiting response headers (Client.Timeout exceeded while
+awaiting headers)`; the datasource URL was already correct
+(`https://loki-telemetry-dev.internal.<domain>`), so this was a *query cost*
+problem, not connectivity.
+
+Root cause: those headline stats ran `unwrap`/`count_over_time` over a **24h**
+window against the `{service_name=~".+"}` full-stream selector. On dev-sized
+Loki that one-shot scan exceeds the datasource HTTP timeout.
+
+Fix (code): shortened the 5 safety headline windows 24h → **1h** in
+`build_d6()` (24× less data; labels carry no "today" semantics). Regenerate +
+redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```
+
+Fix (infra, for the panels whose 24h window is semantically required —
+05-user "Top 10 users", 06-cost "Cumulative savings"): raise the Loki
+datasource HTTP timeout instead of shortening. In Grafana:
+**Connections → Data sources → Loki → Timeout = 120**, Save & test. If queries
+still time out, raise Loki server-side `limits_config.query_timeout` /
+`server.http_server_read_timeout` and/or give the Loki container more CPU.
