@@ -462,160 +462,159 @@
         "w": 24,
         "h": 1
       },
-      "panels": [
+      "panels": [],
+      "description": "Per-model p95 and first-token latency"
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Model Specific Latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 7,
-          "type": "timeseries",
-          "title": "Model Specific Latency",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
+          "expr": "histogram_quantile(0.95, sum by (le, model_name) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "p95 end-to-end latency per `model_name`. Compares which models are consistently slower."
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "First token latency (Model Based)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "histogram_quantile(0.95, sum by (le, model_name) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "p95 end-to-end latency per `model_name`. Compares which models are consistently slower."
+          "color": {
+            "mode": "palette-classic"
+          }
         },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 8,
-          "type": "timeseries",
-          "title": "First token latency (Model Based)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | first_token_ms > 0 | unwrap first_token_ms [5m]))",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Average `first_token_ms` for streaming requests, by model. Source: Loki logs \u2014 time until the first token is returned to the client."
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | first_token_ms > 0 | unwrap first_token_ms [5m]))",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "queryType": "range"
         }
       ],
-      "description": "Per-model p95 and first-token latency"
+      "description": "Average `first_token_ms` for streaming requests, by model. Source: Loki logs \u2014 time until the first token is returned to the client."
     },
     {
       "id": 9,
@@ -624,414 +623,413 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 16,
         "w": 24,
         "h": 1
       },
-      "panels": [
-        {
-          "id": 10,
-          "type": "timeseries",
-          "title": "Hallucination rate over time",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "axisSoftMax": 30
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
+      "panels": [],
+      "description": "Judge score trends over time and per-model quality"
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Hallucination rate over time",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "axisSoftMax": 30
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
-              "legendFormat": "Hallucination %",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Rolling 5m percentage of judged responses flagged as hallucinating (`faithfulness < 5`). Source: Loki `eval_result` events."
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "id": 11,
-          "type": "timeseries",
-          "title": "Factual accuracy",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
-              "legendFormat": "Factual accuracy %",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Mean judge `faithfulness` \u00d7 10, shown as 0\u2013100%. Higher is more factually aligned with sources/context."
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 12,
-          "type": "timeseries",
-          "title": "Relevance score",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
-              "legendFormat": "Relevance (0\u201310)",
-              "refId": "A",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
-              "legendFormat": "{{model_name}}",
-              "refId": "B",
-              "queryType": "range"
-            }
-          ],
-          "description": "Mean judge `relevance` (0\u201310): does the answer address the user question?"
-        },
-        {
-          "id": 13,
-          "type": "timeseries",
-          "title": "Groundedness score",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
-              "legendFormat": "Groundedness (0\u201310)",
-              "refId": "A",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
-              "legendFormat": "{{model_name}}",
-              "refId": "B",
-              "queryType": "range"
-            }
-          ],
-          "description": "Mean judge `groundedness` (0\u201310): are claims supported by provided context/sources?"
-        },
-        {
-          "id": 14,
-          "type": "timeseries",
-          "title": "Factual accuracy by model",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 16,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Per-model faithfulness score (0\u201310) scaled to a 0\u2013100% accuracy."
+          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | faithfulness < 5 [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
+          "legendFormat": "Hallucination %",
+          "refId": "A",
+          "queryType": "range"
         }
       ],
-      "description": "Judge score trends over time and per-model quality"
+      "description": "Rolling 5m percentage of judged responses flagged as hallucinating (`faithfulness < 5`). Source: Loki `eval_result` events."
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Factual accuracy",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
+          "legendFormat": "Factual accuracy %",
+          "refId": "A",
+          "queryType": "range"
+        }
+      ],
+      "description": "Mean judge `faithfulness` \u00d7 10, shown as 0\u2013100%. Higher is more factually aligned with sources/context."
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Relevance score",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
+          "legendFormat": "Relevance (0\u201310)",
+          "refId": "A",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap relevance [1h]))",
+          "legendFormat": "{{model_name}}",
+          "refId": "B",
+          "queryType": "range"
+        }
+      ],
+      "description": "Mean judge `relevance` (0\u201310): does the answer address the user question?"
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Groundedness score",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
+          "legendFormat": "Groundedness (0\u201310)",
+          "refId": "A",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap groundedness [1h]))",
+          "legendFormat": "{{model_name}}",
+          "refId": "B",
+          "queryType": "range"
+        }
+      ],
+      "description": "Mean judge `groundedness` (0\u201310): are claims supported by provided context/sources?"
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Factual accuracy by model",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"eval_result\" | department=~\"$department\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap faithfulness [1h])) * 10",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "queryType": "range"
+        }
+      ],
+      "description": "Per-model faithfulness score (0\u201310) scaled to a 0\u2013100% accuracy."
     },
     {
       "id": 15,
@@ -1040,7 +1038,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 41,
         "w": 24,
         "h": 1
       },
@@ -1385,7 +1383,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 42,
         "w": 24,
         "h": 1
       },
@@ -1556,7 +1554,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 43,
         "w": 24,
         "h": 1
       },

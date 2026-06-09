@@ -279,285 +279,284 @@
         "w": 24,
         "h": 1
       },
-      "panels": [
-        {
-          "id": 4,
-          "type": "timeseries",
-          "title": "RPM",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "r/min",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 20,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
+      "panels": [],
+      "description": "Request rate, model split, and share"
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "RPM",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "r/min",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 24,
-            "h": 7
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) * 60",
-              "legendFormat": "Requests / min",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Continuous requests-per-minute rate over time. Source: `rate(ai_gateway_request_count_total[$__rate_interval]) \u00d7 60`."
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "id": 5,
-          "type": "timeseries",
-          "title": "RPM by Model",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "r/min",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 45,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "normal",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "lastNotNull",
-                "mean"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 7,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Stacked area chart \u2014 top 6 models by RPM. Uses `$__rate_interval` for consistent smoothing across zoom levels."
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
         {
-          "id": 6,
-          "type": "bargauge",
-          "title": "RPM by Model (current)",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "r/min",
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "displayMode": "gradient",
-            "valueMode": "color",
-            "showUnfilled": true,
-            "namePlacement": "left",
-            "minVizWidth": 8,
-            "minVizHeight": 16
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 7,
-            "w": 6,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sort_desc(topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60)",
-              "instant": true,
-              "legendFormat": "{{model_name}}",
-              "refId": "A"
-            }
-          ],
-          "description": "Top 6 models by current requests/min \u2014 ranked bar gauge snapshot."
-        },
-        {
-          "id": 7,
-          "type": "piechart",
-          "title": "RPM Share by Model",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "pieType": "donut",
-            "displayLabels": [],
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "legend": {
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "values": [
-                "value"
-              ]
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 18,
-            "y": 7,
-            "w": 6,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sort_desc(100 * topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9))",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "instant": true
-            }
-          ],
-          "description": "Each model's percentage of total RPM (top 6). Companion to the stacked area \u2014 shows share, not absolute volume."
+          "expr": "sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) * 60",
+          "legendFormat": "Requests / min",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
         }
       ],
-      "description": "Request rate, model split, and share"
+      "description": "Continuous requests-per-minute rate over time. Source: `rate(ai_gateway_request_count_total[$__rate_interval]) \u00d7 60`."
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "RPM by Model",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "r/min",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 45,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Stacked area chart \u2014 top 6 models by RPM. Uses `$__rate_interval` for consistent smoothing across zoom levels."
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "RPM by Model (current)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "r/min",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "minVizWidth": 8,
+        "minVizHeight": 16
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sort_desc(topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60)",
+          "instant": true,
+          "legendFormat": "{{model_name}}",
+          "refId": "A"
+        }
+      ],
+      "description": "Top 6 models by current requests/min \u2014 ranked bar gauge snapshot."
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "RPM Share by Model",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [],
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value"
+          ]
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 16,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sort_desc(100 * topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9))",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "description": "Each model's percentage of total RPM (top 6). Companion to the stacked area \u2014 shows share, not absolute volume."
     },
     {
       "id": 8,
@@ -566,195 +565,194 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 24,
         "w": 24,
         "h": 1
       },
-      "panels": [
-        {
-          "id": 9,
-          "type": "timeseries",
-          "title": "Error RPM by Model",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "r/min",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 25,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
+      "panels": [],
+      "description": "Failed requests per minute and error rate by model"
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Error RPM by Model",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "r/min",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 25,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "lastNotNull",
-                "mean"
-              ]
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 24,
-            "h": 6
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
-              "legendFormat": "{{model_name}} errors",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Failed requests per minute per model (top 6). Source: `ai_gateway_exception_count_total`."
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
         },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
         {
-          "id": 10,
-          "type": "timeseries",
-          "title": "Error Rate by Model",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "axisSoftMax": 100,
-                "thresholdsStyle": {
-                  "mode": "line+area"
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 5
-                  },
-                  {
-                    "color": "red",
-                    "value": 10
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 6,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) / clamp_min(sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9) * 100)",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Failed requests as a percentage per model. Yellow/red bands mark 5% / 10% SLA breach territory."
+          "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
+          "legendFormat": "{{model_name}} errors",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
         }
       ],
-      "description": "Failed requests per minute and error rate by model"
+      "description": "Failed requests per minute per model (top 6). Source: `ai_gateway_exception_count_total`."
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Error Rate by Model",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "axisSoftMax": 100,
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) / clamp_min(sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9) * 100)",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Failed requests as a percentage per model. Yellow/red bands mark 5% / 10% SLA breach territory."
     },
     {
       "id": 11,
@@ -763,7 +761,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 39,
         "w": 24,
         "h": 1
       },
@@ -896,7 +894,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 40,
         "w": 24,
         "h": 1
       },
@@ -1273,7 +1271,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 41,
         "w": 24,
         "h": 1
       },
@@ -1500,7 +1498,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 42,
         "w": 24,
         "h": 1
       },
@@ -1728,7 +1726,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 43,
         "w": 24,
         "h": 1
       },

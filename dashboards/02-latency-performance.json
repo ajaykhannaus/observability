@@ -194,325 +194,324 @@
         "w": 24,
         "h": 1
       },
-      "panels": [
+      "panels": [],
+      "description": "End-to-end latency, percentile breakdown, distribution, and phase split"
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "End-to-end response latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 3,
-          "type": "timeseries",
-          "title": "End-to-end response latency",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
+          "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_duration_milliseconds_count{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "legendFormat": "Avg latency",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Average gateway response time in ms: histogram `_sum / _count` on `ai_gateway_request_duration_milliseconds`. Includes queue, model, and streaming time."
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Request Latency \u2014 p50 / p95 / p99",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_duration_milliseconds_count{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
-              "legendFormat": "Avg latency",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Average gateway response time in ms: histogram `_sum / _count` on `ai_gateway_request_duration_milliseconds`. Includes queue, model, and streaming time."
+          "color": {
+            "mode": "palette-classic"
+          }
         },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 4,
-          "type": "timeseries",
-          "title": "Request Latency \u2014 p50 / p95 / p99",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "histogram_quantile(0.50, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
-              "legendFormat": "p50",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
-              "legendFormat": "p95",
-              "refId": "B",
-              "format": "time_series",
-              "range": true
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "histogram_quantile(0.99, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
-              "legendFormat": "p99",
-              "refId": "C",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Latency percentiles from the request duration histogram. p99 is the slowest 1% \u2014 the usual SLO pain metric."
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
         },
         {
-          "id": 5,
-          "type": "heatmap",
-          "title": "Latency distribution heatmap",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms"
-            },
-            "overrides": []
-          },
-          "options": {
-            "calculate": false,
-            "yAxis": {
-              "unit": "ms"
-            },
-            "color": {
-              "scheme": "Oranges",
-              "mode": "scheme"
-            },
-            "tooltip": {
-              "mode": "single"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 16,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m]))",
-              "format": "heatmap",
-              "legendFormat": "{{le}}",
-              "refId": "A"
-            }
-          ],
-          "description": "Request-duration histogram buckets over time (`ai_gateway_request_duration_milliseconds_bucket`)."
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "format": "time_series",
+          "range": true
         },
         {
-          "id": 6,
-          "type": "timeseries",
-          "title": "Latency phase breakdown",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "C",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Latency percentiles from the request duration histogram. p99 is the slowest 1% \u2014 the usual SLO pain metric."
+    },
+    {
+      "id": 5,
+      "type": "heatmap",
+      "title": "Latency distribution heatmap",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "calculate": false,
+        "yAxis": {
+          "unit": "ms"
+        },
+        "color": {
+          "scheme": "Oranges",
+          "mode": "scheme"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m]))",
+          "format": "heatmap",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ],
+      "description": "Request-duration histogram buckets over time (`ai_gateway_request_duration_milliseconds_bucket`)."
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Latency phase breakdown",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 40,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "ms",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 40,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "normal",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap queue_wait_ms [5m]))",
+          "legendFormat": "Queue wait",
+          "refId": "A",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
           },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | model_inference_ms > 0 | unwrap model_inference_ms [5m]))",
+          "legendFormat": "Model inference",
+          "refId": "B",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
           },
-          "gridPos": {
-            "x": 12,
-            "y": 16,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap queue_wait_ms [5m]))",
-              "legendFormat": "Queue wait",
-              "refId": "A",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | model_inference_ms > 0 | unwrap model_inference_ms [5m]))",
-              "legendFormat": "Model inference",
-              "refId": "B",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | stream_response_ms > 0 | unwrap stream_response_ms [5m]))",
-              "legendFormat": "Stream response",
-              "refId": "C",
-              "queryType": "range"
-            }
-          ],
-          "description": "Stacked average of queue wait, model inference, and stream-response phases (ms)."
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | stream_response_ms > 0 | unwrap stream_response_ms [5m]))",
+          "legendFormat": "Stream response",
+          "refId": "C",
+          "queryType": "range"
         }
       ],
-      "description": "End-to-end latency, percentile breakdown, distribution, and phase split"
+      "description": "Stacked average of queue wait, model inference, and stream-response phases (ms)."
     },
     {
       "id": 7,
@@ -521,7 +520,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 28,
         "w": 24,
         "h": 1
       },
@@ -781,7 +780,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 29,
         "w": 24,
         "h": 1
       },

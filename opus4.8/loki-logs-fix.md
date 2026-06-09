@@ -721,3 +721,28 @@ python3 -c "import json,glob; [json.load(open(f)) for f in glob.glob('dashboards
 # 3. Redeploy Grafana so it picks up the regenerated dashboards
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Accordion bug: expanded sections rendered as "(0 panels)"
+
+Symptom: on `2. Network observability` the **Latency** section showed
+`(0 panels)` and rendered nothing, even though the generator put 4 panels in it.
+
+Root cause: Grafana row semantics. A **collapsed** row (`collapsed: true`) holds
+its children in `row.panels` and promotes them to top-level siblings on
+click-to-expand. A **non-collapsed** row (`collapsed: false`) must have an
+**empty** `row.panels` and its children must be top-level siblings positioned
+below the row header. `accordion_section()` always nested children in
+`row.panels` regardless of the collapsed flag, so any expanded section had its
+panels orphaned — Grafana rendered nothing and reported "(0 panels)" when the
+row was collapsed. This was masked because most sections happened to ship
+`collapsed=True`; it only bit the first/expanded section of each dashboard.
+
+Fix: `build_dashboard_panels()` now branches on the collapsed flag — collapsed
+sections nest children (unchanged); expanded sections emit an empty-`panels`
+row followed by their children as top-level siblings with absolute y-offsets.
+Regenerate to apply, then redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

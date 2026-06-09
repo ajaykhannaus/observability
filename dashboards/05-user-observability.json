@@ -566,218 +566,217 @@
         "w": 24,
         "h": 1
       },
-      "panels": [
-        {
-          "id": 9,
-          "type": "timeseries",
-          "title": "Login track",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
+      "panels": [],
+      "description": "Login activity and department-level user counts"
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Login track",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [5m])) or vector(0)",
-              "legendFormat": "Logins / 5m",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Login/session-start events per 5m bucket from `login_event` logs."
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "id": 10,
-          "type": "stat",
-          "title": "Daily active users (24h)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "decimals": 0,
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "blue",
-                    "value": null
-                  }
-                ]
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "center",
-            "textMode": "auto",
-            "wideLayout": true,
-            "showPercentChange": false,
-            "percentChangeColorMode": "standard",
-            "text": {}
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
-              "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
-            }
-          ],
-          "description": "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 11,
-          "type": "barchart",
-          "title": "Active users by department (24h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "fillOpacity": 80,
-                "gradientMode": "opacity",
-                "lineWidth": 1,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "orientation": "horizontal",
-            "xTickLabelRotation": -45,
-            "xTickLabelSpacing": 100,
-            "barRadius": 0.15,
-            "groupWidth": 0.7,
-            "barWidth": 0.9,
-            "fullHighlight": false,
-            "showValue": "auto",
-            "stacking": "none",
-            "tooltip": {
-              "mode": "single",
-              "sort": "desc"
-            },
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
-              "legendFormat": "{{department}}",
-              "refId": "A",
-              "instant": true,
-              "queryType": "instant"
-            }
-          ],
-          "description": "Distinct active users per `department` in the last 24h \u2014 ranked horizontal bars. The department filter is intentionally ignored so all departments are visible."
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [5m])) or vector(0)",
+          "legendFormat": "Logins / 5m",
+          "refId": "A",
+          "queryType": "range"
         }
       ],
-      "description": "Login activity and department-level user counts"
+      "description": "Login/session-start events per 5m bucket from `login_event` logs."
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Daily active users (24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Active users by department (24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "lineWidth": 1,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": -45,
+        "xTickLabelSpacing": 100,
+        "barRadius": 0.15,
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "fullHighlight": false,
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
+          "legendFormat": "{{department}}",
+          "refId": "A",
+          "instant": true,
+          "queryType": "instant"
+        }
+      ],
+      "description": "Distinct active users per `department` in the last 24h \u2014 ranked horizontal bars. The department filter is intentionally ignored so all departments are visible."
     },
     {
       "id": 12,
@@ -786,7 +785,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 24,
         "w": 24,
         "h": 1
       },
@@ -1086,7 +1085,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 25,
         "w": 24,
         "h": 1
       },
@@ -1440,7 +1439,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 26,
         "w": 24,
         "h": 1
       },

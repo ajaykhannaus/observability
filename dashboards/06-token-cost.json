@@ -464,259 +464,258 @@
         "w": 24,
         "h": 1
       },
-      "panels": [
+      "panels": [],
+      "description": "Per-request cost and daily/monthly spend totals"
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Cost per request",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 7,
-          "type": "timeseries",
-          "title": "Cost per request",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "currencyUSD",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
-              "legendFormat": "Avg cost / request",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum by (model_name)(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
-              "legendFormat": "{{model_name}}",
-              "refId": "B",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "legendFormat": "Avg cost / request",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
         },
         {
-          "id": 8,
-          "type": "timeseries",
-          "title": "Cost per user/session",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "currencyUSD",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 0,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
-              "legendFormat": "Avg cost / request",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Average cost per request over time \u2014 `increase(cost) / increase(requests)` from Prometheus (Loki per-user ratios exceed local query resolution limits in range mode)."
-        },
-        {
-          "id": 9,
-          "type": "timeseries",
-          "title": "Daily/monthly spend",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "currencyUSD",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[24h]))",
-              "legendFormat": "Daily spend (24h)",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[30d]))",
-              "legendFormat": "Monthly spend (30d)",
-              "refId": "B",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Total USD spent: 24h and 30d `increase` on `ai_gateway_request_cost_USD_total`."
+          "expr": "sum by (model_name)(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "legendFormat": "{{model_name}}",
+          "refId": "B",
+          "format": "time_series",
+          "range": true
         }
       ],
-      "description": "Per-request cost and daily/monthly spend totals"
+      "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Cost per user/session",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "legendFormat": "Avg cost / request",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Average cost per request over time \u2014 `increase(cost) / increase(requests)` from Prometheus (Loki per-user ratios exceed local query resolution limits in range mode)."
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Daily/monthly spend",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[24h]))",
+          "legendFormat": "Daily spend (24h)",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[30d]))",
+          "legendFormat": "Monthly spend (30d)",
+          "refId": "B",
+          "format": "time_series",
+          "range": true
+        }
+      ],
+      "description": "Total USD spent: 24h and 30d `increase` on `ai_gateway_request_cost_USD_total`."
     },
     {
       "id": 10,
@@ -725,7 +724,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 25,
         "w": 24,
         "h": 1
       },
@@ -876,7 +875,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 10,
+        "y": 26,
         "w": 24,
         "h": 1
       },
@@ -1117,145 +1116,144 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 27,
         "w": 24,
         "h": 1
       },
-      "panels": [
-        {
-          "id": 18,
-          "type": "timeseries",
-          "title": "Output Token Count",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "tps",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 50,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "normal",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
+      "panels": [],
+      "description": "Token generation rate by model"
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Output Token Count",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "tps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 50,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
             },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "lastNotNull",
-                "mean"
-              ]
+            "showPoints": "never",
+            "pointSize": 5,
+            "axisColorMode": "text",
+            "axisBorderShow": false,
+            "axisGridShow": true,
+            "lineStyle": {
+              "fill": "solid"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 16,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m]))",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "format": "time_series",
-              "range": true
-            }
-          ],
-          "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
+          "decimals": 1,
+          "color": {
+            "mode": "palette-classic"
+          }
         },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 16,
+        "h": 8
+      },
+      "targets": [
         {
-          "id": 19,
-          "type": "bargauge",
-          "title": "Output tokens by model (now)",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "tps",
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "displayMode": "gradient",
-            "valueMode": "color",
-            "showUnfilled": true,
-            "namePlacement": "left",
-            "minVizWidth": 8,
-            "minVizHeight": 16
-          },
-          "gridPos": {
-            "x": 16,
-            "y": 0,
-            "w": 8,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sort_desc(sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
-              "instant": true,
-              "legendFormat": "{{model_name}}",
-              "refId": "A"
-            }
-          ],
-          "description": "Instantaneous completion tokens/s per model \u2014 ranked horizontal bar gauge."
+          "expr": "sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m]))",
+          "legendFormat": "{{model_name}}",
+          "refId": "A",
+          "format": "time_series",
+          "range": true
         }
       ],
-      "description": "Token generation rate by model"
+      "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
+    },
+    {
+      "id": 19,
+      "type": "bargauge",
+      "title": "Output tokens by model (now)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "tps",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "minVizWidth": 8,
+        "minVizHeight": 16
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 28,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sort_desc(sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+          "instant": true,
+          "legendFormat": "{{model_name}}",
+          "refId": "A"
+        }
+      ],
+      "description": "Instantaneous completion tokens/s per model \u2014 ranked horizontal bar gauge."
     },
     {
       "id": 20,
@@ -1264,7 +1262,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 36,
         "w": 24,
         "h": 1
       },
@@ -1474,7 +1472,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 37,
         "w": 24,
         "h": 1
       },
@@ -1703,7 +1701,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 38,
         "w": 24,
         "h": 1
       },
