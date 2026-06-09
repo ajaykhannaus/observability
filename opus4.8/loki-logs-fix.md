@@ -570,3 +570,35 @@ that already flow (no runner rebuild needed). Edit is in
 python3 dashboards/generate_dashboards.py
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+---
+
+## Accordion dashboard port (7-dashboard layout, collapsible rows)
+
+Ported the accordion (collapsible-row) style + the renumbered 7-dashboard
+naming from `azure-telemetry-llm` into this repo, **while keeping every
+Azure-side fix**:
+
+  - `dashboards/generate_dashboards.py` + `metric_definitions.py` replaced with
+    the accordion generator (always-visible headline stat panels +
+    `accordion_section()` collapsible section rows).
+  - `_LOKI_STREAM` kept the no-`| json` form (OTLP attributes → Loki structured
+    metadata; `| json` on the non-JSON body throws JSONParserErr → No data).
+  - `06-token-cost` "Cost per request" stays on Prometheus cost÷count, NOT Loki
+    `unwrap cost_usd`.
+
+New names: `01-infra-runner`, `02-latency-performance`, `03-model-quality`,
+`04-executive-overview`, `05-user-observability`, `06-token-cost`,
+`07-safety-pii` (old 9 flat dashboards removed). Regenerate + redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```
+
+Loki panels still need the runner rebuild (so `extra=` fields ship as OTLP
+attributes → structured metadata):
+
+```bash
+./scripts/fix-runner.sh --build
+```
