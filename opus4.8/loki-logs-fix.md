@@ -808,3 +808,26 @@ title. Regenerate + redeploy Grafana:
 python3 dashboards/generate_dashboards.py
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Demo-safe active-user windows: login distinct-counts 24h/7d → 1h + 6h
+
+Even after moving distinct-user counts to the low-volume `login_event`
+(`_login`) stream, the `count by (user_id)` distinct aggregation over 24h/7d
+was still too slow to return within the Loki datasource timeout during a *live
+demo* on dev-sized Loki (the cost is the high-cardinality grouping over the
+window, not the stream volume). Shortened every login distinct-user window to a
+mixed near-term/wide pair in `build_d9` (05-user):
+
+- "Active users (24h)" → **"Active users (1h)"** (headline, near-term DAU)
+- "Active users (7d)" → **"Active users (6h)"** (headline, wider view)
+- "Daily active users (24h)" → **"Active users (6h)"** (section stat)
+- "Active users by department (24h)" → **"Active users by department (6h)"**
+- "Logins (24h)" → **"Logins (1h)"** (non-distinct sum count)
+
+Tooltips in `dashboards/metric_definitions.py` were renamed to match (stale
+"Daily active users (24h)" key removed). Regenerate + redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

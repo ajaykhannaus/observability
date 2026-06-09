@@ -210,19 +210,23 @@ METRIC_DEFINITIONS: dict[str, str] = {
         "Distinct `session_id` values in telemetry logs over the last 5 minutes (headline stat, last value). "
         "Source: Loki `telemetry_event`."
     ),
-    "Logins (24h)": (
-        "Count of `login_event` logs in 24h — emitted when a new session starts (turn 1)."
+    "Logins (1h)": (
+        "Count of `login_event` logs in the last 1h — emitted when a new session starts (turn 1). "
+        "Uses a 1h window (not 24h) so the Loki query returns fast during a live demo."
     ),
-    "Active users (24h)": (
-        "Distinct `user_id` values with at least one `telemetry_event` in 24h."
+    "Active users (1h)": (
+        "Distinct users with a `login_event` in the last 1h — near-term active users. "
+        "Sourced from the low-volume login stream with a 1h window so the distinct-user "
+        "aggregation returns fast during a live demo on dev-sized Loki."
     ),
-    "Active users by department (24h)": (
-        "Distinct active users per `department` in the last 24h — ranked horizontal bars. "
-        "The department filter is intentionally ignored so all departments are visible."
+    "Active users by department (6h)": (
+        "Distinct active users per `department` in the last 6h — ranked horizontal bars. "
+        "The department filter is intentionally ignored so all departments are visible. "
+        "Uses a 6h window (not 24h) so the grouped distinct count returns fast in a demo."
     ),
-    "Active users (7d)": (
-        "Distinct users with a `login_event` in the last 7 days — weekly active user (WAU) proxy. "
-        "Uses a 7d window (not 30d) so the Loki query stays cheap on dev-sized Loki."
+    "Active users (6h)": (
+        "Distinct users with a `login_event` in the last 6h — wider active-user view. "
+        "Uses a 6h window (not 24h/7d) so the distinct-user aggregation stays cheap on dev-sized Loki."
     ),
     "LLM usage spike (15m vs prev 15m)": (
         "Percent change in total tokens: last 15m vs the prior 15m window "
@@ -233,9 +237,6 @@ METRIC_DEFINITIONS: dict[str, str] = {
     ),
     "Users added (daily active logins)": (
         "Distinct users with a `login_event` in the last 24h."
-    ),
-    "Daily active users (24h)": (
-        "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
     ),
     "Top 10 users — tokens (1h)": (
         "Users ranked by sum of `total_tokens` over the last 1h — who is consuming the most tokens. "

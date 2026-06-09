@@ -294,7 +294,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Logins (24h)",
+      "title": "Logins (1h)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -346,19 +346,19 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [1h])) or vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,
           "range": true
         }
       ],
-      "description": "Count of `login_event` logs in 24h \u2014 emitted when a new session starts (turn 1)."
+      "description": "Count of `login_event` logs in the last 1h \u2014 emitted when a new session starts (turn 1). Uses a 1h window (not 24h) so the Loki query returns fast during a live demo."
     },
     {
       "id": 5,
       "type": "stat",
-      "title": "Active users (24h)",
+      "title": "Active users (1h)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -410,19 +410,19 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [24h])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [1h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
           "range": true
         }
       ],
-      "description": "Distinct `user_id` values with at least one `telemetry_event` in 24h."
+      "description": "Distinct users with a `login_event` in the last 1h \u2014 near-term active users. Sourced from the low-volume login stream with a 1h window so the distinct-user aggregation returns fast during a live demo on dev-sized Loki."
     },
     {
       "id": 6,
       "type": "stat",
-      "title": "Active users (7d)",
+      "title": "Active users (6h)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -474,14 +474,14 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [7d])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [6h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
           "range": true
         }
       ],
-      "description": "Distinct users with a `login_event` in the last 7 days \u2014 weekly active user (WAU) proxy. Uses a 7d window (not 30d) so the Loki query stays cheap on dev-sized Loki."
+      "description": "Distinct users with a `login_event` in the last 6h \u2014 wider active-user view. Uses a 6h window (not 24h/7d) so the distinct-user aggregation stays cheap on dev-sized Loki."
     },
     {
       "id": 7,
@@ -647,7 +647,7 @@
     {
       "id": 10,
       "type": "stat",
-      "title": "Daily active users (24h)",
+      "title": "Active users (6h)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -699,19 +699,19 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [6h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
           "range": true
         }
       ],
-      "description": "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
+      "description": "Distinct users with a `login_event` in the last 6h \u2014 wider active-user view. Uses a 6h window (not 24h/7d) so the distinct-user aggregation stays cheap on dev-sized Loki."
     },
     {
       "id": 11,
       "type": "barchart",
-      "title": "Active users by department (24h)",
+      "title": "Active users by department (6h)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -769,14 +769,14 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" | department != \"\" [24h]))))",
+          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" | department != \"\" [6h]))))",
           "legendFormat": "{{department}}",
           "refId": "A",
           "instant": true,
           "queryType": "instant"
         }
       ],
-      "description": "Distinct active users per `department` in the last 24h \u2014 ranked horizontal bars. The department filter is intentionally ignored so all departments are visible."
+      "description": "Distinct active users per `department` in the last 6h \u2014 ranked horizontal bars. The department filter is intentionally ignored so all departments are visible. Uses a 6h window (not 24h) so the grouped distinct count returns fast in a demo."
     },
     {
       "id": 12,

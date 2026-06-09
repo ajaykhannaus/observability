@@ -2746,29 +2746,30 @@ def build_d9() -> dict:
             grid=_grid(4, 0, 4, 4), datasource=DS_LOKI,
         ),
         stat_panel(
-            "Logins (24h)",
-            f'sum(count_over_time({_login} [24h])) or vector(0)',
+            "Logins (1h)",
+            f'sum(count_over_time({_login} [1h])) or vector(0)',
             unit="short", decimals=0,
             thresholds=[{"color": "blue", "value": None}],
             grid=_grid(8, 0, 4, 4), datasource=DS_LOKI,
         ),
         stat_panel(
-            # Source from the low-volume login stream, not telemetry: a 24h
-            # distinct-user count over the per-request telemetry stream times
-            # out the Loki datasource on dev-sized Loki. A logged-in user is an
-            # active user, so {_login} is the cheap, standard DAU signal.
-            "Active users (24h)",
-            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [24h])))',
+            # Source from the low-volume login stream, not telemetry. Even on the
+            # login stream a distinct-user `count by (user_id)` over a 24h window
+            # is too slow for a live demo on dev-sized Loki, so the window is
+            # shortened to 1h (near-term DAU) with an honest title. A logged-in
+            # user is an active user, so {_login} is the standard DAU signal.
+            "Active users (1h)",
+            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [1h])))',
             unit="short", decimals=0,
             thresholds=[{"color": "blue", "value": None}],
             grid=_grid(12, 0, 4, 4), datasource=DS_LOKI,
         ),
         stat_panel(
-            # 7d (not 30d): a 30-day count_over_time over the login stream times
-            # out the Loki datasource on dev-sized Loki. 7d is far cheaper and
-            # meaningful for a POC; title relabelled so the window stays honest.
-            "Active users (7d)",
-            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [7d])))',
+            # Wider companion to "Active users (1h)". 6h (not 7d/24h) keeps the
+            # distinct-user aggregation cheap enough to return within the Loki
+            # datasource timeout during a live demo; title relabelled honestly.
+            "Active users (6h)",
+            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [6h])))',
             unit="short", decimals=0,
             thresholds=[{"color": "blue", "value": None}],
             grid=_grid(16, 0, 4, 4), datasource=DS_LOKI,
@@ -2797,21 +2798,23 @@ def build_d9() -> dict:
                 unit="short", grid=_grid(0, 0, 12, 8), datasource=DS_LOKI,
             ),
             stat_panel(
-                "Daily active users (24h)",
-                f'count(count by (user_id) (count_over_time({_login} [24h])))',
+                # 6h, not 24h: the distinct-user aggregation over a 24h login
+                # window is too slow for a live demo on dev-sized Loki.
+                "Active users (6h)",
+                f'count(count by (user_id) (count_over_time({_login} | user_id != "" [6h])))',
                 unit="short", decimals=0,
                 thresholds=[{"color": "blue", "value": None}],
                 color_mode="value",
                 grid=_grid(12, 0, 12, 8), datasource=DS_LOKI,
             ),
             barchart_panel(
-                "Active users by department (24h)",
+                "Active users by department (6h)",
                 [_loki_instant_target(
                     # Count distinct users from the low-volume login stream, not
-                    # per-request telemetry — a 24h grouped distinct count over
-                    # {_tele} times out the Loki datasource on dev-sized Loki.
+                    # per-request telemetry. 6h (not 24h): the grouped distinct
+                    # count is too slow for a live demo on dev-sized Loki.
                     f'sort_desc(count by (department) (count by (user_id, department) '
-                    f'(count_over_time({_login} | user_id != "" | department != "" [24h]))))',
+                    f'(count_over_time({_login} | user_id != "" | department != "" [6h]))))',
                     "{{department}}",
                 )],
                 unit="short",
