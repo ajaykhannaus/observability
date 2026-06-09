@@ -1,0 +1,1725 @@
+{
+  "uid": "ai-telemetry-executive",
+  "title": "4. Data observability",
+  "description": "Request volume, RPM, traffic mix, model distribution, errors, and SLA compliance.",
+  "tags": [
+    "ai-telemetry",
+    "traffic",
+    "requests",
+    "data"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "style": "light",
+  "refresh": "30s",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "department",
+        "label": "Department",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, department)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "region",
+        "label": "Region",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, region)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "provider",
+        "label": "Provider",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_provider)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "model",
+        "label": "Model",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "operation",
+        "label": "Operation",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, operation_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "status",
+        "label": "Status",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, status)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, environment)",
+        "multi": false,
+        "includeAll": false,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "dev",
+          "value": "dev"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "options": {
+        "content": "<div style=\"display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:6px 2px 2px;\"><a href=\"/d/ai-telemetry-infra?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">1. Infrastructure</a><a href=\"/d/ai-telemetry-latency?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">2. Network</a><a href=\"/d/ai-telemetry-quality?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">3. AI</a><a href=\"/d/ai-telemetry-executive?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#1d4ed8;color:#fff;border:2px solid #1e40af;box-shadow:0 1px 3px rgba(30,64,175,.35);\">4. Data</a><a href=\"/d/ai-telemetry-users?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">5. User</a><a href=\"/d/ai-telemetry-cost?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">6. Cost & Usage</a><a href=\"/d/ai-telemetry-safety?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">7. Safety & Security</a></div>",
+        "mode": "html"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "transparent": true
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total requests",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__range]))",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "description": "Single headline count for the selected time range with a sparkline trend. Source: Prometheus `increase(ai_gateway_request_count_total[$__range])`."
+    },
+    {
+      "id": 3,
+      "type": "row",
+      "title": "Traffic",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "RPM",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 20,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 7
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) * 60",
+              "legendFormat": "Requests / min",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Continuous requests-per-minute rate over time. Source: `rate(ai_gateway_request_count_total[$__rate_interval]) \u00d7 60`."
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "RPM by Model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 45,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "mean"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 7,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Stacked area chart \u2014 top 6 models by RPM. Uses `$__rate_interval` for consistent smoothing across zoom levels."
+        },
+        {
+          "id": 6,
+          "type": "bargauge",
+          "title": "RPM by Model (current)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "displayMode": "gradient",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "namePlacement": "left",
+            "minVizWidth": 8,
+            "minVizHeight": 16
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 7,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60)",
+              "instant": true,
+              "legendFormat": "{{model_name}}",
+              "refId": "A"
+            }
+          ],
+          "description": "Top 6 models by current requests/min \u2014 ranked bar gauge snapshot."
+        },
+        {
+          "id": 7,
+          "type": "piechart",
+          "title": "RPM Share by Model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 7,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(100 * topk(6, sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9))",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Each model's percentage of total RPM (top 6). Companion to the stacked area \u2014 shows share, not absolute volume."
+        }
+      ],
+      "description": "Request rate, model split, and share"
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Errors",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Error RPM by Model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 25,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "mean"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 6
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval]))) * 60",
+              "legendFormat": "{{model_name}} errors",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Failed requests per minute per model (top 6). Source: `ai_gateway_exception_count_total`."
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Error Rate by Model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "axisSoftMax": 100,
+                "thresholdsStyle": {
+                  "mode": "line+area"
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 5
+                  },
+                  {
+                    "color": "red",
+                    "value": 10
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 6,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "topk(6, sum by (model_name) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])) / clamp_min(sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[$__rate_interval])), 1e-9) * 100)",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Failed requests as a percentage per model. Yellow/red bands mark 5% / 10% SLA breach territory."
+        }
+      ],
+      "description": "Failed requests per minute and error rate by model"
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Model mix",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 12,
+          "type": "piechart",
+          "title": "Model Provider Distribution",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_provider) (increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{model_provider}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Share of requests by vendor (`model_provider`: anthropic, openai, google, etc.) over the last hour."
+        },
+        {
+          "id": 13,
+          "type": "bargauge",
+          "title": "Model Distribution (last 1h)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "displayMode": "gradient",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "namePlacement": "left",
+            "minVizWidth": 8,
+            "minVizHeight": 16
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_name) (increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "instant": true,
+              "legendFormat": "{{model_name}}",
+              "refId": "A"
+            }
+          ],
+          "description": "Ranked horizontal bar gauge of request volume by `model_name` over the last hour \u2014 model names on the left, values on the bars."
+        }
+      ],
+      "description": "Provider and model distribution over the last hour"
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Traffic Volume",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 15,
+          "type": "timeseries",
+          "title": "Requests / min by Model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[2m])) * 60",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Live request rate per model (`rate \u00d7 60`). Filtered by department template variable when set."
+        },
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "Requests / min by Department",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (department) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[2m])) * 60",
+              "legendFormat": "{{department}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Live request rate per `department` \u2014 which org teams drive load."
+        },
+        {
+          "id": 17,
+          "type": "timeseries",
+          "title": "Requests / min by Operation",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "r/min",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (operation_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[2m])) * 60",
+              "legendFormat": "{{operation_name}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Traffic by `operation_name` (e.g. chat_completion, code_generation) \u2014 use-case mix."
+        },
+        {
+          "id": 18,
+          "type": "piechart",
+          "title": "Model Distribution (last 1h)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "pie",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_name) (increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Ranked horizontal bar gauge of request volume by `model_name` over the last hour \u2014 model names on the left, values on the bars."
+        },
+        {
+          "id": 19,
+          "type": "piechart",
+          "title": "Model Provider Distribution",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "pie",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 8,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_provider) (increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{model_provider}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Share of requests by vendor (`model_provider`: anthropic, openai, google, etc.) over the last hour."
+        }
+      ],
+      "description": "Traffic volume by model, department, and operation"
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Errors & Retries",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 21,
+          "type": "timeseries",
+          "title": "Error Rate by Type",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (error_type) (rate(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[5m]))",
+              "legendFormat": "{{error_type}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Failed requests per second by `error_type` (rate_limit, timeout, model_unavailable, etc.)."
+        },
+        {
+          "id": 22,
+          "type": "barchart",
+          "title": "Errors by HTTP Status Code (last 1h)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (http_status) (increase(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{http_status}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Volume of exceptions in the last hour grouped by `http_status` (429, 504, 500, \u2026)."
+        },
+        {
+          "id": 23,
+          "type": "piechart",
+          "title": "Error Category Mix",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "pie",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 20,
+            "y": 0,
+            "w": 4,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (error_category) (increase(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{error_category}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Failures grouped by `error_category` (throttling, availability, auth, validation)."
+        }
+      ],
+      "description": "Error types, HTTP status codes, and categories"
+    },
+    {
+      "id": 24,
+      "type": "row",
+      "title": "SLA Compliance",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 25,
+          "type": "timeseries",
+          "title": "SLA Breach Rate by Department",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (department) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\",status=\"error\"}[5m])) / clamp_min(sum by (department) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[5m])),1e-9) * 100",
+              "legendFormat": "{{department}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Per-department error rate (%): requests with `status=error` \u00f7 all requests. High values mean that department is missing SLA targets."
+        },
+        {
+          "id": 26,
+          "type": "barchart",
+          "title": "Total Requests by Routing Reason (last 1h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum by (routing_reason) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" [1h]))",
+              "legendFormat": "{{routing_reason}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Why the gateway chose a model (`routing_reason` from logs): cost, latency, fallback, policy, etc. Source: Loki `telemetry_event`."
+        }
+      ],
+      "description": "Department SLA breach rate and routing mix"
+    },
+    {
+      "id": 27,
+      "type": "row",
+      "title": "Live Request Log",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 28,
+          "type": "logs",
+          "title": "Live Telemetry Events",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 10
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "{service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | status=~\"$status\" | line_format \"{{.timestamp}} [{{.model_name}}] {{.operation_name}} status={{.status}} lat={{.latency_ms}}ms dept={{.department}} routing={{.routing_reason}}\"",
+              "refId": "A",
+              "queryType": "range",
+              "maxLines": 500,
+              "legendFormat": ""
+            }
+          ],
+          "description": "Streaming audit of recent `telemetry_event` log lines \u2014 request id, model, latency, department, routing. Use for live debugging; not aggregated metrics."
+        }
+      ],
+      "description": "Real-time telemetry event stream"
+    }
+  ],
+  "links": [
+    {
+      "title": "All dashboards",
+      "tooltip": "Jump to any AI Telemetry dashboard",
+      "type": "dashboards",
+      "icon": "apps",
+      "tags": [
+        "ai-telemetry"
+      ],
+      "asDropdown": true,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ]
+}

@@ -1,0 +1,1375 @@
+{
+  "uid": "ai-telemetry-users",
+  "title": "5. User observability",
+  "description": "Active users and sessions, login tracking, monthly user growth, top token consumers, session time, and usage spikes.",
+  "tags": [
+    "ai-telemetry",
+    "users",
+    "sessions",
+    "login"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "style": "light",
+  "refresh": "30s",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "department",
+        "label": "Department",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, department)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "region",
+        "label": "Region",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, region)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "provider",
+        "label": "Provider",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_provider)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "model",
+        "label": "Model",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, environment)",
+        "multi": false,
+        "includeAll": false,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "dev",
+          "value": "dev"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "options": {
+        "content": "<div style=\"display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:6px 2px 2px;\"><a href=\"/d/ai-telemetry-infra?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">1. Infrastructure</a><a href=\"/d/ai-telemetry-latency?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">2. Network</a><a href=\"/d/ai-telemetry-quality?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">3. AI</a><a href=\"/d/ai-telemetry-executive?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">4. Data</a><a href=\"/d/ai-telemetry-users?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#1d4ed8;color:#fff;border:2px solid #1e40af;box-shadow:0 1px 3px rgba(30,64,175,.35);\">5. User</a><a href=\"/d/ai-telemetry-cost?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">6. Cost & Usage</a><a href=\"/d/ai-telemetry-safety?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">7. Safety & Security</a></div>",
+        "mode": "html"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "transparent": true
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Active users",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [5m])))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Distinct `user_id` values in telemetry logs over the last 5 minutes (headline stat, last value). Source: Loki `telemetry_event`."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Active sessions",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "count(count by (session_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | session_id != \"\" [5m])))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Distinct `session_id` values in telemetry logs over the last 5 minutes (headline stat, last value). Source: Loki `telemetry_event`."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Logins (24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])) or vector(0)",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Count of `login_event` logs in 24h \u2014 emitted when a new session starts (turn 1)."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Active users (24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [24h])))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Distinct `user_id` values with at least one `telemetry_event` in 24h."
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Monthly active users (30d)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [30d])))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Distinct users with a `login_event` in the last 30 days \u2014 monthly active user (MAU) proxy."
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "LLM usage spike (15m vs prev 15m)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 150
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 3,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "(sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) / (sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m])) - sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m])) or vector(1)) - 1) * 100",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Percent change in total tokens: last 15m vs the prior 15m window (computed as [15m] \u00f7 ([30m] \u2212 [15m])). High values indicate sudden platform-wide LLM usage growth."
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Login & user growth",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Login track",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [5m])) or vector(0)",
+              "legendFormat": "Logins / 5m",
+              "refId": "A",
+              "queryType": "range"
+            }
+          ],
+          "description": "Login/session-start events per 5m bucket from `login_event` logs."
+        },
+        {
+          "id": 10,
+          "type": "stat",
+          "title": "Daily active users (24h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "textMode": "auto",
+            "wideLayout": true,
+            "showPercentChange": false,
+            "percentChangeColorMode": "standard",
+            "text": {}
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" [24h])))",
+              "refId": "A",
+              "queryType": "range",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "description": "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
+        },
+        {
+          "id": 11,
+          "type": "barchart",
+          "title": "Active users by department (24h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
+              "legendFormat": "{{department}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Distinct active users per `department` in the last 24h \u2014 ranked horizontal bars. The department filter is intentionally ignored so all departments are visible."
+        }
+      ],
+      "description": "Login activity and department-level user counts"
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Token consumption by user",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 13,
+          "type": "barchart",
+          "title": "Top 10 users \u2014 tokens (24h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [24h])))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Users ranked by sum of `total_tokens` over 24h \u2014 who is consuming the most tokens."
+        },
+        {
+          "id": 14,
+          "type": "barchart",
+          "title": "Top 10 users \u2014 token rate (5m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m])))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Instant bar chart \u2014 top 10 users by tokens consumed in the last 5m."
+        }
+      ],
+      "description": "Heaviest token consumers by user"
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Session-level usage",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 16,
+          "type": "barchart",
+          "title": "Top 10 users \u2014 session time (6h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [6h])))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Users ranked by summed `session_time_ms` \u2014 wall-clock time spent in sessions (reading, typing, waiting), not per-request API latency."
+        },
+        {
+          "id": 17,
+          "type": "table",
+          "title": "Top users by tokens (6h)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "sortBy": [
+              {
+                "displayName": "Time",
+                "desc": true
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(50, sum by (user_id, department) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [6h])))",
+              "legendFormat": "",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "__name__": true
+                }
+              }
+            }
+          ],
+          "description": "Table of top 50 users by total tokens in 6h, with department."
+        },
+        {
+          "id": 18,
+          "type": "barchart",
+          "title": "Session time by user (top 10, 5m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [5m])))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Instant bar chart \u2014 top 10 users by summed `session_time_ms` in the last 5m."
+        }
+      ],
+      "description": "Session duration and per-user token tables"
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Usage spikes",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 20,
+          "type": "timeseries",
+          "title": "Token volume \u2014 spike detector (5m buckets)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 14,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [5m]))",
+              "legendFormat": "Tokens / 5m",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [1h])) / 12",
+              "legendFormat": "1h avg per 5m",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "Total token volume per 5m vs 1h average per 5m bucket \u2014 visual spike detection for LLM usage."
+        },
+        {
+          "id": 21,
+          "type": "barchart",
+          "title": "Top 10 users \u2014 spike ratio (15m vs prev 15m)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 14,
+            "y": 0,
+            "w": 10,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "topk(10, (sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))) / (  sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [30m]))   - sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [15m]))   or on(user_id) vector(1)))",
+              "legendFormat": "{{user_id}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Per-user ratio: tokens in last 15m \u00f7 tokens in the previous 15m (30m window minus last 15m). Values above ~1.5 mean usage in the last 15m exceeds the prior 15m baseline."
+        },
+        {
+          "id": 22,
+          "type": "logs",
+          "title": "Recent login events",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "{service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\"",
+              "refId": "A",
+              "queryType": "range",
+              "maxLines": 500,
+              "legendFormat": ""
+            }
+          ],
+          "description": "Live stream of `login_event` logs with user, session, department, and auth method."
+        }
+      ],
+      "description": "Sudden usage spikes and recent login audit"
+    }
+  ],
+  "links": [
+    {
+      "title": "All dashboards",
+      "tooltip": "Jump to any AI Telemetry dashboard",
+      "type": "dashboards",
+      "icon": "apps",
+      "tags": [
+        "ai-telemetry"
+      ],
+      "asDropdown": true,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ]
+}

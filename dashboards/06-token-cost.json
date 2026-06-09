@@ -1,0 +1,1659 @@
+{
+  "uid": "ai-telemetry-cost",
+  "title": "6. Cost & Usage Observability",
+  "description": "Cost per request, spend totals, token usage, context window fill, and cache savings.",
+  "tags": [
+    "ai-telemetry",
+    "cost",
+    "usage",
+    "tokens"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "style": "light",
+  "refresh": "15s",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "department",
+        "label": "Department",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, department)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "region",
+        "label": "Region",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, region)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "provider",
+        "label": "Provider",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_provider)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "model",
+        "label": "Model",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "operation",
+        "label": "Operation",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, operation_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, environment)",
+        "multi": false,
+        "includeAll": false,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "dev",
+          "value": "dev"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "options": {
+        "content": "<div style=\"display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:6px 2px 2px;\"><a href=\"/d/ai-telemetry-infra?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">1. Infrastructure</a><a href=\"/d/ai-telemetry-latency?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">2. Network</a><a href=\"/d/ai-telemetry-quality?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">3. AI</a><a href=\"/d/ai-telemetry-executive?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">4. Data</a><a href=\"/d/ai-telemetry-users?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">5. User</a><a href=\"/d/ai-telemetry-cost?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#1d4ed8;color:#fff;border:2px solid #1e40af;box-shadow:0 1px 3px rgba(30,64,175,.35);\">6. Cost & Usage</a><a href=\"/d/ai-telemetry-safety?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">7. Safety & Security</a></div>",
+        "mode": "html"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "transparent": true
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Output tokens",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[$__range]))",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "description": "Total completion (output) tokens consumed in the selected time range."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg tokens / request",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(rate(ai_gateway_request_token_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "description": "Average prompt + completion + cache tokens per request."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Context fill",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
+          "refId": "A",
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "description": "Average context window utilization % \u2014 how full prompts are across models."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Errors (5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 3,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) or on() vector(0)",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "description": "Exception count increase in the last 5 minutes."
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Cost",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Cost per request",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "Avg cost / request",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (model_name)(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "{{model_name}}",
+              "refId": "B",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "Cost per user/session",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "Avg cost / request",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Average cost per request over time \u2014 `increase(cost) / increase(requests)` from Prometheus (Loki per-user ratios exceed local query resolution limits in range mode)."
+        },
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Daily/monthly spend",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[24h]))",
+              "legendFormat": "Daily spend (24h)",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[30d]))",
+              "legendFormat": "Monthly spend (30d)",
+              "refId": "B",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Total USD spent: 24h and 30d `increase` on `ai_gateway_request_cost_USD_total`."
+        }
+      ],
+      "description": "Per-request cost and daily/monthly spend totals"
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Cost breakdown",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 11,
+          "type": "piechart",
+          "title": "Cost by department",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "pie",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (department) (increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[24h])))",
+              "legendFormat": "{{department}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Share of 24h LLM spend by internal department (`department` label). Each user belongs to one department within the organization."
+        },
+        {
+          "id": 12,
+          "type": "barchart",
+          "title": "Model-wise cost breakdown",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_name) (increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[24h])))",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "24h spend ranked by `model_name` \u2014 which models are most expensive."
+        }
+      ],
+      "description": "Department and model cost distribution"
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Savings",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 14,
+          "type": "timeseries",
+          "title": "Cache hit savings",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [5m]))",
+              "legendFormat": "Cache savings USD",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sum by (model_name) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [5m]))",
+              "legendFormat": "{{model_name}}",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "USD saved via prompt cache hits (`cache_savings_usd` in logs). Higher values mean caching is reducing billable prompt tokens."
+        }
+      ],
+      "description": "USD saved from cache hits"
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Output throughput",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "Output Token Count",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "tps",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 50,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 1,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "mean"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 16,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m]))",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
+        },
+        {
+          "id": 17,
+          "type": "bargauge",
+          "title": "Output tokens by model (now)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "tps",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "displayMode": "gradient",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "namePlacement": "left",
+            "minVizWidth": 8,
+            "minVizHeight": 16
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"completion\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+              "instant": true,
+              "legendFormat": "{{model_name}}",
+              "refId": "A"
+            }
+          ],
+          "description": "Instantaneous completion tokens/s per model \u2014 ranked horizontal bar gauge."
+        }
+      ],
+      "description": "Token generation rate by model"
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Request composition",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 19,
+          "type": "piechart",
+          "title": "Token type mix",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [],
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "value"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (token_type) (increase(ai_gateway_request_token_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[1h])))",
+              "legendFormat": "{{token_type}}",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "description": "Donut chart of prompt vs completion vs cache_read tokens in the last hour."
+        },
+        {
+          "id": 20,
+          "type": "timeseries",
+          "title": "Total tokens per request",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 25,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(rate(ai_gateway_request_token_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "Avg tokens / request",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Average total tokens per request over time (single aggregate trend line)."
+        },
+        {
+          "id": 21,
+          "type": "bargauge",
+          "title": "Prompt size by model",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "displayMode": "gradient",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "namePlacement": "left",
+            "minVizWidth": 8,
+            "minVizHeight": 16
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (model_name) (rate(ai_gateway_request_token_total{token_type=\"prompt\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name) (rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9))",
+              "instant": true,
+              "legendFormat": "{{model_name}}",
+              "refId": "A"
+            }
+          ],
+          "description": "Average prompt tokens per request ranked by model \u2014 horizontal bar gauge."
+        }
+      ],
+      "description": "Prompt vs completion token mix"
+    },
+    {
+      "id": 22,
+      "type": "row",
+      "title": "Context window",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 23,
+          "type": "gauge",
+          "title": "Context Window Utilization (%)",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 60
+                  },
+                  {
+                    "color": "red",
+                    "value": 85
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "orientation": "auto",
+            "sizing": "auto"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
+              "refId": "A",
+              "queryType": "range",
+              "instant": false,
+              "range": true
+            }
+          ],
+          "description": "Dial gauge of average context window fill \u2014 high values risk truncation."
+        },
+        {
+          "id": 24,
+          "type": "bargauge",
+          "title": "Context fill by model",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 60
+                  },
+                  {
+                    "color": "red",
+                    "value": 85
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "displayMode": "gradient",
+            "valueMode": "color",
+            "showUnfilled": true,
+            "namePlacement": "left",
+            "minVizWidth": 8,
+            "minVizHeight": 16
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 0,
+            "w": 10,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "sort_desc(avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m])))",
+              "legendFormat": "{{model_name}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Context window utilization % ranked by model."
+        },
+        {
+          "id": 25,
+          "type": "timeseries",
+          "title": "Prompt size trend",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 30,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 0,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(rate(ai_gateway_request_token_total{token_type=\"prompt\",department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "Avg prompt tokens / request",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Average prompt (input) tokens per request over time \u2014 drives cost and latency."
+        }
+      ],
+      "description": "Context window fill and prompt size trends"
+    },
+    {
+      "id": 26,
+      "type": "row",
+      "title": "Streaming throughput & errors",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 27,
+          "type": "barchart",
+          "title": "Errors by type (5m)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "gradientMode": "opacity",
+                "lineWidth": 1,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "auto",
+            "xTickLabelRotation": -45,
+            "xTickLabelSpacing": 100,
+            "barRadius": 0.15,
+            "groupWidth": 0.7,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sort_desc(sum by (error_type) (increase(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+              "legendFormat": "{{error_type}}",
+              "refId": "A",
+              "instant": true,
+              "queryType": "instant"
+            }
+          ],
+          "description": "Bar chart of exceptions in the last 5m broken down by `error_type`."
+        }
+      ],
+      "description": "Error spikes during token streaming"
+    }
+  ],
+  "links": [
+    {
+      "title": "All dashboards",
+      "tooltip": "Jump to any AI Telemetry dashboard",
+      "type": "dashboards",
+      "icon": "apps",
+      "tags": [
+        "ai-telemetry"
+      ],
+      "asDropdown": true,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ]
+}

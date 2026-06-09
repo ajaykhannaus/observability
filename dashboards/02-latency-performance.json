@@ -1,0 +1,491 @@
+{
+  "uid": "ai-telemetry-latency",
+  "title": "2. Network observability",
+  "description": "End-to-end response latency, percentile breakdown, and queue delays.",
+  "tags": [
+    "ai-telemetry",
+    "latency",
+    "network"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "style": "light",
+  "refresh": "30s",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "timezone": "browser",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "department",
+        "label": "Department",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, department)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "region",
+        "label": "Region",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, region)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "provider",
+        "label": "Provider",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_provider)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "model",
+        "label": "Model",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, model_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "operation",
+        "label": "Operation",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, operation_name)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ".*"
+        },
+        "sort": 1
+      },
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-ds"
+        },
+        "query": "label_values(ai_gateway_request_count_total, environment)",
+        "multi": false,
+        "includeAll": false,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": "dev",
+          "value": "dev"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "options": {
+        "content": "<div style=\"display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;width:100%;padding:6px 2px 2px;\"><a href=\"/d/ai-telemetry-infra?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">1. Infrastructure</a><a href=\"/d/ai-telemetry-latency?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#1d4ed8;color:#fff;border:2px solid #1e40af;box-shadow:0 1px 3px rgba(30,64,175,.35);\">2. Network</a><a href=\"/d/ai-telemetry-quality?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">3. AI</a><a href=\"/d/ai-telemetry-executive?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">4. Data</a><a href=\"/d/ai-telemetry-users?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">5. User</a><a href=\"/d/ai-telemetry-cost?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">6. Cost & Usage</a><a href=\"/d/ai-telemetry-safety?var-department=All&var-region=All&var-provider=All&var-model=All&var-operation=All&var-status=All&var-data_class=All&var-environment=dev\" style=\"display:inline-flex;align-items:center;padding:9px 14px;margin:0;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;letter-spacing:.01em;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;\">7. Safety & Security</a></div>",
+        "mode": "html"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "targets": [],
+      "transparent": true
+    },
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Latency",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "End-to-end response latency",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "sum(rate(ai_gateway_request_duration_milliseconds_sum{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_duration_milliseconds_count{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+              "legendFormat": "Avg latency",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Average gateway response time in ms: histogram `_sum / _count` on `ai_gateway_request_duration_milliseconds`. Includes queue, model, and streaming time."
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Request Latency \u2014 p50 / p95 / p99",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "histogram_quantile(0.50, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+              "legendFormat": "p50",
+              "refId": "A",
+              "format": "time_series",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+              "legendFormat": "p95",
+              "refId": "B",
+              "format": "time_series",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus-ds"
+              },
+              "expr": "histogram_quantile(0.99, sum by (le) (rate(ai_gateway_request_duration_milliseconds_bucket{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])))",
+              "legendFormat": "p99",
+              "refId": "C",
+              "format": "time_series",
+              "range": true
+            }
+          ],
+          "description": "Latency percentiles from the request duration histogram. p99 is the slowest 1% \u2014 the usual SLO pain metric."
+        }
+      ],
+      "description": "End-to-end latency and percentile breakdown"
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "Queue",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Queue delays",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 18,
+                "gradientMode": "opacity",
+                "lineInterpolation": "smooth",
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "showPoints": "never",
+                "pointSize": 5,
+                "axisColorMode": "text",
+                "axisBorderShow": false,
+                "axisGridShow": true,
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap queue_wait_ms [5m]))",
+              "legendFormat": "Avg queue delay",
+              "refId": "A",
+              "queryType": "range"
+            },
+            {
+              "datasource": {
+                "type": "loki",
+                "uid": "loki-ds"
+              },
+              "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap queue_wait_ms [5m]))",
+              "legendFormat": "{{model_name}}",
+              "refId": "B",
+              "queryType": "range"
+            }
+          ],
+          "description": "Average `queue_wait_ms` before the model starts processing. Source: Loki \u2014 separates queue congestion from model inference time."
+        }
+      ],
+      "description": "Average and per-model queue wait time"
+    }
+  ],
+  "links": [
+    {
+      "title": "All dashboards",
+      "tooltip": "Jump to any AI Telemetry dashboard",
+      "type": "dashboards",
+      "icon": "apps",
+      "tags": [
+        "ai-telemetry"
+      ],
+      "asDropdown": true,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ]
+}
