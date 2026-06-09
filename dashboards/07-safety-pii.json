@@ -221,7 +221,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap toxicity_score [24h])) * 100",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap toxicity_score [1h])) * 100",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -293,7 +293,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | pii_detected=\"true\" [24h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" [24h])) or on() vector(1))) * 100",
+          "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | pii_detected=\"true\" [1h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" [1h])) or on() vector(1))) * 100",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -365,7 +365,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | prompt_injection_detected=\"true\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | prompt_injection_detected=\"true\" [1h])) or vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -437,7 +437,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | jailbreak_attempt=\"true\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | jailbreak_attempt=\"true\" [1h])) or vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -509,7 +509,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | compliance_violation=\"true\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | compliance_violation=\"true\" [1h])) or vector(0)",
           "refId": "A",
           "queryType": "range",
           "instant": false,

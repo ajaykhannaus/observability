@@ -2082,11 +2082,14 @@ def build_d6() -> dict:
     _plog = f'{_LOKI_STREAM} event_type="prompt_log_event" {F.loki}'
     _tele = f'{_LOKI_STREAM} event_type="telemetry_event" {F.loki}'
 
+    # Headline stats use a 1h lookback (not 24h) to keep these Loki queries
+    # cheap — a 24h ``unwrap``/``count_over_time`` over the full stream times out
+    # the datasource ("timeout awaiting response headers") on dev-sized Loki.
     _pii_rate = _loki_ratio(
-        f'sum(count_over_time({_plog} | pii_detected="true" [24h]))',
-        f'sum(count_over_time({_plog} [24h]))',
+        f'sum(count_over_time({_plog} | pii_detected="true" [1h]))',
+        f'sum(count_over_time({_plog} [1h]))',
     )
-    _toxicity_score = f'avg(avg_over_time({_plog} | unwrap toxicity_score [24h])) * 100'
+    _toxicity_score = f'avg(avg_over_time({_plog} | unwrap toxicity_score [1h])) * 100'
 
     _safety_th = [
         {"color": "green", "value": None},
@@ -2111,21 +2114,21 @@ def build_d6() -> dict:
         ),
         stat_panel(
             "Prompt injection attempts",
-            f'sum(count_over_time({_plog} | prompt_injection_detected="true" [24h])) or vector(0)',
+            f'sum(count_over_time({_plog} | prompt_injection_detected="true" [1h])) or vector(0)',
             unit="short", decimals=0,
             thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 5}, {"color": "red", "value": 25}],
             grid=_grid(10, 0, 5, 4), datasource=DS_LOKI,
         ),
         stat_panel(
             "Jailbreak attempts",
-            f'sum(count_over_time({_plog} | jailbreak_attempt="true" [24h])) or vector(0)',
+            f'sum(count_over_time({_plog} | jailbreak_attempt="true" [1h])) or vector(0)',
             unit="short", decimals=0,
             thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 3}, {"color": "red", "value": 15}],
             grid=_grid(15, 0, 5, 4), datasource=DS_LOKI,
         ),
         stat_panel(
             "Compliance violations",
-            f'sum(count_over_time({_plog} | compliance_violation="true" [24h])) or vector(0)',
+            f'sum(count_over_time({_plog} | compliance_violation="true" [1h])) or vector(0)',
             unit="short", decimals=0,
             thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 5}, {"color": "red", "value": 20}],
             grid=_grid(20, 0, 4, 4), datasource=DS_LOKI,
