@@ -2758,8 +2758,11 @@ def build_d9() -> dict:
             grid=_grid(12, 0, 4, 4), datasource=DS_LOKI,
         ),
         stat_panel(
-            "Monthly active users (30d)",
-            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [30d])))',
+            # 7d (not 30d): a 30-day count_over_time over the login stream times
+            # out the Loki datasource on dev-sized Loki. 7d is far cheaper and
+            # meaningful for a POC; title relabelled so the window stays honest.
+            "Active users (7d)",
+            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [7d])))',
             unit="short", decimals=0,
             thresholds=[{"color": "blue", "value": None}],
             grid=_grid(16, 0, 4, 4), datasource=DS_LOKI,

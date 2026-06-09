@@ -220,8 +220,9 @@ METRIC_DEFINITIONS: dict[str, str] = {
         "Distinct active users per `department` in the last 24h — ranked horizontal bars. "
         "The department filter is intentionally ignored so all departments are visible."
     ),
-    "Monthly active users (30d)": (
-        "Distinct users with a `login_event` in the last 30 days — monthly active user (MAU) proxy."
+    "Active users (7d)": (
+        "Distinct users with a `login_event` in the last 7 days — weekly active user (WAU) proxy. "
+        "Uses a 7d window (not 30d) so the Loki query stays cheap on dev-sized Loki."
     ),
     "LLM usage spike (15m vs prev 15m)": (
         "Percent change in total tokens: last 15m vs the prior 15m window "

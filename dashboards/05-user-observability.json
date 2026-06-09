@@ -422,7 +422,7 @@
     {
       "id": 6,
       "type": "stat",
-      "title": "Monthly active users (30d)",
+      "title": "Active users (7d)",
       "datasource": {
         "type": "loki",
         "uid": "loki-ds"
@@ -474,14 +474,14 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [30d])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [7d])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
           "range": true
         }
       ],
-      "description": "Distinct users with a `login_event` in the last 30 days \u2014 monthly active user (MAU) proxy."
+      "description": "Distinct users with a `login_event` in the last 7 days \u2014 weekly active user (WAU) proxy. Uses a 7d window (not 30d) so the Loki query stays cheap on dev-sized Loki."
     },
     {
       "id": 7,
