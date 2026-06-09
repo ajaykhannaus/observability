@@ -236,8 +236,14 @@ skip_if_healthy() {
 
 write_datasource_env() {
   local prom_url loki_url tempo_url otel_endpoint
-  read -r prom_url loki_url tempo_url < <(grafana_datasource_urls \
+  # grafana_datasource_urls prints 3 lines; `read` would grab only the first,
+  # leaving loki/tempo empty. mapfile reads all three. See bootstrap-azure.sh.
+  local _ds_urls=()
+  mapfile -t _ds_urls < <(grafana_datasource_urls \
     "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME")
+  prom_url="${_ds_urls[0]:-}"
+  loki_url="${_ds_urls[1]:-}"
+  tempo_url="${_ds_urls[2]:-}"
   otel_endpoint="http://$(internal_host "$OTEL_APP_NAME"):80"
 
   log "Datasource URLs:"

@@ -619,8 +619,16 @@ render_grafana_standard_yaml() {
 }
 
 resolve_grafana_datasource_urls() {
-  read -r GRAFANA_PROM_URL GRAFANA_LOKI_URL GRAFANA_TEMPO_URL < <(grafana_datasource_urls \
+  # grafana_datasource_urls prints 3 lines (prom, loki, tempo). `read` consumes
+  # only the FIRST line — that silently left LOKI/TEMPO empty so they fell back to
+  # the unresolvable docker-compose hostnames http://loki:3100 / http://tempo:3200
+  # (Grafana then errors "lookup loki: no such host"). mapfile reads all 3 lines.
+  local _ds_urls=()
+  mapfile -t _ds_urls < <(grafana_datasource_urls \
     "$CAE_NAME" "$AZURE_RESOURCE_GROUP" "$PROM_APP_NAME" "$LOKI_APP_NAME" "$TEMPO_APP_NAME")
+  GRAFANA_PROM_URL="${_ds_urls[0]:-}"
+  GRAFANA_LOKI_URL="${_ds_urls[1]:-}"
+  GRAFANA_TEMPO_URL="${_ds_urls[2]:-}"
 
   [[ -n "$GRAFANA_PROM_URL" ]] || GRAFANA_PROM_URL="http://prometheus:9090"
   [[ -n "$GRAFANA_LOKI_URL" ]] || GRAFANA_LOKI_URL="http://loki:3100"

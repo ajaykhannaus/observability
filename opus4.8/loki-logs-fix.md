@@ -635,3 +635,35 @@ matching secret stay in sync). Re-run:
 ```bash
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+---
+
+## Grafana Loki/Tempo "No data": `dial tcp: lookup loki ... no such host`
+
+After Grafana came up, Prometheus panels worked but every Loki/Tempo panel
+errored:
+
+```
+Get "http://loki:3100/loki/api/v1/query?...": dial tcp: lookup loki on
+127.0.0.11:53: no such host
+```
+
+The Loki datasource URL was the docker-compose hostname `http://loki:3100`,
+which doesn't resolve inside Azure Container Apps. Prometheus, by contrast, got
+the correct internal FQDN (`https://prometheus-scraper-dev.internal.<domain>`).
+
+Root cause: `grafana_datasource_urls()` prints **3 lines** (prom, loki, tempo),
+but two callers consumed it with `read -r PROM LOKI TEMPO < <(...)`. `read`
+reads only the **first line**, so PROM got its URL while LOKI and TEMPO were
+empty and fell back to the hardcoded `http://loki:3100` / `http://tempo:3200`.
+(The third caller, `fix-grafana-datasources.sh`, already used `mapfile` and was
+fine.)
+
+Fix: switched both `read -r` callers (`scripts/bootstrap-azure.sh`
+`resolve_grafana_datasource_urls`, `scripts/deploy-observability-stack.sh`
+`write_datasource_env`) to `mapfile -t` so all three lines are captured. Loki
+now resolves to `https://loki-telemetry-dev.internal.<domain>`. Re-run:
+
+```bash
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```
