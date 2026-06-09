@@ -410,7 +410,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" [24h])))",
+          "expr": "count(count by (user_id) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" [24h])))",
           "refId": "A",
           "queryType": "range",
           "instant": false,
@@ -769,7 +769,7 @@
             "type": "loki",
             "uid": "loki-ds"
           },
-          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | user_id != \"\" | department != \"\" [24h]))))",
+          "expr": "sort_desc(count by (department) (count by (user_id, department) (count_over_time({service_name=~\".+\"} | event_type=\"login_event\" | department=~\"$department\" | region=~\"$region\" | user_id != \"\" | department != \"\" [24h]))))",
           "legendFormat": "{{department}}",
           "refId": "A",
           "instant": true,

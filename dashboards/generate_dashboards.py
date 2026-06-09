@@ -2751,8 +2751,12 @@ def build_d9() -> dict:
             grid=_grid(8, 0, 4, 4), datasource=DS_LOKI,
         ),
         stat_panel(
+            # Source from the low-volume login stream, not telemetry: a 24h
+            # distinct-user count over the per-request telemetry stream times
+            # out the Loki datasource on dev-sized Loki. A logged-in user is an
+            # active user, so {_login} is the cheap, standard DAU signal.
             "Active users (24h)",
-            f'count(count by (user_id) (count_over_time({_tele} | user_id != "" [24h])))',
+            f'count(count by (user_id) (count_over_time({_login} | user_id != "" [24h])))',
             unit="short", decimals=0,
             thresholds=[{"color": "blue", "value": None}],
             grid=_grid(12, 0, 4, 4), datasource=DS_LOKI,
@@ -2801,8 +2805,11 @@ def build_d9() -> dict:
             barchart_panel(
                 "Active users by department (24h)",
                 [_loki_instant_target(
+                    # Count distinct users from the low-volume login stream, not
+                    # per-request telemetry — a 24h grouped distinct count over
+                    # {_tele} times out the Loki datasource on dev-sized Loki.
                     f'sort_desc(count by (department) (count by (user_id, department) '
-                    f'(count_over_time({_tele_by_dept} | user_id != "" | department != "" [24h]))))',
+                    f'(count_over_time({_login} | user_id != "" | department != "" [24h]))))',
                     "{{department}}",
                 )],
                 unit="short",
