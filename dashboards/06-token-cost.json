@@ -1045,7 +1045,7 @@
         {
           "id": 16,
           "type": "stat",
-          "title": "Cumulative cache savings (24h)",
+          "title": "Cache savings (1h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
@@ -1097,14 +1097,14 @@
                 "type": "loki",
                 "uid": "loki-ds"
               },
-              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [24h]))",
+              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [1h]))",
               "refId": "A",
               "queryType": "range",
               "instant": false,
               "range": true
             }
           ],
-          "description": "Total USD saved from cache hits over 24h (`cache_savings_usd`)."
+          "description": "Total USD saved from cache hits over the last hour (`cache_savings_usd`)."
         }
       ],
       "description": "USD saved from cache hits and cache hit rate"

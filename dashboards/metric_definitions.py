@@ -237,21 +237,24 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Daily active users (24h)": (
         "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
     ),
-    "Top 10 users — tokens (24h)": (
-        "Users ranked by sum of `total_tokens` over 24h — who is consuming the most tokens."
+    "Top 10 users — tokens (1h)": (
+        "Users ranked by sum of `total_tokens` over the last 1h — who is consuming the most tokens. "
+        "Uses a 1h window (not 24h) so the Loki query stays cheap on dev-sized Loki."
     ),
     "Top 10 users — token rate (5m)": (
         "Instant bar chart — top 10 users by tokens consumed in the last 5m."
     ),
-    "Top 10 users — session time (6h)": (
-        "Users ranked by summed `session_time_ms` — wall-clock time spent in sessions "
-        "(reading, typing, waiting), not per-request API latency."
+    "Top 10 users — session time (1h)": (
+        "Users ranked by summed `session_time_ms` over the last 1h — wall-clock time spent in "
+        "sessions (reading, typing, waiting), not per-request API latency. "
+        "1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
     ),
     "Session usage by user": (
         "Per `user_id` + `department` token totals (top 50, 6h) — avoids high-cardinality session series."
     ),
-    "Top users by tokens (6h)": (
-        "Table of top 50 users by total tokens in 6h, with department."
+    "Top users by tokens (1h)": (
+        "Table of top 50 users by total tokens in the last 1h, with department. "
+        "1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
     ),
     "Session time by user (top 10, 5m)": (
         "Instant bar chart — top 10 users by summed `session_time_ms` in the last 5m."
@@ -442,13 +445,13 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Error budget burn (5m)": "Current error rate over 5m — how fast the error budget is burning.",
     "Top models by traffic (1h)": "Top 6 models by request volume over the last hour.",
     # 5 — User
-    "Top 10 users — cost (24h)": "Heaviest spenders by USD cost over 24h (`cost_usd`).",
+    "Top 10 users — cost (1h)": "Heaviest spenders by USD cost over the last hour (`cost_usd`).",
     "Tokens per session (5m)": "Total tokens divided by active sessions — per-session token intensity.",
     "Avg turns per session (1h)": "Average maximum turn number per session — conversation depth.",
     "Session duration p95": "95th-percentile wall-clock session time (`session_time_ms`).",
     # 6 — Cost
     "Cache hit rate (5m)": "Share of requests served with prompt-cache reads (`cache_hit`).",
-    "Cumulative cache savings (24h)": "Total USD saved from cache hits over 24h (`cache_savings_usd`).",
+    "Cache savings (1h)": "Total USD saved from cache hits over the last hour (`cache_savings_usd`).",
     "Streaming tokens/sec — avg & p95": "Average and p95 streaming output throughput (`tokens_per_second`).",
     "Streaming share of requests (5m)": "Percentage of requests served via streaming responses.",
     # 7 — Safety

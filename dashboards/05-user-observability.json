@@ -793,7 +793,7 @@
         {
           "id": 13,
           "type": "barchart",
-          "title": "Top 10 users \u2014 tokens (24h)",
+          "title": "Top 10 users \u2014 tokens (1h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
@@ -851,14 +851,14 @@
                 "type": "loki",
                 "uid": "loki-ds"
               },
-              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [24h])))",
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [1h])))",
               "legendFormat": "{{user_id}}",
               "refId": "A",
               "instant": true,
               "queryType": "instant"
             }
           ],
-          "description": "Users ranked by sum of `total_tokens` over 24h \u2014 who is consuming the most tokens."
+          "description": "Users ranked by sum of `total_tokens` over the last 1h \u2014 who is consuming the most tokens. Uses a 1h window (not 24h) so the Loki query stays cheap on dev-sized Loki."
         },
         {
           "id": 14,
@@ -933,7 +933,7 @@
         {
           "id": 15,
           "type": "barchart",
-          "title": "Top 10 users \u2014 cost (24h)",
+          "title": "Top 10 users \u2014 cost (1h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
@@ -991,14 +991,14 @@
                 "type": "loki",
                 "uid": "loki-ds"
               },
-              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [24h])))",
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap cost_usd [1h])))",
               "legendFormat": "{{user_id}}",
               "refId": "A",
               "instant": true,
               "queryType": "instant"
             }
           ],
-          "description": "Heaviest spenders by USD cost over 24h (`cost_usd`)."
+          "description": "Heaviest spenders by USD cost over the last hour (`cost_usd`)."
         },
         {
           "id": 16,
@@ -1093,7 +1093,7 @@
         {
           "id": 18,
           "type": "barchart",
-          "title": "Top 10 users \u2014 session time (6h)",
+          "title": "Top 10 users \u2014 session time (1h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
@@ -1151,19 +1151,19 @@
                 "type": "loki",
                 "uid": "loki-ds"
               },
-              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [6h])))",
+              "expr": "topk(10, sum by (user_id) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap session_time_ms [1h])))",
               "legendFormat": "{{user_id}}",
               "refId": "A",
               "instant": true,
               "queryType": "instant"
             }
           ],
-          "description": "Users ranked by summed `session_time_ms` \u2014 wall-clock time spent in sessions (reading, typing, waiting), not per-request API latency."
+          "description": "Users ranked by summed `session_time_ms` over the last 1h \u2014 wall-clock time spent in sessions (reading, typing, waiting), not per-request API latency. 1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
         },
         {
           "id": 19,
           "type": "table",
-          "title": "Top users by tokens (6h)",
+          "title": "Top users by tokens (1h)",
           "datasource": {
             "type": "loki",
             "uid": "loki-ds"
@@ -1197,7 +1197,7 @@
                 "type": "loki",
                 "uid": "loki-ds"
               },
-              "expr": "topk(50, sum by (user_id, department) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [6h])))",
+              "expr": "topk(50, sum by (user_id, department) (sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap total_tokens [1h])))",
               "legendFormat": "",
               "refId": "A",
               "instant": true,
@@ -1218,7 +1218,7 @@
               }
             }
           ],
-          "description": "Table of top 50 users by total tokens in 6h, with department."
+          "description": "Table of top 50 users by total tokens in the last 1h, with department. 1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
         },
         {
           "id": 20,

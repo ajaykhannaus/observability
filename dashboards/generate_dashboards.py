@@ -1684,8 +1684,10 @@ def build_d4() -> dict:
                 grid=_grid(0, 8, 12, 8), datasource=DS_LOKI,
             ),
             stat_panel(
-                "Cumulative cache savings (24h)",
-                f'sum(sum_over_time({_tele} | unwrap cache_savings_usd [24h]))',
+                # 1h (not 24h): a 24h unwrap over the high-volume telemetry
+                # stream times out the Loki datasource on dev-sized Loki.
+                "Cache savings (1h)",
+                f'sum(sum_over_time({_tele} | unwrap cache_savings_usd [1h]))',
                 unit="currencyUSD", decimals=2,
                 thresholds=[{"color": "green", "value": None}],
                 color_mode="value",
@@ -2820,9 +2822,11 @@ def build_d9() -> dict:
         ], False, "Login activity and department-level user counts"),
         ("Token consumption by user", [
             barchart_panel(
-                "Top 10 users — tokens (24h)",
+                # 1h (not 24h): grouped unwrap over the high-volume telemetry
+                # stream at 24h times out the Loki datasource on dev-sized Loki.
+                "Top 10 users — tokens (1h)",
                 [_loki_instant_target(
-                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap total_tokens [24h])))',
+                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap total_tokens [1h])))',
                     "{{user_id}}",
                 )],
                 unit="short", grid=_grid(0, 0, 12, 8), datasource=DS_LOKI,
@@ -2836,9 +2840,10 @@ def build_d9() -> dict:
                 unit="short", grid=_grid(12, 0, 12, 8), datasource=DS_LOKI,
             ),
             barchart_panel(
-                "Top 10 users — cost (24h)",
+                # 1h (not 24h): see above — heavy grouped unwrap on telemetry.
+                "Top 10 users — cost (1h)",
                 [_loki_instant_target(
-                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap cost_usd [24h])))',
+                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap cost_usd [1h])))',
                     "{{user_id}}",
                 )],
                 unit="currencyUSD", grid=_grid(0, 8, 12, 8), datasource=DS_LOKI,
@@ -2855,18 +2860,20 @@ def build_d9() -> dict:
         ], True, "Heaviest token consumers and per-session token intensity"),
         ("Session-level usage", [
             barchart_panel(
-                "Top 10 users — session time (6h)",
+                # 1h (not 6h): see above — heavy grouped unwrap on telemetry.
+                "Top 10 users — session time (1h)",
                 [_loki_instant_target(
-                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap session_time_ms [6h])))',
+                    f'topk(10, sum by (user_id) (sum_over_time({_tele} | unwrap session_time_ms [1h])))',
                     "{{user_id}}",
                 )],
                 unit="ms", grid=_grid(0, 0, 12, 8), datasource=DS_LOKI,
             ),
             table_panel(
-                "Top users by tokens (6h)",
+                # 1h (not 6h): see above — heavy grouped unwrap on telemetry.
+                "Top users by tokens (1h)",
                 [_loki_instant_target(
                     f"topk(50, sum by (user_id, department) "
-                    f"(sum_over_time({_tele} | unwrap total_tokens [6h])))",
+                    f"(sum_over_time({_tele} | unwrap total_tokens [1h])))",
                     "",
                 )],
                 grid=_grid(12, 0, 12, 8), datasource=DS_LOKI,

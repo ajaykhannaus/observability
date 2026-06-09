@@ -775,3 +775,36 @@ datasource HTTP timeout instead of shortening. In Grafana:
 **Connections → Data sources → Loki → Timeout = 120**, Save & test. If queries
 still time out, raise Loki server-side `limits_config.query_timeout` /
 `server.http_server_read_timeout` and/or give the Loki container more CPU.
+
+## Fleet-wide retune: all heavy unwrap / grouped-count panels → 1h
+
+After fixing the 07-safety headline stats and the 05-user active-user counts,
+the same query-cost pattern remained on other dashboards: any `unwrap` or
+grouped `count by`/`sum by` over the high-volume `{service_name=~".+"}
+event_type="telemetry_event"` (`_tele`) stream with a 24h/6h window can exceed
+the datasource HTTP timeout on dev-sized Loki. Swept every dashboard and
+shortened those windows to **1h** with honest relabels:
+
+- 05-user (`build_d9`): "Top 10 users — tokens (24h→1h)", "Top 10 users —
+  cost (24h→1h)", "Top 10 users — session time (6h→1h)", "Top users by tokens
+  (6h→1h)".
+- 06-cost (`build_d4`): "Cumulative cache savings (24h)" → "Cache savings (1h)".
+
+Distinct-active-user counts were instead moved to the low-volume
+`event_type="login_event"` (`_login`) stream (a logged-in user = an active
+user) so they can keep a 7d/24h window cheaply: "Active users (7d)" (was
+"Monthly active users (30d)"), "Active users (24h)", "Active users by
+department (24h)".
+
+Left intentionally on 24h: Prometheus `increase(...[24h])` (Prometheus handles
+long ranges fine), the low-volume `_eval`/`_login` streams, and the PHI/PII
+**"Today"** compliance counts (`_plog`/`_tele` ungrouped `count_over_time`
+[24h]) where the 24h "today" window is semantically required.
+
+Tooltips in `dashboards/metric_definitions.py` were renamed to match every new
+title. Regenerate + redeploy Grafana:
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```
