@@ -831,3 +831,46 @@ Tooltips in `dashboards/metric_definitions.py` were renamed to match (stale
 python3 dashboards/generate_dashboards.py
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Port of `new_changes_after_shuffle` dashboards onto demo-safe master
+
+Pulled the reshuffled dashboards from
+`azure-telemetry/new_changes_after_shuffle` (a much larger 05-user with
+Excel-aligned business-value panels, plus a new modular generator:
+`dashboards/users_observability_panels.py` + `users_observability_metrics.py`).
+That branch forked **before** the June-9 demo-safe Loki work and would have
+reverted it, so the port re-applied every fix on top:
+
+- **`| json` dropped** from `_LOKI_STREAM` — OTLP→Loki ingestion promotes all
+  event fields to structured metadata, so the parse stage was pure cost and a
+  timeout contributor.
+- **New 05-user module retuned**: all 31 `[24h]` telemetry windows → `[1h]`,
+  WAU `[7d]` → `[6h]`, MAU `[30d]` → `[6h]` (windows are not embedded in the
+  Excel-derived panel titles, so no title/window mismatch).
+- **07-safety headline** 5 stats `[24h]` → `[1h]` (toxicity unwrap, PII rate,
+  injection, jailbreak, compliance) + matching tooltips.
+- **Left at 24h** (consistent with prior decision): the `eval_result`
+  mock-judge-timeout count and the PHI/PII **"Today"** compliance counts.
+- **dashboards.yaml**: kept master's provisioning path
+  `/var/lib/grafana/dashboards` (matches this repo's `Dockerfile.grafana`); the
+  branch's `/etc/grafana/dashboards` belongs to its own Docker setup.
+
+The branch's new 05-user panels depend on 9 new business fields
+(`revenue_influence_usd`, `conversion_lift_pct`, `productivity_gain_pct`,
+`eligible_user_count`, `baseline_resolution_ms`, `resolution_time_ms`,
+`cost_avoidance_usd`, `message_count`, `hour_of_day`) that only the branch's
+generator emits. Brought those in via a **3-way merge** (base `b52cebb`, ours =
+master, theirs = branch) of `generator/azure_logger.py` +
+`generator/synthetic_generator.py` so they coexist with the existing
+`guardrail_action` / `cache_hit` enrichment fields. Verified at runtime: a
+`generate_event()` → `log_event()` smoke test emits all 9 business fields plus
+both enrichment fields.
+
+Build / redeploy (generator changed, so the runner must be rebuilt for the new
+fields to reach Loki):
+
+```bash
+python3 dashboards/generate_dashboards.py
+./scripts/fix-runner.sh --build
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

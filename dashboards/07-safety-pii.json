@@ -223,9 +223,9 @@
           },
           "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap toxicity_score [1h])) * 100",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
       "description": "Average content-safety `toxicity_score` on prompt logs, scaled to 0\u2013100%. Source: Loki `prompt_log_event`."
@@ -295,9 +295,9 @@
           },
           "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | pii_detected=\"true\" [1h])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" [1h])) or on() vector(1))) * 100",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
       "description": "% of prompt logs with `pii_detected=true`. PII must stay in logs, not Prometheus labels."
@@ -367,12 +367,12 @@
           },
           "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | prompt_injection_detected=\"true\" [1h])) or vector(0)",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
-      "description": "Count of prompts flagged `prompt_injection_detected=true` in 24h."
+      "description": "Count of prompts flagged `prompt_injection_detected=true` in the last 1h (1h window keeps the Loki query fast on dev-sized Loki)."
     },
     {
       "id": 5,
@@ -439,12 +439,12 @@
           },
           "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | jailbreak_attempt=\"true\" [1h])) or vector(0)",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
-      "description": "Count of prompts flagged `jailbreak_attempt=true` (role-override / DAN-style) in 24h."
+      "description": "Count of prompts flagged `jailbreak_attempt=true` (role-override / DAN-style) in the last 1h."
     },
     {
       "id": 6,
@@ -511,12 +511,12 @@
           },
           "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | compliance_violation=\"true\" [1h])) or vector(0)",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
-      "description": "Count of prompts with `compliance_violation=true` (policy / classification breach) in 24h."
+      "description": "Count of prompts with `compliance_violation=true` (policy / classification breach) in the last 1h."
     },
     {
       "id": 7,
@@ -987,9 +987,9 @@
               },
               "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | pii_detected=\"true\" [24h])) or vector(0)",
               "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
+              "queryType": "instant",
+              "instant": true,
+              "range": false
             }
           ],
           "description": "Total prompt logs with PII detected in the last 24h."
@@ -1051,9 +1051,9 @@
               },
               "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | data_classification=\"phi\" [24h])) or vector(0)",
               "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
+              "queryType": "instant",
+              "instant": true,
+              "range": false
             }
           ],
           "description": "Telemetry events with `data_classification=phi` (protected health information) in 24h."
@@ -1115,9 +1115,9 @@
               },
               "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | data_classification=\"pii\" [24h])) or vector(0)",
               "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
+              "queryType": "instant",
+              "instant": true,
+              "range": false
             }
           ],
           "description": "Telemetry events with `data_classification=pii` in 24h."
@@ -1179,9 +1179,9 @@
               },
               "expr": "count(sum by (prompt_hash) (count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" [24h])))",
               "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
+              "queryType": "instant",
+              "instant": true,
+              "range": false
             }
           ],
           "description": "Distinct `prompt_hash` values audited \u2014 coverage of prompt logging without storing raw text."
@@ -1416,159 +1416,6 @@
       "panels": [
         {
           "id": 22,
-          "type": "piechart",
-          "title": "Guardrail actions (1h)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "pieType": "donut",
-            "displayLabels": [],
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "legend": {
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "values": [
-                "value"
-              ]
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 8,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sum by (guardrail_action) (count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | guardrail_action != \"\" [1h]))",
-              "legendFormat": "{{guardrail_action}}",
-              "refId": "A",
-              "instant": true,
-              "queryType": "instant"
-            }
-          ],
-          "description": "Distribution of guardrail outcomes \u2014 allow / redact / block (`guardrail_action`)."
-        },
-        {
-          "id": 23,
-          "type": "timeseries",
-          "title": "Injection vs jailbreak (per min)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 8,
-            "y": 0,
-            "w": 16,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | prompt_injection_detected=\"true\" [1m])) or vector(0)",
-              "legendFormat": "Injections/min",
-              "refId": "A",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | jailbreak_attempt=\"true\" [1m])) or vector(0)",
-              "legendFormat": "Jailbreaks/min",
-              "refId": "B",
-              "queryType": "range"
-            }
-          ],
-          "description": "Prompt-injection and jailbreak detections per minute."
-        },
-        {
-          "id": 24,
           "type": "logs",
           "title": "Prompt Log Events (PII-scrubbed)",
           "datasource": {
@@ -1585,7 +1432,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 8,
+            "y": 0,
             "w": 24,
             "h": 10
           },
@@ -1605,10 +1452,10 @@
           "description": "Audit stream of `prompt_log_event` entries \u2014 content is scrubbed; use for security review."
         }
       ],
-      "description": "Guardrail outcomes, attack trend, and PII-scrubbed audit stream"
+      "description": "PII-scrubbed prompt audit stream"
     },
     {
-      "id": 25,
+      "id": 23,
       "type": "row",
       "title": "High-Risk Request Table",
       "collapsed": true,
@@ -1620,7 +1467,7 @@
       },
       "panels": [
         {
-          "id": 26,
+          "id": 24,
           "type": "table",
           "title": "PHI / PII Requests with Trace Links",
           "datasource": {
@@ -1677,7 +1524,7 @@
           "description": "Table of sensitive requests with `request_id`, department, model, and `trace_id` for Tempo drill-down."
         },
         {
-          "id": 27,
+          "id": 25,
           "type": "logs",
           "title": "Safety incidents (injection, jailbreak, compliance)",
           "datasource": {
@@ -1712,86 +1559,9 @@
             }
           ],
           "description": "Log lines where any safety flag fired \u2014 combined injection, jailbreak, or compliance events."
-        },
-        {
-          "id": 28,
-          "type": "timeseries",
-          "title": "Toxicity p95 by department",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "axisSoftMax": 100
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 16,
-            "w": 24,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "max by (department) (quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | unwrap toxicity_score [5m])) * 100",
-              "legendFormat": "{{department}}",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "95th-percentile toxicity score per department (0\u2013100%)."
         }
       ],
-      "description": "High-risk PHI/PII requests, safety incidents, and toxicity by department"
+      "description": "High-risk PHI/PII requests and safety incidents"
     }
   ],
   "links": [

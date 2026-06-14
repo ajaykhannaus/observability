@@ -210,23 +210,18 @@ METRIC_DEFINITIONS: dict[str, str] = {
         "Distinct `session_id` values in telemetry logs over the last 5 minutes (headline stat, last value). "
         "Source: Loki `telemetry_event`."
     ),
-    "Logins (1h)": (
-        "Count of `login_event` logs in the last 1h — emitted when a new session starts (turn 1). "
-        "Uses a 1h window (not 24h) so the Loki query returns fast during a live demo."
+    "Logins (24h)": (
+        "Count of `login_event` logs in 24h — emitted when a new session starts (turn 1)."
     ),
-    "Active users (1h)": (
-        "Distinct users with a `login_event` in the last 1h — near-term active users. "
-        "Sourced from the low-volume login stream with a 1h window so the distinct-user "
-        "aggregation returns fast during a live demo on dev-sized Loki."
+    "Active users (24h)": (
+        "Distinct `user_id` values with at least one `telemetry_event` in 24h."
     ),
-    "Active users by department (6h)": (
-        "Distinct active users per `department` in the last 6h — ranked horizontal bars. "
-        "The department filter is intentionally ignored so all departments are visible. "
-        "Uses a 6h window (not 24h) so the grouped distinct count returns fast in a demo."
+    "Active users by department (24h)": (
+        "Distinct active users per `department` in the last 24h — ranked horizontal bars. "
+        "The department filter is intentionally ignored so all departments are visible."
     ),
-    "Active users (6h)": (
-        "Distinct users with a `login_event` in the last 6h — wider active-user view. "
-        "Uses a 6h window (not 24h/7d) so the distinct-user aggregation stays cheap on dev-sized Loki."
+    "Monthly active users (30d)": (
+        "Distinct users with a `login_event` in the last 30 days — monthly active user (MAU) proxy."
     ),
     "LLM usage spike (15m vs prev 15m)": (
         "Percent change in total tokens: last 15m vs the prior 15m window "
@@ -238,24 +233,56 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Users added (daily active logins)": (
         "Distinct users with a `login_event` in the last 24h."
     ),
-    "Top 10 users — tokens (1h)": (
-        "Users ranked by sum of `total_tokens` over the last 1h — who is consuming the most tokens. "
-        "Uses a 1h window (not 24h) so the Loki query stays cheap on dev-sized Loki."
+    "Daily active users (24h)": (
+        "Distinct users with a `login_event` in the last 24h (stat with sparkline)."
+    ),
+    "DAU (24h)": (
+        "Distinct users with a `login_event` in the last 24h — daily active users (DAU)."
+    ),
+    "WAU (7d)": (
+        "Distinct users with a `login_event` in the last 7 days — weekly active users (WAU)."
+    ),
+    "MAU (30d)": (
+        "Distinct users with a `login_event` in the last 30 days — monthly active users (MAU)."
+    ),
+    "Active Users (DAU/WAU/MAU)": (
+        "Distinct users with a `login_event` in the last 24h (DAU), 7d (WAU), and 30d (MAU)."
+    ),
+    "Adoption Rate": (
+        "Percent of eligible users actively using AI: DAU ÷ eligible population × 100. "
+        "Eligible population is summed per `department` from `eligible_user_count` on telemetry events."
+    ),
+    "New User Activation Rate": (
+        "Funnel from eligible population → logins (24h) → first-time activations "
+        "(`is_new_user=\"true\"` on `login_event`)."
+    ),
+    "Feature Adoption Rate": (
+        "Distinct users per `feature_id` (operation/capability) in the last 24h — "
+        "horizontal bar chart ranked by adoption."
+    ),
+    "User Penetration by Department": (
+        "Active users per department ÷ eligible users for that department × 100 — "
+        "bar gauge showing org-unit penetration."
+    ),
+    "Returning User Rate": (
+        "Percent of DAU with more than one login in 24h — cohort retention proxy "
+        "from `login_event` logs."
+    ),
+    "Top 10 users — tokens (24h)": (
+        "Users ranked by sum of `total_tokens` over 24h — who is consuming the most tokens."
     ),
     "Top 10 users — token rate (5m)": (
         "Instant bar chart — top 10 users by tokens consumed in the last 5m."
     ),
-    "Top 10 users — session time (1h)": (
-        "Users ranked by summed `session_time_ms` over the last 1h — wall-clock time spent in "
-        "sessions (reading, typing, waiting), not per-request API latency. "
-        "1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
+    "Top 10 users — session time (6h)": (
+        "Users ranked by summed `session_time_ms` — wall-clock time spent in sessions "
+        "(reading, typing, waiting), not per-request API latency."
     ),
     "Session usage by user": (
         "Per `user_id` + `department` token totals (top 50, 6h) — avoids high-cardinality session series."
     ),
-    "Top users by tokens (1h)": (
-        "Table of top 50 users by total tokens in the last 1h, with department. "
-        "1h window (not 6h) to keep the Loki query cheap on dev-sized Loki."
+    "Top users by tokens (6h)": (
+        "Table of top 50 users by total tokens in 6h, with department."
     ),
     "Session time by user (top 10, 5m)": (
         "Instant bar chart — top 10 users by summed `session_time_ms` in the last 5m."
@@ -356,13 +383,14 @@ METRIC_DEFINITIONS: dict[str, str] = {
         "PII must stay in logs, not Prometheus labels."
     ),
     "Prompt injection attempts": (
-        "Count of prompts flagged `prompt_injection_detected=true` in 24h."
+        "Count of prompts flagged `prompt_injection_detected=true` in the last 1h "
+        "(1h window keeps the Loki query fast on dev-sized Loki)."
     ),
     "Jailbreak attempts": (
-        "Count of prompts flagged `jailbreak_attempt=true` (role-override / DAN-style) in 24h."
+        "Count of prompts flagged `jailbreak_attempt=true` (role-override / DAN-style) in the last 1h."
     ),
     "Compliance violations": (
-        "Count of prompts with `compliance_violation=true` (policy / classification breach) in 24h."
+        "Count of prompts with `compliance_violation=true` (policy / classification breach) in the last 1h."
     ),
     "Prompt injection attempts / min": (
         "Rate of detected injection attempts per minute — live security trend."
@@ -403,62 +431,8 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Safety incidents (injection, jailbreak, compliance)": (
         "Log lines where any safety flag fired — combined injection, jailbreak, or compliance events."
     ),
-
-    # ── New enrichment panels (added across all dashboards) ──────────────
-    # 1 — Infrastructure
-    "Scaling Pressure (desired − current)": (
-        "HPA desired minus current replicas — positive means a scale-up is pending."
-    ),
-    "Current Replicas": "Current HPA replica count for the gateway deployment.",
-    "Node memory used %": (
-        "Node memory utilisation: `(1 − MemAvailable/MemTotal) × 100`."
-    ),
-    "Node filesystem used %": (
-        "Root filesystem utilisation: `(1 − avail/size) × 100`."
-    ),
-    "Node load (1m avg)": "Node 1-minute load average (`node_load1`).",
-    "Node CPU busy %": (
-        "Non-idle CPU fraction across all modes: `rate(node_cpu_seconds_total{mode!=idle}) / rate(total) × 100`."
-    ),
-    # 2 — Network / latency
-    "Latency distribution heatmap": (
-        "Request-duration histogram buckets over time (`ai_gateway_request_duration_milliseconds_bucket`)."
-    ),
-    "Latency phase breakdown": (
-        "Stacked average of queue wait, model inference, and stream-response phases (ms)."
-    ),
-    "Queue wait p95": "95th-percentile queue wait time (`queue_wait_ms`).",
-    "Time to first token": "Average and p95 time-to-first-token (`first_token_ms`).",
-    "SLA breaches by tier (5m)": (
-        "Count of requests breaching their SLA target, grouped by `sla_tier`."
-    ),
-    "Latency vs SLA target": "Average request latency compared with the average SLA target (ms).",
-    # 3 — Model quality
-    "Evaluation latency (judge)": (
-        "Average and p95 latency of the OpenAI-as-judge evaluation calls (`eval_latency_ms`)."
-    ),
-    "Eval pass-rate (faithfulness ≥ 5)": (
-        "Share of judged responses scoring faithfulness ≥ 5 (non-hallucinating)."
-    ),
-    "Factual accuracy by model": "Per-model faithfulness score (0–10) scaled to a 0–100% accuracy.",
-    # 4 — Executive
-    "SLA attainment %": "100 − error rate: share of requests served successfully.",
-    "Error budget burn (5m)": "Current error rate over 5m — how fast the error budget is burning.",
-    "Top models by traffic (1h)": "Top 6 models by request volume over the last hour.",
-    # 5 — User
-    "Top 10 users — cost (1h)": "Heaviest spenders by USD cost over the last hour (`cost_usd`).",
-    "Tokens per session (5m)": "Total tokens divided by active sessions — per-session token intensity.",
-    "Avg turns per session (1h)": "Average maximum turn number per session — conversation depth.",
-    "Session duration p95": "95th-percentile wall-clock session time (`session_time_ms`).",
-    # 6 — Cost
-    "Cache hit rate (5m)": "Share of requests served with prompt-cache reads (`cache_hit`).",
-    "Cache savings (1h)": "Total USD saved from cache hits over the last hour (`cache_savings_usd`).",
-    "Streaming tokens/sec — avg & p95": "Average and p95 streaming output throughput (`tokens_per_second`).",
-    "Streaming share of requests (5m)": "Percentage of requests served via streaming responses.",
-    # 7 — Safety
-    "Guardrail actions (1h)": (
-        "Distribution of guardrail outcomes — allow / redact / block (`guardrail_action`)."
-    ),
-    "Injection vs jailbreak (per min)": "Prompt-injection and jailbreak detections per minute.",
-    "Toxicity p95 by department": "95th-percentile toxicity score per department (0–100%).",
 }
+
+from users_observability_metrics import register_metric_definitions  # noqa: E402
+
+register_metric_definitions(METRIC_DEFINITIONS)

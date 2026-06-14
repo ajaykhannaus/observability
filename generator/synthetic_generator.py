@@ -395,6 +395,13 @@ _MIN_SESSION_MS = 240_000   # 4 minutes minimum total session time
 _USER_POOL: dict[str, list[str]] = {}
 _USER_WEIGHTS: dict[str, list[float]] = {}
 _session_user: dict[str, str] = {}   # session_id → user_id (stable for the session)
+_activated_users: set[str] = set()   # users who have started at least one session (turn 1)
+
+# Per-department eligible population (sum of profile user_count per dept).
+_DEPT_ELIGIBLE_USERS: dict[str, int] = {}
+for _prof in CLIENT_PROFILES.values():
+    _d = _prof["department"]
+    _DEPT_ELIGIBLE_USERS[_d] = _DEPT_ELIGIBLE_USERS.get(_d, 0) + int(_prof["user_count"])
 
 
 def _user_pool_for(client_name: str) -> tuple[list[str], list[float]]:
@@ -796,6 +803,41 @@ def _enrich_mock_event(event: dict[str, Any]) -> None:
     )
     event["prompt_text"] = prompt
 
+    # User observability dashboards — boolean flags and numeric unwrap fields.
+    ok = event.get("status") == "success"
+
+    def _flag(v: bool) -> str:
+        return "true" if v else "false"
+
+    event["task_completed"] = _flag(ok and random.random() < 0.88)
+    event["response_accepted"] = _flag(ok and random.random() < 0.82)
+    event["regeneration"] = _flag(random.random() < 0.09)
+    event["prompt_abandoned"] = _flag(random.random() < 0.06)
+    event["conversation_abandoned"] = _flag(random.random() < 0.05)
+    event["escalation"] = _flag(random.random() < 0.04)
+    event["hallucination_feedback"] = _flag(ok and random.random() < 0.03)
+    event["task_automated"] = _flag(ok and random.random() < 0.35)
+    event["ai_assisted"] = _flag(random.random() < 0.78)
+    event["sensitive_data_exposure"] = _flag(sensitive and random.random() < 0.08)
+    event["pii_submitted"] = _flag(("@" in prompt or "555-" in prompt) and random.random() < 0.5)
+    event["policy_violation"] = _flag(event.get("compliance_violation", False) or random.random() < 0.02)
+    event["unsafe_output"] = _flag(float(event.get("toxicity_score", 0)) > 0.65)
+    event["audit_logged"] = "true"
+    event["access_violation"] = _flag(random.random() < 0.01)
+    event["human_review"] = _flag(random.random() < 0.07)
+    event["compliance_pass"] = _flag(not event.get("compliance_violation", False))
+
+    lat = float(event.get("latency_ms") or 1000)
+    event["time_saved_ms"] = round(max(0, random.gauss(lat * 0.4, lat * 0.1)), 2)
+    event["productivity_gain_pct"] = round(min(100, max(0, random.gauss(22, 8))), 2)
+    event["baseline_resolution_ms"] = round(lat * random.uniform(1.4, 2.2), 2)
+    event["resolution_time_ms"] = round(lat, 2)
+    event["revenue_influence_usd"] = round(random.uniform(0, 12), 4) if ok else 0.0
+    event["cost_avoidance_usd"] = round(random.uniform(0, 8), 4) if ok else 0.0
+    event["conversion_lift_pct"] = round(random.gauss(4.5, 2.0), 2)
+    event["message_count"] = int(event.get("turn_number") or 1)
+    event["hour_of_day"] = datetime.now(timezone.utc).hour
+
 
 def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
     """Return one rich synthetic LLM request event."""
@@ -946,6 +988,11 @@ def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
     dept = profile["department"]
     user_id = _user_for_session(client_name, session_id)
     user_email = f"{user_id}@acme.com"
+    is_new_user = turn_number == 1 and user_id not in _activated_users
+    if turn_number == 1:
+        _activated_users.add(user_id)
+        if len(_activated_users) > 50_000:
+            _activated_users.clear()
 
     event = {
         # ── Identity ─────────────────────────────────────────────────────
@@ -961,6 +1008,11 @@ def generate_event(error_rate: float = 0.008) -> dict[str, Any]:
         "project_id":        f"proj-{client_name[:4]}-{abs(hash(session_id)) % 900 + 100}",
         "auth_method":       random.choice(AUTH_METHODS),
         "data_classification": profile["data_class"],
+
+        # ── User observability / adoption ────────────────────────────────
+        "eligible_user_count": _DEPT_ELIGIBLE_USERS.get(dept, profile["user_count"]),
+        "is_new_user":         "true" if is_new_user else "false",
+        "feature_id":          operation_name,
 
         # ── Routing ──────────────────────────────────────────────────────
         "model_name":        model_name,

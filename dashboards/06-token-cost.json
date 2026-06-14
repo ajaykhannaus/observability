@@ -375,9 +375,9 @@
           },
           "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
           "refId": "A",
-          "queryType": "range",
-          "instant": false,
-          "range": true
+          "queryType": "instant",
+          "instant": true,
+          "range": false
         }
       ],
       "description": "Average context window utilization % \u2014 how full prompts are across models."
@@ -472,8 +472,8 @@
       "type": "timeseries",
       "title": "Cost per request",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-ds"
+        "type": "loki",
+        "uid": "loki-ds"
       },
       "fieldConfig": {
         "defaults": {
@@ -531,25 +531,23 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
+            "type": "loki",
+            "uid": "loki-ds"
           },
-          "expr": "sum(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cost_usd [5m]))",
           "legendFormat": "Avg cost / request",
           "refId": "A",
-          "format": "time_series",
-          "range": true
+          "queryType": "range"
         },
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
+            "type": "loki",
+            "uid": "loki-ds"
           },
-          "expr": "sum by (model_name)(increase(ai_gateway_request_cost_USD_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) / clamp_min(sum by (model_name)(increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])), 1e-9)",
+          "expr": "avg by (model_name) (avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cost_usd [5m]))",
           "legendFormat": "{{model_name}}",
           "refId": "B",
-          "format": "time_series",
-          "range": true
+          "queryType": "range"
         }
       ],
       "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
@@ -964,153 +962,12 @@
             }
           ],
           "description": "USD saved via prompt cache hits (`cache_savings_usd` in logs). Higher values mean caching is reducing billable prompt tokens."
-        },
-        {
-          "id": 15,
-          "type": "timeseries",
-          "title": "Cache hit rate (5m)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "axisSoftMax": 100
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | cache_hit=\"true\" [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
-              "legendFormat": "Cache hit %",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Share of requests served with prompt-cache reads (`cache_hit`)."
-        },
-        {
-          "id": 16,
-          "type": "stat",
-          "title": "Cache savings (1h)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "currencyUSD",
-              "decimals": 2,
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "center",
-            "textMode": "auto",
-            "wideLayout": true,
-            "showPercentChange": false,
-            "percentChangeColorMode": "standard",
-            "text": {}
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "sum(sum_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap cache_savings_usd [1h]))",
-              "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
-            }
-          ],
-          "description": "Total USD saved from cache hits over the last hour (`cache_savings_usd`)."
         }
       ],
-      "description": "USD saved from cache hits and cache hit rate"
+      "description": "USD saved from cache hits"
     },
     {
-      "id": 17,
+      "id": 15,
       "type": "row",
       "title": "Output throughput",
       "collapsed": false,
@@ -1124,7 +981,7 @@
       "description": "Token generation rate by model"
     },
     {
-      "id": 18,
+      "id": 16,
       "type": "timeseries",
       "title": "Output Token Count",
       "datasource": {
@@ -1205,7 +1062,7 @@
       "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
     },
     {
-      "id": 19,
+      "id": 17,
       "type": "bargauge",
       "title": "Output tokens by model (now)",
       "datasource": {
@@ -1256,7 +1113,7 @@
       "description": "Instantaneous completion tokens/s per model \u2014 ranked horizontal bar gauge."
     },
     {
-      "id": 20,
+      "id": 18,
       "type": "row",
       "title": "Request composition",
       "collapsed": true,
@@ -1268,7 +1125,7 @@
       },
       "panels": [
         {
-          "id": 21,
+          "id": 19,
           "type": "piechart",
           "title": "Token type mix",
           "datasource": {
@@ -1335,7 +1192,7 @@
           "description": "Donut chart of prompt vs completion vs cache_read tokens in the last hour."
         },
         {
-          "id": 22,
+          "id": 20,
           "type": "timeseries",
           "title": "Total tokens per request",
           "datasource": {
@@ -1412,7 +1269,7 @@
           "description": "Average total tokens per request over time (single aggregate trend line)."
         },
         {
-          "id": 23,
+          "id": 21,
           "type": "bargauge",
           "title": "Prompt size by model",
           "datasource": {
@@ -1466,7 +1323,7 @@
       "description": "Prompt vs completion token mix"
     },
     {
-      "id": 24,
+      "id": 22,
       "type": "row",
       "title": "Context window",
       "collapsed": true,
@@ -1478,7 +1335,7 @@
       },
       "panels": [
         {
-          "id": 25,
+          "id": 23,
           "type": "gauge",
           "title": "Context Window Utilization (%)",
           "datasource": {
@@ -1538,15 +1395,15 @@
               },
               "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | unwrap context_window_utilization_pct [5m]))",
               "refId": "A",
-              "queryType": "range",
-              "instant": false,
-              "range": true
+              "queryType": "instant",
+              "instant": true,
+              "range": false
             }
           ],
           "description": "Dial gauge of average context window fill \u2014 high values risk truncation."
         },
         {
-          "id": 26,
+          "id": 24,
           "type": "bargauge",
           "title": "Context fill by model",
           "datasource": {
@@ -1615,7 +1472,7 @@
           "description": "Context window utilization % ranked by model."
         },
         {
-          "id": 27,
+          "id": 25,
           "type": "timeseries",
           "title": "Prompt size trend",
           "datasource": {
@@ -1695,7 +1552,7 @@
       "description": "Context window fill and prompt size trends"
     },
     {
-      "id": 28,
+      "id": 26,
       "type": "row",
       "title": "Streaming throughput & errors",
       "collapsed": true,
@@ -1707,7 +1564,7 @@
       },
       "panels": [
         {
-          "id": 29,
+          "id": 27,
           "type": "barchart",
           "title": "Errors by type (5m)",
           "datasource": {
@@ -1775,172 +1632,9 @@
             }
           ],
           "description": "Bar chart of exceptions in the last 5m broken down by `error_type`."
-        },
-        {
-          "id": 30,
-          "type": "timeseries",
-          "title": "Streaming tokens/sec \u2014 avg & p95",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "decimals": 0,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "avg(avg_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
-              "legendFormat": "Avg tokens/s",
-              "refId": "A",
-              "queryType": "range"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "max(quantile_over_time(0.95, {service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | tokens_per_second > 0 | unwrap tokens_per_second [5m]))",
-              "legendFormat": "p95 tokens/s",
-              "refId": "B",
-              "queryType": "range"
-            }
-          ],
-          "description": "Average and p95 streaming output throughput (`tokens_per_second`)."
-        },
-        {
-          "id": 31,
-          "type": "timeseries",
-          "title": "Streaming share of requests (5m)",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "custom": {
-                "lineWidth": 2,
-                "fillOpacity": 18,
-                "gradientMode": "opacity",
-                "lineInterpolation": "smooth",
-                "spanNulls": true,
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "showPoints": "never",
-                "pointSize": 5,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "axisGridShow": true,
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "axisSoftMax": 100
-              },
-              "decimals": 1,
-              "color": {
-                "mode": "palette-classic"
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "gridPos": {
-            "x": 12,
-            "y": 8,
-            "w": 12,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "loki-ds"
-              },
-              "expr": "(sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" | streaming=\"true\" [5m])) / (sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | operation_name=~\"$operation\" [5m])) or on() vector(1))) * 100",
-              "legendFormat": "Streaming %",
-              "refId": "A",
-              "queryType": "range"
-            }
-          ],
-          "description": "Percentage of requests served via streaming responses."
         }
       ],
-      "description": "Error spikes, streaming throughput, and streaming share"
+      "description": "Error spikes during token streaming"
     }
   ],
   "links": [

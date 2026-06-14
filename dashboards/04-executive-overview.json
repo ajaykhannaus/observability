@@ -1648,79 +1648,12 @@
             }
           ],
           "description": "Why the gateway chose a model (`routing_reason` from logs): cost, latency, fallback, policy, etc. Source: Loki `telemetry_event`."
-        },
-        {
-          "id": 27,
-          "type": "gauge",
-          "title": "SLA attainment %",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "min": 90,
-              "max": 100,
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "red",
-                    "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 95
-                  },
-                  {
-                    "color": "green",
-                    "value": 99
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true,
-            "orientation": "auto",
-            "sizing": "auto"
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 8,
-            "w": 8,
-            "h": 8
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "100 - (sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\",status=\"error\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[5m])), 1e-9) * 100)",
-              "refId": "A",
-              "range": true,
-              "instant": false
-            }
-          ],
-          "description": "100 \u2212 error rate: share of requests served successfully."
         }
       ],
-      "description": "Department SLA breach rate, routing mix, and attainment"
+      "description": "Department SLA breach rate and routing mix"
     },
     {
-      "id": 28,
+      "id": 27,
       "type": "row",
       "title": "Live Request Log",
       "collapsed": true,
@@ -1732,147 +1665,7 @@
       },
       "panels": [
         {
-          "id": 29,
-          "type": "stat",
-          "title": "Error budget burn (5m)",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "percent",
-              "decimals": 2,
-              "color": {
-                "mode": "thresholds"
-              },
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 2
-                  },
-                  {
-                    "color": "red",
-                    "value": 5
-                  }
-                ]
-              },
-              "mappings": []
-            },
-            "overrides": []
-          },
-          "options": {
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ]
-            },
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "center",
-            "textMode": "auto",
-            "wideLayout": true,
-            "showPercentChange": false,
-            "percentChangeColorMode": "standard",
-            "text": {}
-          },
-          "gridPos": {
-            "x": 0,
-            "y": 0,
-            "w": 8,
-            "h": 5
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\",status=\"error\"}[5m])) / clamp_min(sum(rate(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[5m])), 1e-9) * 100",
-              "refId": "A",
-              "range": true,
-              "instant": false
-            }
-          ],
-          "description": "Current error rate over 5m \u2014 how fast the error budget is burning."
-        },
-        {
-          "id": 30,
-          "type": "barchart",
-          "title": "Top models by traffic (1h)",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-ds"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "unit": "short",
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "fillOpacity": 80,
-                "gradientMode": "opacity",
-                "lineWidth": 1,
-                "axisColorMode": "text",
-                "axisBorderShow": false,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              }
-            },
-            "overrides": []
-          },
-          "options": {
-            "orientation": "auto",
-            "xTickLabelRotation": -45,
-            "xTickLabelSpacing": 100,
-            "barRadius": 0.15,
-            "groupWidth": 0.7,
-            "barWidth": 0.9,
-            "fullHighlight": false,
-            "showValue": "auto",
-            "stacking": "none",
-            "tooltip": {
-              "mode": "single",
-              "sort": "desc"
-            },
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            }
-          },
-          "gridPos": {
-            "x": 8,
-            "y": 0,
-            "w": 16,
-            "h": 5
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-ds"
-              },
-              "expr": "topk(6, sum by (model_name) (increase(ai_gateway_request_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",status=~\"$status\",environment=~\"$environment\"}[1h])))",
-              "legendFormat": "{{model_name}}",
-              "refId": "A",
-              "instant": true
-            }
-          ],
-          "description": "Top 6 models by request volume over the last hour."
-        },
-        {
-          "id": 31,
+          "id": 28,
           "type": "logs",
           "title": "Live Telemetry Events",
           "datasource": {
@@ -1889,7 +1682,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 5,
+            "y": 0,
             "w": 24,
             "h": 10
           },
@@ -1909,7 +1702,7 @@
           "description": "Streaming audit of recent `telemetry_event` log lines \u2014 request id, model, latency, department, routing. Use for live debugging; not aggregated metrics."
         }
       ],
-      "description": "Error budget, top models, and real-time event stream"
+      "description": "Real-time telemetry event stream"
     }
   ],
   "links": [
