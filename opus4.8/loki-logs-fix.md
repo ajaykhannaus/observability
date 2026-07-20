@@ -874,3 +874,33 @@ python3 dashboards/generate_dashboards.py
 ./scripts/fix-runner.sh --build
 FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
 ```
+
+## Port of `feature/errors-summary-row` onto master
+
+Ported the errors-summary-row feature (branch `feature/errors-summary-row`,
+commit 19e607b, arpit) onto the current reshuffled master. The branch forked
+from `b52cebb` (pre-reshuffle), so the feature was **re-implemented** on
+master's generator rather than cherry-picked:
+
+- Reusable helpers gained optional params: `stat_panel(graph_mode, text_mode)`,
+  `barchart_panel(show_value)`, `piechart_panel(display_labels)`.
+- New `nav_error_stat_panel` + `_nav_gateway_errors_5m`; `nav_bar_panel` width
+  24→18 and `_prepend_nav`/`dashboard()` gained a `nav_error` slot — every
+  generated dashboard now shows a compact error badge top-right beside the tabs.
+- Infra (`build_d7`) gained a full **Errors summary** section (API error rate,
+  Exceptions 1h, By type, By category, Recent error logs) prepended above the
+  headline; existing headline stats shifted down.
+- Quality (`build_d5`) gained "AI — Errors (5m)" + "AI — Evaluator Errors (24h)".
+- `scripts/setup_grafana_local.py`: UTF-8 read + ASCII console output (portable).
+
+Demo-safety adjustments vs the branch: the two **Loki** nav badges were kept at
+`[1h]` instead of `[24h]` — "Safety alerts (1h)" (`{_plog} | pii_detected`) and
+"User errors (1h)" (`{ctx.tele} | status="error"`) — to avoid datasource
+timeouts on the high-volume streams. All other error queries are Prometheus
+(`ai_gateway_exception_count_total`, cheap) or the low-volume eval stream.
+Nothing reintroduced `| json`.
+
+```bash
+python3 dashboards/generate_dashboards.py
+FORCE_IMAGE_BUILD=true ./scripts/bootstrap-azure.sh --grafana-only
+```

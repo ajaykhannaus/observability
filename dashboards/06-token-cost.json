@@ -178,7 +178,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 24,
+        "w": 18,
         "h": 3
       },
       "targets": [],
@@ -186,6 +186,77 @@
     },
     {
       "id": 2,
+      "type": "stat",
+      "title": "Errors (5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(increase(ai_gateway_exception_count_total{department=~\"$department\",region=~\"$region\",model_provider=~\"$provider\",model_name=~\"$model\",operation_name=~\"$operation\",environment=~\"$environment\"}[5m])) or vector(0)",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "description": "Gateway exceptions in the last 5 minutes. Shown beside the tab nav."
+    },
+    {
+      "id": 3,
       "type": "stat",
       "title": "Output tokens",
       "datasource": {
@@ -248,7 +319,7 @@
       "description": "Total completion (output) tokens consumed in the selected time range."
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Avg tokens / request",
       "datasource": {
@@ -311,7 +382,7 @@
       "description": "Average prompt + completion + cache tokens per request."
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Context fill",
       "datasource": {
@@ -383,7 +454,7 @@
       "description": "Average context window utilization % \u2014 how full prompts are across models."
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "stat",
       "title": "Errors (5m)",
       "datasource": {
@@ -451,10 +522,10 @@
           "instant": false
         }
       ],
-      "description": "Exception count increase in the last 5 minutes."
+      "description": "Gateway exceptions in the last 5 minutes. Shown beside the tab nav."
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "row",
       "title": "Cost",
       "collapsed": false,
@@ -468,7 +539,7 @@
       "description": "Per-request cost and daily/monthly spend totals"
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "timeseries",
       "title": "Cost per request",
       "datasource": {
@@ -553,7 +624,7 @@
       "description": "Average USD cost per request from log field `cost_usd`. Source: Loki `telemetry_event` (synthetic generator computes per-model pricing)."
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "Cost per user/session",
       "datasource": {
@@ -629,7 +700,7 @@
       "description": "Average cost per request over time \u2014 `increase(cost) / increase(requests)` from Prometheus (Loki per-user ratios exceed local query resolution limits in range mode)."
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "Daily/monthly spend",
       "datasource": {
@@ -716,7 +787,7 @@
       "description": "Total USD spent: 24h and 30d `increase` on `ai_gateway_request_cost_USD_total`."
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "row",
       "title": "Cost breakdown",
       "collapsed": true,
@@ -728,7 +799,7 @@
       },
       "panels": [
         {
-          "id": 11,
+          "id": 12,
           "type": "piechart",
           "title": "Cost by department",
           "datasource": {
@@ -795,7 +866,7 @@
           "description": "Share of 24h LLM spend by internal department (`department` label). Each user belongs to one department within the organization."
         },
         {
-          "id": 12,
+          "id": 13,
           "type": "barchart",
           "title": "Model-wise cost breakdown",
           "datasource": {
@@ -867,7 +938,7 @@
       "description": "Department and model cost distribution"
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "row",
       "title": "Savings",
       "collapsed": true,
@@ -879,7 +950,7 @@
       },
       "panels": [
         {
-          "id": 14,
+          "id": 15,
           "type": "timeseries",
           "title": "Cache hit savings",
           "datasource": {
@@ -967,7 +1038,7 @@
       "description": "USD saved from cache hits"
     },
     {
-      "id": 15,
+      "id": 16,
       "type": "row",
       "title": "Output throughput",
       "collapsed": false,
@@ -981,7 +1052,7 @@
       "description": "Token generation rate by model"
     },
     {
-      "id": 16,
+      "id": 17,
       "type": "timeseries",
       "title": "Output Token Count",
       "datasource": {
@@ -1062,7 +1133,7 @@
       "description": "Stacked completion-token throughput by model \u2014 each band is one model's share."
     },
     {
-      "id": 17,
+      "id": 18,
       "type": "bargauge",
       "title": "Output tokens by model (now)",
       "datasource": {
@@ -1113,7 +1184,7 @@
       "description": "Instantaneous completion tokens/s per model \u2014 ranked horizontal bar gauge."
     },
     {
-      "id": 18,
+      "id": 19,
       "type": "row",
       "title": "Request composition",
       "collapsed": true,
@@ -1125,7 +1196,7 @@
       },
       "panels": [
         {
-          "id": 19,
+          "id": 20,
           "type": "piechart",
           "title": "Token type mix",
           "datasource": {
@@ -1192,7 +1263,7 @@
           "description": "Donut chart of prompt vs completion vs cache_read tokens in the last hour."
         },
         {
-          "id": 20,
+          "id": 21,
           "type": "timeseries",
           "title": "Total tokens per request",
           "datasource": {
@@ -1269,7 +1340,7 @@
           "description": "Average total tokens per request over time (single aggregate trend line)."
         },
         {
-          "id": 21,
+          "id": 22,
           "type": "bargauge",
           "title": "Prompt size by model",
           "datasource": {
@@ -1323,7 +1394,7 @@
       "description": "Prompt vs completion token mix"
     },
     {
-      "id": 22,
+      "id": 23,
       "type": "row",
       "title": "Context window",
       "collapsed": true,
@@ -1335,7 +1406,7 @@
       },
       "panels": [
         {
-          "id": 23,
+          "id": 24,
           "type": "gauge",
           "title": "Context Window Utilization (%)",
           "datasource": {
@@ -1403,7 +1474,7 @@
           "description": "Dial gauge of average context window fill \u2014 high values risk truncation."
         },
         {
-          "id": 24,
+          "id": 25,
           "type": "bargauge",
           "title": "Context fill by model",
           "datasource": {
@@ -1472,7 +1543,7 @@
           "description": "Context window utilization % ranked by model."
         },
         {
-          "id": 25,
+          "id": 26,
           "type": "timeseries",
           "title": "Prompt size trend",
           "datasource": {
@@ -1552,7 +1623,7 @@
       "description": "Context window fill and prompt size trends"
     },
     {
-      "id": 26,
+      "id": 27,
       "type": "row",
       "title": "Streaming throughput & errors",
       "collapsed": true,
@@ -1564,7 +1635,7 @@
       },
       "panels": [
         {
-          "id": 27,
+          "id": 28,
           "type": "barchart",
           "title": "Errors by type (5m)",
           "datasource": {

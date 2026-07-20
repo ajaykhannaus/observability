@@ -431,6 +431,42 @@ METRIC_DEFINITIONS: dict[str, str] = {
     "Safety incidents (injection, jailbreak, compliance)": (
         "Log lines where any safety flag fired — combined injection, jailbreak, or compliance events."
     ),
+    # Errors summary row (infra) + per-dashboard error nav badges
+    "Errors summary — API error rate": (
+        "Failed requests as a share of all requests over the last 5 minutes. Green is healthy."
+    ),
+    "Errors summary — Exceptions (1h)": (
+        "Total gateway exceptions in the last hour. Zero or low is normal."
+    ),
+    "Errors summary — By type": (
+        "Which error type happened most in the last hour. Longest bar = main problem."
+    ),
+    "Errors summary — By category": (
+        "What kind of problem it is (last hour). Biggest slice = check that first."
+    ),
+    "Errors summary — Recent error logs": (
+        "Latest failed requests (status=error). Newest at the top."
+    ),
+    "Errors (5m)": (
+        "Gateway exceptions in the last 5 minutes. Shown beside the tab nav."
+    ),
+    "AI errors (5m)": (
+        "AI request failures in the last 5 minutes. Shown beside the tab nav."
+    ),
+    "AI — Errors (5m)": (
+        "AI request failures (gateway exceptions) in the last 5 minutes."
+    ),
+    "AI — Evaluator Errors (24h)": (
+        "Quality-check (judge) failures in the last 24 hours — sourced from the low-volume eval stream."
+    ),
+    "Safety alerts (1h)": (
+        "Prompts with PII detected in the last hour. Review if high. "
+        "1h window (not 24h) keeps the nav-badge Loki query fast for a live demo."
+    ),
+    "User errors (1h)": (
+        "User request failures (status=error) in the last hour. "
+        "1h window (not 24h) avoids a Loki timeout on the high-volume telemetry stream."
+    ),
 }
 
 from users_observability_metrics import register_metric_definitions  # noqa: E402

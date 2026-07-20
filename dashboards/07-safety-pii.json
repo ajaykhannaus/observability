@@ -152,7 +152,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 24,
+        "w": 18,
         "h": 3
       },
       "targets": [],
@@ -160,6 +160,78 @@
     },
     {
       "id": 2,
+      "type": "stat",
+      "title": "Safety alerts (1h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"prompt_log_event\" | department=~\"$department\" | data_classification=~\"$data_class\" | model_provider=~\"$provider\" | model_name=~\"$model\" | pii_detected=\"true\" [1h])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "description": "Prompts with PII detected in the last hour. Review if high. 1h window (not 24h) keeps the nav-badge Loki query fast for a live demo."
+    },
+    {
+      "id": 3,
       "type": "stat",
       "title": "Toxicity score",
       "datasource": {
@@ -231,7 +303,7 @@
       "description": "Average content-safety `toxicity_score` on prompt logs, scaled to 0\u2013100%. Source: Loki `prompt_log_event`."
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "PII detection rate",
       "datasource": {
@@ -303,7 +375,7 @@
       "description": "% of prompt logs with `pii_detected=true`. PII must stay in logs, not Prometheus labels."
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Prompt injection attempts",
       "datasource": {
@@ -375,7 +447,7 @@
       "description": "Count of prompts flagged `prompt_injection_detected=true` in the last 1h (1h window keeps the Loki query fast on dev-sized Loki)."
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "stat",
       "title": "Jailbreak attempts",
       "datasource": {
@@ -447,7 +519,7 @@
       "description": "Count of prompts flagged `jailbreak_attempt=true` (role-override / DAN-style) in the last 1h."
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "stat",
       "title": "Compliance violations",
       "datasource": {
@@ -519,7 +591,7 @@
       "description": "Count of prompts with `compliance_violation=true` (policy / classification breach) in the last 1h."
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "row",
       "title": "Safety Trends",
       "collapsed": true,
@@ -531,7 +603,7 @@
       },
       "panels": [
         {
-          "id": 8,
+          "id": 9,
           "type": "timeseries",
           "title": "Toxicity score",
           "datasource": {
@@ -608,7 +680,7 @@
           "description": "Average content-safety `toxicity_score` on prompt logs, scaled to 0\u2013100%. Source: Loki `prompt_log_event`."
         },
         {
-          "id": 9,
+          "id": 10,
           "type": "timeseries",
           "title": "PII detection rate",
           "datasource": {
@@ -683,7 +755,7 @@
           "description": "% of prompt logs with `pii_detected=true`. PII must stay in logs, not Prometheus labels."
         },
         {
-          "id": 10,
+          "id": 11,
           "type": "timeseries",
           "title": "Prompt injection attempts / min",
           "datasource": {
@@ -758,7 +830,7 @@
           "description": "Rate of detected injection attempts per minute \u2014 live security trend."
         },
         {
-          "id": 11,
+          "id": 12,
           "type": "timeseries",
           "title": "Jailbreak attempts / min",
           "datasource": {
@@ -833,7 +905,7 @@
           "description": "Rate of jailbreak detections per minute."
         },
         {
-          "id": 12,
+          "id": 13,
           "type": "timeseries",
           "title": "Compliance violations / min",
           "datasource": {
@@ -911,7 +983,7 @@
       "description": "Time-series safety signals and attack rates"
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "row",
       "title": "PII & Data Classification",
       "collapsed": true,
@@ -923,7 +995,7 @@
       },
       "panels": [
         {
-          "id": 14,
+          "id": 15,
           "type": "stat",
           "title": "PII Events Today",
           "datasource": {
@@ -995,7 +1067,7 @@
           "description": "Total prompt logs with PII detected in the last 24h."
         },
         {
-          "id": 15,
+          "id": 16,
           "type": "stat",
           "title": "PHI Requests Today",
           "datasource": {
@@ -1059,7 +1131,7 @@
           "description": "Telemetry events with `data_classification=phi` (protected health information) in 24h."
         },
         {
-          "id": 16,
+          "id": 17,
           "type": "stat",
           "title": "PII Requests Today",
           "datasource": {
@@ -1123,7 +1195,7 @@
           "description": "Telemetry events with `data_classification=pii` in 24h."
         },
         {
-          "id": 17,
+          "id": 18,
           "type": "stat",
           "title": "Unique Prompt Hashes (24h)",
           "datasource": {
@@ -1187,7 +1259,7 @@
           "description": "Distinct `prompt_hash` values audited \u2014 coverage of prompt logging without storing raw text."
         },
         {
-          "id": 18,
+          "id": 19,
           "type": "piechart",
           "title": "Data Classification Distribution",
           "datasource": {
@@ -1255,7 +1327,7 @@
           "description": "Mix of `data_classification` labels (phi, pii, confidential, internal, \u2026) in the last hour."
         },
         {
-          "id": 19,
+          "id": 20,
           "type": "timeseries",
           "title": "PII Events by Department",
           "datasource": {
@@ -1330,7 +1402,7 @@
           "description": "PII detections per `department` over time \u2014 which teams send sensitive prompts."
         },
         {
-          "id": 20,
+          "id": 21,
           "type": "barchart",
           "title": "PHI + PII Volume by Department (last 1h)",
           "datasource": {
@@ -1403,7 +1475,7 @@
       "description": "PII/PHI volume and data classification mix"
     },
     {
-      "id": 21,
+      "id": 22,
       "type": "row",
       "title": "Prompt Audit Log",
       "collapsed": true,
@@ -1415,7 +1487,7 @@
       },
       "panels": [
         {
-          "id": 22,
+          "id": 23,
           "type": "logs",
           "title": "Prompt Log Events (PII-scrubbed)",
           "datasource": {
@@ -1455,7 +1527,7 @@
       "description": "PII-scrubbed prompt audit stream"
     },
     {
-      "id": 23,
+      "id": 24,
       "type": "row",
       "title": "High-Risk Request Table",
       "collapsed": true,
@@ -1467,7 +1539,7 @@
       },
       "panels": [
         {
-          "id": 24,
+          "id": 25,
           "type": "table",
           "title": "PHI / PII Requests with Trace Links",
           "datasource": {
@@ -1524,7 +1596,7 @@
           "description": "Table of sensitive requests with `request_id`, department, model, and `trace_id` for Tempo drill-down."
         },
         {
-          "id": 25,
+          "id": 26,
           "type": "logs",
           "title": "Safety incidents (injection, jailbreak, compliance)",
           "datasource": {

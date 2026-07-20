@@ -157,7 +157,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 24,
+        "w": 18,
         "h": 3
       },
       "targets": [],
@@ -165,6 +165,78 @@
     },
     {
       "id": 2,
+      "type": "stat",
+      "title": "User errors (1h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "percentChangeColorMode": "standard",
+        "text": {}
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-ds"
+          },
+          "expr": "sum(count_over_time({service_name=~\".+\"} | event_type=\"telemetry_event\" | department=~\"$department\" | region=~\"$region\" | model_provider=~\"$provider\" | model_name=~\"$model\" | status=\"error\" [1h])) or vector(0)",
+          "refId": "A",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "description": "User request failures (status=error) in the last hour. 1h window (not 24h) avoids a Loki timeout on the high-volume telemetry stream."
+    },
+    {
+      "id": 3,
       "type": "row",
       "title": "Adoption",
       "collapsed": false,
@@ -178,7 +250,7 @@
       "description": "6 metrics from Users Observability Metrics.xlsx"
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "timeseries",
       "title": "Active Users (DAU/WAU/MAU)",
       "datasource": {
@@ -274,7 +346,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** Active Users (DAU/WAU/MAU)\n\n**Definition:** Unique users interacting with AI\n\n**Key Data Elements:** User ID, Timestamp\n\n**Best Visual:** Time-series Line Chart"
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "gauge",
       "title": "Adoption Rate",
       "datasource": {
@@ -342,7 +414,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** Adoption Rate\n\n**Definition:** % eligible users using AI\n\n**Key Data Elements:** User ID, Eligible Population\n\n**Best Visual:** Gauge / KPI Card"
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "barchart",
       "title": "New User Activation Rate",
       "datasource": {
@@ -434,7 +506,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** New User Activation Rate\n\n**Definition:** First successful AI usage\n\n**Key Data Elements:** User ID, Activation Event\n\n**Best Visual:** Funnel Chart"
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "barchart",
       "title": "Feature Adoption Rate",
       "datasource": {
@@ -504,7 +576,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** Feature Adoption Rate\n\n**Definition:** Usage of specific capability\n\n**Key Data Elements:** Feature ID, User ID\n\n**Best Visual:** Horizontal Bar Chart"
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "bargauge",
       "title": "User Penetration by Department",
       "datasource": {
@@ -574,7 +646,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** User Penetration by Department\n\n**Definition:** Adoption across org units\n\n**Key Data Elements:** Department, User ID\n\n**Best Visual:** Heatmap"
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "Returning User Rate",
       "datasource": {
@@ -650,7 +722,7 @@
       "description": "**Category:** Adoption\n\n**Metric:** Returning User Rate\n\n**Definition:** Users coming back\n\n**Key Data Elements:** User ID, Session Date\n\n**Best Visual:** Cohort Retention Chart"
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "row",
       "title": "Engagement",
       "collapsed": true,
@@ -662,7 +734,7 @@
       },
       "panels": [
         {
-          "id": 10,
+          "id": 11,
           "type": "barchart",
           "title": "Sessions per User",
           "datasource": {
@@ -732,7 +804,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Sessions per User\n\n**Definition:** Usage frequency\n\n**Key Data Elements:** Session ID, User ID\n\n**Best Visual:** Histogram"
         },
         {
-          "id": 11,
+          "id": 12,
           "type": "timeseries",
           "title": "Average Session Duration",
           "datasource": {
@@ -807,7 +879,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Average Session Duration\n\n**Definition:** Time spent using AI\n\n**Key Data Elements:** Session Start/End\n\n**Best Visual:** Trend Line"
         },
         {
-          "id": 12,
+          "id": 13,
           "type": "timeseries",
           "title": "Prompts per Session",
           "datasource": {
@@ -892,7 +964,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Prompts per Session\n\n**Definition:** Interaction intensity\n\n**Key Data Elements:** Prompt ID, Session ID\n\n**Best Visual:** Box Plot"
         },
         {
-          "id": 13,
+          "id": 14,
           "type": "barchart",
           "title": "Messages per Conversation",
           "datasource": {
@@ -962,7 +1034,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Messages per Conversation\n\n**Definition:** Conversation depth\n\n**Key Data Elements:** Conversation ID\n\n**Best Visual:** Distribution Histogram"
         },
         {
-          "id": 14,
+          "id": 15,
           "type": "timeseries",
           "title": "Stickiness (DAU/MAU)",
           "datasource": {
@@ -1038,7 +1110,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Stickiness (DAU/MAU)\n\n**Definition:** Repeat engagement\n\n**Key Data Elements:** User ID, Date\n\n**Best Visual:** Gauge + Trend Line"
         },
         {
-          "id": 15,
+          "id": 16,
           "type": "piechart",
           "title": "Feature Usage Distribution",
           "datasource": {
@@ -1106,7 +1178,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Feature Usage Distribution\n\n**Definition:** Feature popularity\n\n**Key Data Elements:** Feature ID\n\n**Best Visual:** Treemap"
         },
         {
-          "id": 16,
+          "id": 17,
           "type": "barchart",
           "title": "Usage by Time of Day",
           "datasource": {
@@ -1176,7 +1248,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Usage by Time of Day\n\n**Definition:** Peak usage periods\n\n**Key Data Elements:** Timestamp\n\n**Best Visual:** 24-Hour Heatmap"
         },
         {
-          "id": 17,
+          "id": 18,
           "type": "barchart",
           "title": "Top 10 Users by Token",
           "datasource": {
@@ -1246,7 +1318,7 @@
           "description": "**Category:** Engagement\n\n**Metric:** Top 10 Users by Token\n\n**Definition:** Highest token consumers\n\n**Key Data Elements:** User ID, Token Count\n\n**Best Visual:** Ranked Bar Chart"
         },
         {
-          "id": 18,
+          "id": 19,
           "type": "barchart",
           "title": "Top 10 Users by Session Duration",
           "datasource": {
@@ -1319,7 +1391,7 @@
       "description": "9 metrics from Users Observability Metrics.xlsx"
     },
     {
-      "id": 19,
+      "id": 20,
       "type": "row",
       "title": "Experience & DQ",
       "collapsed": true,
@@ -1331,7 +1403,7 @@
       },
       "panels": [
         {
-          "id": 20,
+          "id": 21,
           "type": "gauge",
           "title": "Task Completion Rate",
           "datasource": {
@@ -1399,7 +1471,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Task Completion Rate\n\n**Definition:** Tasks successfully completed\n\n**Key Data Elements:** Task Status\n\n**Best Visual:** Gauge"
         },
         {
-          "id": 21,
+          "id": 22,
           "type": "piechart",
           "title": "Response Acceptance Rate",
           "datasource": {
@@ -1478,7 +1550,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Response Acceptance Rate\n\n**Definition:** Accepted responses\n\n**Key Data Elements:** Response Status\n\n**Best Visual:** Donut Chart"
         },
         {
-          "id": 22,
+          "id": 23,
           "type": "timeseries",
           "title": "Regeneration Rate",
           "datasource": {
@@ -1553,7 +1625,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Regeneration Rate\n\n**Definition:** Retry frequency\n\n**Key Data Elements:** Regeneration Event\n\n**Best Visual:** Trend Line"
         },
         {
-          "id": 23,
+          "id": 24,
           "type": "barchart",
           "title": "Prompt Abandonment Rate",
           "datasource": {
@@ -1634,7 +1706,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Prompt Abandonment Rate\n\n**Definition:** Prompts not completed\n\n**Key Data Elements:** Prompt Status\n\n**Best Visual:** Funnel Chart"
         },
         {
-          "id": 24,
+          "id": 25,
           "type": "barchart",
           "title": "Conversation Abandonment Rate",
           "datasource": {
@@ -1715,7 +1787,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Conversation Abandonment Rate\n\n**Definition:** Sessions ending prematurely\n\n**Key Data Elements:** Session Outcome\n\n**Best Visual:** Sankey Diagram"
         },
         {
-          "id": 25,
+          "id": 26,
           "type": "timeseries",
           "title": "Error Encounter Rate",
           "datasource": {
@@ -1800,7 +1872,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Error Encounter Rate\n\n**Definition:** User-facing failures\n\n**Key Data Elements:** Error Events\n\n**Best Visual:** Stacked Area Chart"
         },
         {
-          "id": 26,
+          "id": 27,
           "type": "timeseries",
           "title": "Average Response Latency",
           "datasource": {
@@ -1885,7 +1957,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Average Response Latency\n\n**Definition:** User wait time\n\n**Key Data Elements:** Request Time, Response Time\n\n**Best Visual:** P95/P99 Trend Line"
         },
         {
-          "id": 27,
+          "id": 28,
           "type": "barchart",
           "title": "Time to First Response",
           "datasource": {
@@ -1955,7 +2027,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Time to First Response\n\n**Definition:** Initial response speed\n\n**Key Data Elements:** Prompt Timestamp\n\n**Best Visual:** Latency Distribution Histogram"
         },
         {
-          "id": 28,
+          "id": 29,
           "type": "timeseries",
           "title": "Escalation Rate",
           "datasource": {
@@ -2030,7 +2102,7 @@
           "description": "**Category:** Experience & DQ\n\n**Metric:** Escalation Rate\n\n**Definition:** Human handoff frequency\n\n**Key Data Elements:** Escalation Event\n\n**Best Visual:** Trend Line"
         },
         {
-          "id": 29,
+          "id": 30,
           "type": "timeseries",
           "title": "Hallucination Feedback Rate",
           "datasource": {
@@ -2108,7 +2180,7 @@
       "description": "10 metrics from Users Observability Metrics.xlsx"
     },
     {
-      "id": 30,
+      "id": 31,
       "type": "row",
       "title": "Productivity and Efficiency",
       "collapsed": true,
@@ -2120,7 +2192,7 @@
       },
       "panels": [
         {
-          "id": 31,
+          "id": 32,
           "type": "timeseries",
           "title": "Time Saved per Task",
           "datasource": {
@@ -2205,7 +2277,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Time Saved per Task\n\n**Definition:** Efficiency gain\n\n**Key Data Elements:** Task Duration\n\n**Best Visual:** Box Plot"
         },
         {
-          "id": 32,
+          "id": 33,
           "type": "bargauge",
           "title": "Productivity Gain %",
           "datasource": {
@@ -2275,7 +2347,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Productivity Gain %\n\n**Definition:** Performance improvement\n\n**Key Data Elements:** Baseline vs Current\n\n**Best Visual:** Bullet Chart"
         },
         {
-          "id": 33,
+          "id": 34,
           "type": "timeseries",
           "title": "Tasks Automated",
           "datasource": {
@@ -2350,7 +2422,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Tasks Automated\n\n**Definition:** AI-completed tasks\n\n**Key Data Elements:** Automation Events\n\n**Best Visual:** Cumulative Trend Line"
         },
         {
-          "id": 34,
+          "id": 35,
           "type": "barchart",
           "title": "AI-Assisted Task Rate",
           "datasource": {
@@ -2431,7 +2503,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** AI-Assisted Task Rate\n\n**Definition:** AI usage in workflows\n\n**Key Data Elements:** AI Usage Flag\n\n**Best Visual:** Stacked Bar Chart"
         },
         {
-          "id": 35,
+          "id": 36,
           "type": "barchart",
           "title": "Resolution Time Reduction",
           "datasource": {
@@ -2512,7 +2584,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Resolution Time Reduction\n\n**Definition:** Faster completion\n\n**Key Data Elements:** Resolution Duration\n\n**Best Visual:** Before/After Bar Chart"
         },
         {
-          "id": 36,
+          "id": 37,
           "type": "timeseries",
           "title": "Employee Capacity Created",
           "datasource": {
@@ -2587,7 +2659,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Employee Capacity Created\n\n**Definition:** Time freed up\n\n**Key Data Elements:** Time Saved\n\n**Best Visual:** Area Chart"
         },
         {
-          "id": 37,
+          "id": 38,
           "type": "barchart",
           "title": "Revenue Influence",
           "datasource": {
@@ -2657,7 +2729,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Revenue Influence\n\n**Definition:** Revenue attributed to AI\n\n**Key Data Elements:** Revenue Events\n\n**Best Visual:** Waterfall Chart"
         },
         {
-          "id": 38,
+          "id": 39,
           "type": "barchart",
           "title": "Cost Avoidance",
           "datasource": {
@@ -2727,7 +2799,7 @@
           "description": "**Category:** Productivity and Efficiency\n\n**Metric:** Cost Avoidance\n\n**Definition:** Savings generated\n\n**Key Data Elements:** Cost Baseline\n\n**Best Visual:** Waterfall Chart"
         },
         {
-          "id": 39,
+          "id": 40,
           "type": "stat",
           "title": "Conversion Lift",
           "datasource": {
@@ -2794,7 +2866,7 @@
       "description": "9 metrics from Users Observability Metrics.xlsx"
     },
     {
-      "id": 40,
+      "id": 41,
       "type": "row",
       "title": "Governance & Risk",
       "collapsed": true,
@@ -2806,7 +2878,7 @@
       },
       "panels": [
         {
-          "id": 41,
+          "id": 42,
           "type": "timeseries",
           "title": "Sensitive Data Exposure Rate",
           "datasource": {
@@ -2881,7 +2953,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Sensitive Data Exposure Rate\n\n**Definition:** Restricted content entered\n\n**Key Data Elements:** Classification Results\n\n**Best Visual:** Risk Trend Line"
         },
         {
-          "id": 42,
+          "id": 43,
           "type": "bargauge",
           "title": "PII Submission Rate",
           "datasource": {
@@ -2933,7 +3005,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** PII Submission Rate\n\n**Definition:** Personal data submissions\n\n**Key Data Elements:** PII Detection\n\n**Best Visual:** Heatmap"
         },
         {
-          "id": 43,
+          "id": 44,
           "type": "timeseries",
           "title": "Policy Violation Rate",
           "datasource": {
@@ -3008,7 +3080,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Policy Violation Rate\n\n**Definition:** Content violations\n\n**Key Data Elements:** Moderation Results\n\n**Best Visual:** Control Chart"
         },
         {
-          "id": 44,
+          "id": 45,
           "type": "timeseries",
           "title": "Unsafe Output Rate",
           "datasource": {
@@ -3083,7 +3155,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Unsafe Output Rate\n\n**Definition:** Unsafe AI responses\n\n**Key Data Elements:** Safety Flags\n\n**Best Visual:** Trend Line"
         },
         {
-          "id": 45,
+          "id": 46,
           "type": "gauge",
           "title": "Audit Coverage",
           "datasource": {
@@ -3151,7 +3223,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Audit Coverage\n\n**Definition:** Logged interactions\n\n**Key Data Elements:** Audit Logs\n\n**Best Visual:** Gauge"
         },
         {
-          "id": 46,
+          "id": 47,
           "type": "timeseries",
           "title": "Access Violation Rate",
           "datasource": {
@@ -3236,7 +3308,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Access Violation Rate\n\n**Definition:** Unauthorized attempts\n\n**Key Data Elements:** Access Logs\n\n**Best Visual:** Stacked Bar Chart"
         },
         {
-          "id": 47,
+          "id": 48,
           "type": "timeseries",
           "title": "Human Review Rate",
           "datasource": {
@@ -3311,7 +3383,7 @@
           "description": "**Category:** Governance & Risk\n\n**Metric:** Human Review Rate\n\n**Definition:** Human-reviewed interactions\n\n**Key Data Elements:** Review Events\n\n**Best Visual:** Trend Line"
         },
         {
-          "id": 48,
+          "id": 49,
           "type": "gauge",
           "title": "Compliance Pass Rate",
           "datasource": {

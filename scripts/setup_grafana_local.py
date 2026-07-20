@@ -494,14 +494,14 @@ def main() -> None:
 
     print(f"  importing {len(_dashboard_files())} dashboards into '{FOLDER_TITLE}'...")
     for path in _dashboard_files():
-        dash = json.loads(path.read_text())
+        dash = json.loads(path.read_text(encoding="utf-8"))
         _strip_export_metadata(dash)
         if path.name == "grafana_dashboard.json":
             _patch_legacy_dashboard(dash, prom_uid, loki_uid, tempo_uid)
         else:
             _patch_modern_dashboard(dash, prom_uid, loki_uid, tempo_uid)
         url = _import_dashboard(dash, folder_uid)
-        print(f"  ✓ {dash.get('title', path.name)} → {url}")
+        print(f"  OK {dash.get('title', path.name)} -> {url}")
 
 
 if __name__ == "__main__":
